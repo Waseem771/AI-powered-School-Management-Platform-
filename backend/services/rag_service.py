@@ -134,38 +134,48 @@ class PolicyRAGService:
             except Exception:
                 pass
 
-        if self.groq_client:
-            try:
-                system_prompt = f"""You are the official AI Policy Assistant for {SCHOOL_NAME}.
+        system_prompt = f"""You are the official AI Policy Assistant for {SCHOOL_NAME}.
 You must answer questions strictly and only using the provided Policy Document Excerpts below.
 Rules:
 1. If the answer is not contained in the excerpts, say clearly: "I don't know based on the provided school policies."
 2. Do not invent dates, rules, or fees.
 3. Be concise, polite, professional, and cite which policy applies."""
 
-                user_prompt = f"""Policy Document Excerpts:
+        user_prompt = f"""Policy Document Excerpts:
 {context_text}
 
 Question: {query}
 Answer:"""
 
-                chat_completion = self.groq_client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    model=GROQ_MODEL,
-                    temperature=0.2,
-                    max_tokens=400,
-                )
-                answer = chat_completion.choices[0].message.content.strip()
-                return {
-                    "answer": answer,
-                    "sources": sources,
-                    "grounded": True
-                }
-            except Exception as e:
-                print(f"[RAG] Groq API call error: {e}. Using local grounded fallback.")
+        if self.groq_client:
+            candidate_models = [
+                os.getenv("GROQ_MODEL", GROQ_MODEL),
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+                "llama-3.3-70b-versatile",
+                "llama-3.1-8b-instant"
+            ]
+            candidate_models = list(dict.fromkeys([m for m in candidate_models if m]))
+            for model_name in candidate_models:
+                try:
+                    chat_completion = self.groq_client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        model=model_name,
+                        temperature=0.2,
+                        max_tokens=400,
+                    )
+                    answer = chat_completion.choices[0].message.content.strip()
+                    return {
+                        "answer": answer,
+                        "sources": sources,
+                        "grounded": True,
+                        "model": model_name
+                    }
+                except Exception as e:
+                    print(f"[RAG] Groq model '{model_name}' attempt error: {e}")
 
         # Local Grounded Fallback Answer Generator
         # Highlights key sentences directly from retrieved chunks
