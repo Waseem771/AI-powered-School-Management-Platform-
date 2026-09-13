@@ -19,6 +19,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     username: str
     role: str
+    access_token: str
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -63,13 +64,14 @@ def login(request: LoginRequest, response: Response, session: Session = Depends(
         value=access_token,
         httponly=True,
         secure=COOKIE_SECURE,
-        samesite="lax",
+        samesite="none" if COOKIE_SECURE else "lax",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
     return {
         "username": user.username,
-        "role": user.role
+        "role": user.role,
+        "access_token": access_token
     }
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

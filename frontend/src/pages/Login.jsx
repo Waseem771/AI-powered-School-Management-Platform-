@@ -17,6 +17,9 @@ export default function Login() {
 
     try {
       const res = await api.login(username, password);
+      if (res.data.access_token) {
+        localStorage.setItem('educore_token', res.data.access_token);
+      }
       localStorage.setItem('educore_user', JSON.stringify({
         username: res.data.username,
         role: res.data.role

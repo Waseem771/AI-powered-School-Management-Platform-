@@ -10,6 +10,15 @@ const client = axios.create({
   },
 });
 
+// Automatically attach Bearer token from localStorage for cross-domain auth
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('educore_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Intercept 401s and redirect to login if session expires
 client.interceptors.response.use(
   (response) => response,
