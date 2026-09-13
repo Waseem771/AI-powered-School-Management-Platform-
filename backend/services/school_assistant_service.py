@@ -80,32 +80,41 @@ class SchoolAssistantService:
                 max_tokens=600,
             )
             assistant_message = first.choices[0].message
-            tool_calls = assistant_message.tool_calls or []
-            if not tool_calls:
-                return None
-
-            messages.append(assistant_message.model_dump(exclude_none=True))
             executed = []
             tool_results: Dict[str, Any] = {}
 
-            for tool_call in tool_calls[:3]:
-                try:
-                    arguments = json.loads(tool_call.function.arguments or "{}")
-                except json.JSONDecodeError:
-                    arguments = {}
-                result = self.data.execute_tool(tool_call.function.name, arguments)
-                executed.append(tool_call.function.name)
-                tool_results[tool_call.function.name] = result
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(result, default=str),
-                })
+            # Handle tool calling rounds (up to 2 iterations)
+            for _ in range(2):
+                tool_calls = assistant_message.tool_calls or []
+                if not tool_calls:
+                    break
 
-            final = client.chat.completions.create(
-                model=GROQ_MODEL, messages=messages, temperature=0.1, max_tokens=700
-            )
-            answer = final.choices[0].message.content or "I found the requested school records."
+                messages.append(assistant_message.model_dump(exclude_none=True))
+
+                for tool_call in tool_calls[:3]:
+                    try:
+                        arguments = json.loads(tool_call.function.arguments or "{}")
+                    except json.JSONDecodeError:
+                        arguments = {}
+                    result = self.data.execute_tool(tool_call.function.name, arguments)
+                    executed.append(tool_call.function.name)
+                    tool_results[tool_call.function.name] = result
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(result, default=str),
+                    })
+
+                next_turn = client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=messages,
+                    tools=self.data.tool_definitions(),
+                    temperature=0.1,
+                    max_tokens=700,
+                )
+                assistant_message = next_turn.choices[0].message
+
+            answer = assistant_message.content or "I found the requested school records."
             return {
                 "answer": answer,
                 "sources": ["School database"],
@@ -234,7 +243,7 @@ class SchoolAssistantService:
     def _student_identifier(
         self, question: str, history: Optional[List[Dict[str, str]]] = None
     ) -> str | None:
-        # 1. Try finding in current question
+        # 1. Try finding roll number in current question
         roll_match = re.search(
             r"\b(?:roll\s*(?:number|no\.?)?\s*#?\s*|#)(\d{1,8})\b", question, re.IGNORECASE
         )
@@ -242,20 +251,29 @@ class SchoolAssistantService:
             return roll_match.group(1)
 
         students = self.session.exec(select(Student)).all()
-        normalized = question.lower()
+        normalized = question.lower().strip()
+
+        # Check exact full name
         for student in students:
-            if student.name.lower() in normalized:
+            s_name = student.name.lower()
+            if s_name in normalized:
                 return student.roll_number
+
+        # Check significant name tokens (e.g. "Daniyal", "Usman", "Bareera")
+        words = re.findall(r"\w+", normalized)
+        for student in students:
+            parts = student.name.lower().split()
+            for part in parts:
+                if len(part) >= 4 and part in words:
+                    return student.roll_number
 
         # 2. If not found in current question, inspect conversation history memory
         if history:
             for prev_msg in reversed(history[-8:]):
                 prev_text = str(prev_msg.get("content", "")).lower()
-                # Check for roll numbers in previous messages
                 prev_roll = re.search(r"\b(?:roll\s*(?:number|no\.?)?\s*#?\s*|#)(\d{1,8})\b", prev_text, re.IGNORECASE)
                 if prev_roll:
                     return prev_roll.group(1)
-                # Check for student names in previous messages
                 for student in students:
                     if student.name.lower() in prev_text:
                         return student.roll_number
@@ -290,8 +308,7 @@ class SchoolAssistantService:
             for p in ("collection", "total fees", "fee summary", "overall fees", "school fees", "fees collected")
         )
 
-    @staticmethod
-    def _is_data_question(question: str, history: Optional[List[Dict[str, str]]] = None) -> bool:
+    def _is_data_question(self, question: str, history: Optional[List[Dict[str, str]]] = None) -> bool:
         lower = question.lower()
         # Policy keywords → send to RAG, not DB
         policy_overrides = (
@@ -302,7 +319,11 @@ class SchoolAssistantService:
         if any(kw in lower for kw in policy_overrides):
             return False
 
-        # DB record keywords
+        # 1. If any student identifier or student name is detected, it is ALWAYS a data question!
+        if self._student_identifier(question, history):
+            return True
+
+        # 2. DB record keywords
         data_keywords = (
             "student", "roll", "dues", "challan", "invoice", "payment",
             "collection", "marks", "result", "record", "profile",
@@ -313,7 +334,7 @@ class SchoolAssistantService:
         if any(kw in lower for kw in data_keywords):
             return True
 
-        # Contextual follow-ups referring to a student in memory
+        # 3. Contextual follow-ups referring to a student in memory
         follow_up_pronouns = (
             "his", "her", "he", "she", "their", "them", "that student",
             "what about", "and his", "and her", "his fees", "her fees",
