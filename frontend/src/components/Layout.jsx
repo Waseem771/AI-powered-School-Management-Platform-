@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,16 +14,57 @@ import {
   Sparkles,
   ShieldCheck
 } from 'lucide-react';
+import { getStoredUser } from '../lib/session';
+import { api } from '../api/client';
 
 export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuButtonRef = useRef(null);
+  const drawerRef = useRef(null);
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('educore_user') || '{"username":"admin","role":"admin"}');
+  const user = getStoredUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem('educore_token');
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.warn('Logout request did not complete:', error);
+    }
     localStorage.removeItem('educore_user');
     navigate('/login');
+  };
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    const firstNavigationItem = drawerRef.current?.querySelector('a');
+    firstNavigationItem?.focus();
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileMenuOpen]);
+
+  const trapDrawerFocus = (event) => {
+    if (event.key !== 'Tab') return;
+    const focusableElements = drawerRef.current?.querySelectorAll('a, button:not([disabled])');
+    if (!focusableElements?.length) return;
+    const first = focusableElements[0];
+    const last = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   const navItems = [
@@ -61,15 +102,33 @@ export default function Layout() {
           </div>
         </div>
         <button
+          ref={menuButtonRef}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800"
+          className="min-h-11 min-w-11 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="primary-navigation"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-slate-950/40 md:hidden"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
+        ref={drawerRef}
+        role="dialog"
+        aria-modal={mobileMenuOpen}
+        aria-label="Main navigation"
+        onKeyDown={trapDrawerFocus}
         className={`fixed md:sticky top-0 h-screen z-40 bg-slate-900 text-white w-64 flex flex-col justify-between transition-transform duration-200 ease-in-out border-r border-slate-800 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
@@ -90,7 +149,7 @@ export default function Layout() {
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-3 space-y-1.5 mt-2">
+          <nav id="primary-navigation" aria-label="Main navigation" className="p-3 space-y-1.5 mt-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -151,7 +210,7 @@ export default function Layout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0" inert={mobileMenuOpen ? '' : undefined} aria-hidden={mobileMenuOpen || undefined}>
         {/* Top Navbar */}
         <header className="hidden md:flex bg-white border-b border-slate-200/80 px-8 py-3.5 items-center justify-between sticky top-0 z-30 shadow-xs">
           <div>
@@ -171,7 +230,7 @@ export default function Layout() {
         </header>
 
         {/* Page Views Container */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
+        <main id="main-content" className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>

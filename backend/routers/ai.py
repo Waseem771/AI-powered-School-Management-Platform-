@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List, Dict, Any, Optional
+from functools import lru_cache
 from database import get_session
 from models.student import Student
 from models.result import Result
 from models.fee import Invoice
-from services.ai_service import ai_service
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/ai", tags=["AI - At Risk"])
+
+@lru_cache
+def get_ai_service():
+    from services.ai_service import ai_service
+    return ai_service
 
 def _calculate_student_features(student_id: int, session: Session) -> Dict[str, Any]:
     marks = session.exec(select(Result).where(Result.student_id == student_id)).all()
@@ -58,7 +63,7 @@ def get_all_at_risk_students(
 
     for s in students:
         features = _calculate_student_features(s.id, session)
-        prediction = ai_service.predict_student_risk(features)
+        prediction = get_ai_service().predict_student_risk(features)
 
         if risk_level and prediction["risk_category"].lower() != risk_level.lower():
             continue
@@ -93,7 +98,7 @@ def get_student_risk_detail(
         raise HTTPException(status_code=404, detail="Student not found")
 
     features = _calculate_student_features(student.id, session)
-    prediction = ai_service.predict_student_risk(features)
+    prediction = get_ai_service().predict_student_risk(features)
 
     # Interventions recommendations
     interventions = []

@@ -6,7 +6,6 @@ from sqlmodel import Session, select
 from config import SCHOOL_NAME
 from database import create_db_and_tables, engine
 from models.user import User, hash_password
-from services.rag_service import rag_service
 from services.ai_service import ai_service
 
 # Routers
@@ -37,11 +36,9 @@ async def lifespan(app: FastAPI):
             session.commit()
             print("[Auth] Created default admin account (admin / admin123)")
 
-    # 3. Initialize RAG system
-    try:
-        rag_service.initialize()
-    except Exception as e:
-        print(f"[RAG] Initialization notice: {e}")
+    # 3. Keep startup responsive. The embedding model is initialized on the
+    # first policy-assistant request instead of blocking every API endpoint.
+    print("[RAG] Policy assistant model will initialize on first use.")
 
     print("=== [EduCore AI] System Ready on http://localhost:8000 ===")
     yield
@@ -56,7 +53,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

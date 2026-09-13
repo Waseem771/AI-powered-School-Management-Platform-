@@ -9,10 +9,11 @@ import Results from './pages/Results';
 import AtRisk from './pages/AtRisk';
 import Chatbot from './pages/Chatbot';
 
-// Route protector checking token in localStorage
+// Backend endpoints enforce the secure HttpOnly session cookie. This only keeps the
+// client from rendering private navigation before a user signs in.
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('educore_token');
-  if (!token) {
+  const user = localStorage.getItem('educore_user');
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
   return children;

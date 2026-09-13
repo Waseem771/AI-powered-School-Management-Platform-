@@ -32,17 +32,24 @@ import StatCard from '../components/StatCard';
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchDashboardStats();
+    const controller = new AbortController();
+    fetchDashboardStats(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = async (signal) => {
     try {
-      const res = await api.getDashboardStats();
+      setError('');
+      setLoading(true);
+      const res = await api.getDashboardStats({ signal });
       setStats(res.data);
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       console.error('Error fetching dashboard stats:', err);
+      setError('Dashboard data is unavailable. Confirm that the backend is running, then try again.');
     } finally {
       setLoading(false);
     }
@@ -56,6 +63,20 @@ export default function Dashboard() {
           <p className="text-sm text-slate-500 font-medium">Loading Al-Noor Academy analytics...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="mx-auto flex min-h-[60vh] max-w-lg items-center" aria-labelledby="dashboard-unavailable-title">
+        <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <h1 id="dashboard-unavailable-title" className="text-lg font-bold text-slate-900">Dashboard temporarily unavailable</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{error}</p>
+          <button onClick={fetchDashboardStats} className="mt-5 min-h-11 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+            Try again
+          </button>
+        </div>
+      </section>
     );
   }
 
@@ -97,7 +118,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Enrollment"
-          value={`${kpis.total_students || 50} Students`}
+          value={`${kpis.total_students ?? 0} Students`}
           subtitle="Grades 6 to 10 active"
           icon={Users}
           color="blue"

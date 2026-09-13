@@ -4,18 +4,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Attach JWT token from localStorage if available
-client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('educore_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 // Intercept 401s and redirect to login if session expires
@@ -37,6 +29,7 @@ client.interceptors.response.use(
 export const api = {
   // Auth
   login: (username, password) => client.post('/auth/login', { username, password }),
+  logout: () => client.post('/auth/logout'),
   getMe: () => client.get('/auth/me'),
 
   // Students
@@ -58,14 +51,14 @@ export const api = {
   getReportCardPdfUrl: (studentId) => `${API_BASE_URL}/results/${studentId}/report-card/pdf`,
 
   // Dashboard
-  getDashboardStats: () => client.get('/dashboard/stats'),
+  getDashboardStats: (options) => client.get('/dashboard/stats', options),
 
   // AI At-Risk
   getAtRiskStudents: (params) => client.get('/ai/at-risk', { params }),
   getStudentRiskDetail: (studentId) => client.get(`/ai/at-risk/${studentId}`),
 
   // Chatbot
-  askChatbot: (question) => client.post('/chatbot/ask', { question }),
+  askChatbot: (question, options) => client.post('/chatbot/ask', { question }, options),
   getChatbotTopics: () => client.get('/chatbot/topics'),
 };
 

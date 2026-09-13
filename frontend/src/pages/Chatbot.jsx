@@ -28,9 +28,11 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState([]);
   const messagesEndRef = useRef(null);
+  const requestControllerRef = useRef(null);
 
   useEffect(() => {
     fetchTopics();
+    return () => requestControllerRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -64,9 +66,11 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMessage]);
     setInputQuery('');
     setLoading(true);
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
 
     try {
-      const res = await api.askChatbot(textToSend);
+      const res = await api.askChatbot(textToSend, { signal: controller.signal });
       const botMessage = {
         id: Date.now() + 1,
         sender: 'bot',
@@ -77,6 +81,7 @@ export default function Chatbot() {
       };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       const errorMessage = {
         id: Date.now() + 1,
         sender: 'bot',
@@ -87,7 +92,10 @@ export default function Chatbot() {
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -143,7 +151,8 @@ export default function Chatbot() {
               <button
                 key={idx}
                 onClick={() => handleTopicClick(t.prompt)}
-                className="w-full text-left p-2.5 rounded-xl text-xs bg-slate-50 hover:bg-blue-50/80 hover:text-blue-700 text-slate-700 font-medium transition-colors border border-slate-200/60"
+                disabled={loading}
+                className="w-full text-left p-2.5 rounded-xl text-xs bg-slate-50 hover:bg-blue-50/80 hover:text-blue-700 text-slate-700 font-medium transition-colors border border-slate-200/60 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <div className="font-bold text-[11px] text-slate-900 mb-0.5">{t.topic}</div>
                 <div className="text-[11px] text-slate-500 line-clamp-1">"{t.prompt}"</div>
@@ -171,16 +180,18 @@ export default function Chatbot() {
           </div>
 
           <button
-            onClick={() => setMessages([messages[0]])}
+            onClick={() => setMessages((currentMessages) => [currentMessages[0]])}
             title="Clear Chat History"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            aria-label="Clear chat history"
+            disabled={loading}
+            className="min-h-11 min-w-11 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4">
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Policy assistant conversation">
           {messages.map((m) => {
             const isBot = m.sender === 'bot';
             return (
@@ -233,7 +244,7 @@ export default function Chatbot() {
           })}
 
           {loading && (
-            <div className="flex gap-3 max-w-xl mr-auto">
+            <div className="flex gap-3 max-w-xl mr-auto" role="status">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 animate-spin" />
               </div>
@@ -264,12 +275,14 @@ export default function Chatbot() {
             onChange={(e) => setInputQuery(e.target.value)}
             placeholder="Ask anything about fees, exams, admissions, or rules (e.g. 'What is the fee refund policy?')"
             disabled={loading}
+            aria-label="Ask the policy assistant a question"
             className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={loading || !inputQuery.trim()}
-            className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-40"
+            aria-label="Send policy question"
+            className="min-h-11 min-w-11 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-40"
           >
             <Send className="w-4 h-4" />
           </button>

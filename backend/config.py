@@ -18,6 +18,7 @@ CURRENCY = os.getenv("CURRENCY", "Rs.")
 SECRET_KEY = os.getenv("SECRET_KEY", "educore_super_secret_jwt_key_2026_al_noor")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/school.db")
