@@ -97,7 +97,7 @@ class PolicyRAGService:
                 })
         return results
 
-    def answer_query(self, query: str) -> Dict[str, Any]:
+    def answer_query(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """
         Executes RAG pipeline:
         1. Vector search in FAISS.
@@ -136,6 +136,7 @@ class PolicyRAGService:
 
         system_prompt = f"""You are the official AI Policy Assistant for {SCHOOL_NAME}.
 You must answer questions strictly and only using the provided Policy Document Excerpts below.
+You maintain conversation continuity with the user.
 Rules:
 1. If the answer is not contained in the excerpts, say clearly: "I don't know based on the provided school policies."
 2. Do not invent dates, rules, or fees.
@@ -156,13 +157,20 @@ Answer:"""
                 "llama-3.1-8b-instant"
             ]
             candidate_models = list(dict.fromkeys([m for m in candidate_models if m]))
+            
+            chat_messages = [{"role": "system", "content": system_prompt}]
+            if history:
+                for msg in history[-6:]:
+                    r = msg.get("role")
+                    c = msg.get("content")
+                    if r in ("user", "assistant") and c:
+                        chat_messages.append({"role": r, "content": str(c)[:600]})
+            chat_messages.append({"role": "user", "content": user_prompt})
+
             for model_name in candidate_models:
                 try:
                     chat_completion = self.groq_client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
-                        ],
+                        messages=chat_messages,
                         model=model_name,
                         temperature=0.2,
                         max_tokens=400,

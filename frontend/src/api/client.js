@@ -58,7 +58,12 @@ export const api = {
   getStudentRiskDetail: (studentId) => client.get(`/ai/at-risk/${studentId}`),
 
   // Chatbot
-  askChatbot: (question, options) => client.post('/chatbot/ask', { question }, options),
+  askChatbot: (payload, options) => {
+    const body = typeof payload === 'string' ? { question: payload } : payload;
+    return client.post('/chatbot/ask', body, options);
+  },
+  getChatHistory: (sessionId) => client.get(`/chatbot/history/${sessionId}`),
+  clearChatHistory: (sessionId) => client.delete(`/chatbot/history/${sessionId}`),
   getChatbotTopics: () => client.get('/chatbot/topics'),
 };
 
