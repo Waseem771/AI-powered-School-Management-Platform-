@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field
 
 class AcademicYear(SQLModel, table=True):
@@ -28,7 +28,7 @@ class Invoice(SQLModel, table=True):
     due_date: str = Field(default="10-Oct-2025")
     challan_number: str = Field(index=True, unique=True)
     status: str = Field(default="pending", index=True)  # 'paid' or 'pending'
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Payment(SQLModel, table=True):
     __tablename__ = "payments"
@@ -36,5 +36,5 @@ class Payment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     invoice_id: int = Field(index=True, foreign_key="invoices.id")
     amount_paid: float
-    paid_at: datetime = Field(default_factory=datetime.utcnow)
+    paid_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     payment_mode: str = Field(default="cash")  # cash, bank, online

@@ -1,9 +1,15 @@
 import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-import shap
 from typing import Dict, List, Any, Tuple
 import logging
+
+try:
+    from sklearn.ensemble import RandomForestClassifier
+    import shap
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    RandomForestClassifier = Any
+    shap = Any
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +17,11 @@ FEATURE_NAMES = ["avg_marks_pct", "fee_defaults", "failing_subjects", "grade_tre
 
 class AtRiskModelService:
     def __init__(self):
-        self.model: RandomForestClassifier = None
-        self.explainer: shap.TreeExplainer = None
+        self.model = None
+        self.explainer = None
         self.is_trained: bool = False
-        self._initialize_default_model()
+        if ML_AVAILABLE:
+            self._initialize_default_model()
 
     def _initialize_default_model(self):
         """
@@ -110,10 +117,25 @@ class AtRiskModelService:
             float(features.get("grade_trend", 0.0))
         ]])
 
-        probs = self.model.predict_proba(feat_vector)[0]
-        # Probability of class 1 (At-Risk)
-        risk_probability = float(probs[1] if len(probs) > 1 else probs[0])
-        risk_score = int(round(risk_probability * 100))
+        if self.model is not None:
+            probs = self.model.predict_proba(feat_vector)[0]
+            # Probability of class 1 (At-Risk)
+            risk_probability = float(probs[1] if len(probs) > 1 else probs[0])
+            risk_score = int(round(risk_probability * 100))
+        else:
+            avg_marks = float(features.get("avg_marks_pct", 70.0))
+            failing = int(features.get("failing_subjects", 0))
+            fee_def = int(features.get("fee_defaults", 0))
+            trend = float(features.get("grade_trend", 0.0))
+            
+            risk_points = 0
+            if avg_marks < 50: risk_points += 45
+            elif avg_marks < 65: risk_points += 20
+            risk_points += failing * 18
+            risk_points += fee_def * 15
+            if trend < -10: risk_points += 20
+            elif trend < 0: risk_points += 8
+            risk_score = min(int(risk_points), 100)
 
         # Enforce realistic bounds & consistency
         if features.get("failing_subjects", 0) >= 3 or (features.get("avg_marks_pct", 100) < 50 and features.get("fee_defaults", 0) >= 2):

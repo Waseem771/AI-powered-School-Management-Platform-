@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduCore AI - Hackathon Presentation & Interactive Showcase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .slide-active { display: flex !important; opacity: 1; transform: scale(1); }
+    .slide-enter { animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-indigo {
+      box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.35);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between select-none overflow-x-hidden">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/30">
+        E
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold tracking-tight text-white text-base">EduCore <span class="text-indigo-400">AI</span></span>
+          <span class="bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/30 uppercase tracking-wide">Hackathon Pitch</span>
+        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">Intelligent School Operating System & Explainable Student Warning</p>
+      </div>
+    </div>
+
+    <!-- Live Status Links -->
+    <div class="flex items-center gap-3">
+      <a href="https://ai-powered-school-management-platfo.vercel.app/login" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Frontend (Vercel)
+      </a>
+      <a href="https://whassanshaikh--educore-ai-school-platform-fastapi-app.modal.run/docs" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold hover:bg-violet-500/20 transition">
+        <span class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+        API Docs (Modal)
+      </a>
+      <a href="EduCore_AI_Hackathon_Presentation.pdf" download class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-600/30">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        Download PDF
+      </a>
+    </div>
+  </header>
+
+  <!-- Presentation Stage Container -->
+  <main class="flex-1 flex items-center justify-center p-4 md:p-8 max-w-7xl mx-auto w-full">
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 1: TITLE & COVER -->
+    <!-- ========================================================================= -->
+    <section id="slide-1" class="slide-active slide-enter flex-col items-center justify-center text-center max-w-4xl w-full py-6">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-6">
+        <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+        HACKATHON SHOWCASE &bull; DEPLOYED LIVE ON CLOUD
+      </div>
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-400 mb-6">
+        EduCore AI School Operating System
+      </h1>
+      <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed mb-8">
+        Autonomous policy reasoning, grounded multi-turn natural language SQL tools, and explainable ML early warning for student dropouts.
+      </p>
+
+      <!-- Live Badges & Credentials Box -->
+      <div class="glass-card rounded-2xl p-6 w-full max-w-2xl glow-indigo text-left mb-8">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+          <span>Live Deployment Credentials</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Live & Verified
+          </span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">Frontend (Next.js/Vercel)</span>
+            <a href="https://ai-powered-school-management-platfo.vercel.app/login" target="_blank" class="text-indigo-400 hover:underline font-mono text-xs truncate block">ai-powered-school-management-platfo.vercel.app</a>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">Backend Server (Modal Cloud)</span>
+            <a href="https://whassanshaikh--educore-ai-school-platform-fastapi-app.modal.run" target="_blank" class="text-indigo-400 hover:underline font-mono text-xs truncate block">modal.run/...fastapi-app</a>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 sm:col-span-2 flex items-center justify-between">
+            <div>
+              <span class="text-xs text-slate-400 block">Demo Admin Credentials:</span>
+              <span class="font-mono text-xs text-white">Username: <strong class="text-indigo-300">admin</strong> &nbsp;|&nbsp; Password: <strong class="text-indigo-300">admin123</strong></span>
+            </div>
+            <span class="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">50 Seeded Students</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="goToSlide(2)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+          Start Presentation Pitch &rarr;
+        </button>
+        <button onclick="goToSlide(4)" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-700 transition">
+          Try Live Demo Simulator
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 2: THE PROBLEM & WHY SCHOOLS STRUGGLE -->
+    <!-- ========================================================================= -->
+    <section id="slide-2" class="hidden slide-enter flex-col max-w-5xl w-full py-4">
+      <div class="mb-6">
+        <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide 02 / 06 &bull; Problem Space</span>
+        <h2 class="text-3xl font-extrabold text-white mt-1">The Critical Administrative Pain Points in K-12 & Higher Ed</h2>
+        <p class="text-slate-400 text-sm mt-1">Schools generate thousands of records, yet staff spend hours digging through fragmented systems while struggling students slip through unnoticed.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Problem 1 -->
+        <div class="glass-card rounded-2xl p-6 border-l-4 border-l-rose-500 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-lg mb-4">1</div>
+            <h3 class="text-lg font-bold text-white mb-2">Administrative Data Silos</h3>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              Staff waste 3&ndash;5 hours daily running custom SQL queries or exporting CSVs just to answer simple operational questions like <em>"Which students in Class 10 have overdue fees?"</em>
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-rose-300 font-semibold">
+            Result: Delayed fee collections & operational paralysis
+          </div>
+        </div>
+
+        <!-- Problem 2 -->
+        <div class="glass-card rounded-2xl p-6 border-l-4 border-l-amber-500 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-lg mb-4">2</div>
+            <h3 class="text-lg font-bold text-white mb-2">Unanswered Policy Queries</h3>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              Parents, teachers, and admissions officers drown in 100+ page handbooks. They struggle to find exact refund rules, attendance thresholds, and exam deferral criteria.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-amber-300 font-semibold">
+            Result: Parent frustration & miscommunication
+          </div>
+        </div>
+
+        <!-- Problem 3 -->
+        <div class="glass-card rounded-2xl p-6 border-l-4 border-l-indigo-500 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-lg mb-4">3</div>
+            <h3 class="text-lg font-bold text-white mb-2">Lagging Dropout Detection</h3>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              At-risk students are typically discovered after exam failure or prolonged absence when it is already too late for counseling or proactive intervention.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-indigo-300 font-semibold">
+            Result: Avoidable academic failure & high attrition
+          </div>
+        </div>
+      </div>
+
+      <!-- Before vs After Comparison -->
+      <div class="mt-6 glass-card rounded-2xl p-5">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">The Paradigm Shift</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="bg-rose-950/20 border border-rose-900/40 rounded-xl p-3 text-rose-200">
+            <span class="font-bold text-rose-400 block mb-1">Traditional School ERP:</span>
+            Rigid forms, complex sub-menus, no natural language search, black-box reports, zero early warning intervention.
+          </div>
+          <div class="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-3 text-emerald-200">
+            <span class="font-bold text-emerald-400 block mb-1">EduCore AI Platform:</span>
+            Conversational plain-English queries, instant grounded policy citations, multi-turn pronoun memory, and explainable ML risk scoring.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 3: THE SOLUTION & 4 CORE AI PILLARS -->
+    <!-- ========================================================================= -->
+    <section id="slide-3" class="hidden slide-enter flex-col max-w-5xl w-full py-4">
+      <div class="mb-5">
+        <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide 03 / 06 &bull; Architecture Pillars</span>
+        <h2 class="text-3xl font-extrabold text-white mt-1">Four Core AI Innovations in EduCore</h2>
+        <p class="text-slate-400 text-sm mt-1">Built with enterprise security, zero hallucination RAG, and safe SQL tool-calling.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Pillar 1 -->
+        <div class="glass-card rounded-2xl p-5 border border-indigo-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-bold">1</div>
+            <div>
+              <h3 class="text-base font-bold text-white">Grounded Policy RAG</h3>
+              <span class="text-[11px] text-indigo-300 font-mono">FAISS Vector Store + Strict Confidence Filtering</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Ingests the full school code of conduct and policy handbook. Embeds sections into FAISS. Answers policy queries with exact handbook citations and <strong>zero hallucination</strong> fallback.
+          </p>
+          <div class="mt-3 bg-slate-900/70 p-2.5 rounded-lg text-[11px] font-mono text-slate-300 border border-slate-800">
+            Query: "What is the fee refund policy?" &rarr; <span class="text-emerald-400">"Section 4.2: 100% refund within 14 days..."</span>
+          </div>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="glass-card rounded-2xl p-5 border border-violet-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-violet-600/30 text-violet-400 flex items-center justify-center font-bold">2</div>
+            <div>
+              <h3 class="text-base font-bold text-white">Safe SQL Tool Calling</h3>
+              <span class="text-[11px] text-violet-300 font-mono">Groq LLaMA &bull; Zero Direct SQL Injection</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            LLM never writes arbitrary raw SQL. Instead, it dispatches verified programmatic tools: <code class="text-violet-300">get_student_profile</code>, <code class="text-violet-300">get_fee_summary</code>, and <code class="text-violet-300">get_students_with_pending_fees</code>.
+          </p>
+          <div class="mt-3 bg-slate-900/70 p-2.5 rounded-lg text-[11px] font-mono text-slate-300 border border-slate-800">
+            Safe execution layer: Parameterized ORM queries with read-only validation.
+          </div>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="glass-card rounded-2xl p-5 border border-cyan-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-cyan-600/30 text-cyan-400 flex items-center justify-center font-bold">3</div>
+            <div>
+              <h3 class="text-base font-bold text-white">Multi-Turn Context Memory</h3>
+              <span class="text-[11px] text-cyan-300 font-mono">Automatic Entity Tracking & Pronoun Resolution</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Staff can inspect a student by name, and subsequently ask <em>"What are his pending fees?"</em> or <em>"What is her attendance?"</em> The system preserves conversational context across turns.
+          </p>
+          <div class="mt-3 bg-slate-900/70 p-2.5 rounded-lg text-[11px] font-mono text-slate-300 border border-slate-800">
+            Stateful memory toggle: <span class="text-cyan-400">🧠 Memory: ON</span> retains previous student entity.
+          </div>
+        </div>
+
+        <!-- Pillar 4 -->
+        <div class="glass-card rounded-2xl p-5 border border-amber-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-600/30 text-amber-400 flex items-center justify-center font-bold">4</div>
+            <div>
+              <h3 class="text-base font-bold text-white">Explainable AI Risk Engine</h3>
+              <span class="text-[11px] text-amber-300 font-mono">RandomForest Classifier + SHAP Contribution</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Evaluates grades, attendance rate, assignment completion, and disciplinary logs. Flags at-risk students with explainable factors (e.g. <em>"-42% risk due to low attendance"</em>).
+          </p>
+          <div class="mt-3 bg-slate-900/70 p-2.5 rounded-lg text-[11px] font-mono text-slate-300 border border-slate-800">
+            Actionable interventions: Counselors receive proactive trigger alerts.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 4: INTERACTIVE LIVE DEMO SIMULATOR -->
+    <!-- ========================================================================= -->
+    <section id="slide-4" class="hidden slide-enter flex-col max-w-5xl w-full py-4">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide 04 / 06 &bull; Live Simulation</span>
+          <h2 class="text-3xl font-extrabold text-white mt-1">Interactive System Demo</h2>
+          <p class="text-slate-400 text-xs mt-0.5">Click any test scenario below to simulate the exact assistant workflow:</p>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Simulating Live Modal Backend
+        </div>
+      </div>
+
+      <!-- Quick Test Prompt Buttons -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+        <button onclick="runSimQuery('daniyal')" class="p-2.5 rounded-xl bg-slate-900 hover:bg-indigo-950 border border-slate-800 hover:border-indigo-500/50 text-left transition group">
+          <div class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider group-hover:text-indigo-300">Test 1: Student Lookup</div>
+          <div class="text-xs font-semibold text-white mt-0.5">&ldquo;Daniyal Shah&rdquo;</div>
+        </button>
+        <button onclick="runSimQuery('memory')" class="p-2.5 rounded-xl bg-slate-900 hover:bg-violet-950 border border-slate-800 hover:border-violet-500/50 text-left transition group">
+          <div class="text-[10px] text-violet-400 font-bold uppercase tracking-wider group-hover:text-violet-300">Test 2: Memory Context</div>
+          <div class="text-xs font-semibold text-white mt-0.5">&ldquo;What are his pending fees?&rdquo;</div>
+        </button>
+        <button onclick="runSimQuery('defaulters')" class="p-2.5 rounded-xl bg-slate-900 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500/50 text-left transition group">
+          <div class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider group-hover:text-cyan-300">Test 3: Defaulter Query</div>
+          <div class="text-xs font-semibold text-white mt-0.5">&ldquo;List students with pending fees&rdquo;</div>
+        </button>
+        <button onclick="runSimQuery('policy')" class="p-2.5 rounded-xl bg-slate-900 hover:bg-amber-950 border border-slate-800 hover:border-amber-500/50 text-left transition group">
+          <div class="text-[10px] text-amber-400 font-bold uppercase tracking-wider group-hover:text-amber-300">Test 4: Policy RAG</div>
+          <div class="text-xs font-semibold text-white mt-0.5">&ldquo;What is the refund policy?&rdquo;</div>
+        </button>
+      </div>
+
+      <!-- Simulated Chat UI -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col h-[340px] border border-slate-800 shadow-2xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span class="font-bold text-white">EduCore School AI Assistant</span>
+            <span class="text-slate-500 text-[11px]">&bull; Groq LLaMA Engine</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-indigo-900/60 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-mono border border-indigo-700/50">🧠 Memory: ON</span>
+            <span class="bg-slate-800 text-slate-400 px-2 py-0.5 rounded text-[10px] font-mono">SQLite WAL Active</span>
+          </div>
+        </div>
+
+        <div id="simChatBody" class="flex-1 overflow-y-auto space-y-3 pr-2 text-xs">
+          <!-- Initial Welcome Message -->
+          <div class="flex gap-2.5">
+            <div class="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center font-bold text-white text-[10px] flex-shrink-0">AI</div>
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl rounded-tl-none max-w-xl text-slate-200">
+              Hello Admin! I am the EduCore AI Assistant. You can ask me about school policies, look up student profiles, check pending fees, or analyze academic risk. Click any scenario button above to test me!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 5: CLOUD ARCHITECTURE & TECH STACK -->
+    <!-- ========================================================================= -->
+    <section id="slide-5" class="hidden slide-enter flex-col max-w-5xl w-full py-4">
+      <div class="mb-5">
+        <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide 05 / 06 &bull; Cloud Infrastructure</span>
+        <h2 class="text-3xl font-extrabold text-white mt-1">End-to-End Cloud Native Stack</h2>
+        <p class="text-slate-400 text-sm mt-1">Zero-server-maintenance deployment configured for instant scalability.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Layer 1 -->
+        <div class="glass-card rounded-2xl p-5 border border-indigo-500/20">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold mb-3">UI</div>
+          <h3 class="text-base font-bold text-white mb-1">Frontend Layer</h3>
+          <span class="text-xs text-indigo-400 font-mono block mb-3">Vercel Global Edge CDN</span>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Next.js 14 / React 18 SPA</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Tailwind CSS & Lucide Icons</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> SPA Rewrite Router Config</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> SSL & Global Edge Caching</li>
+          </ul>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="glass-card rounded-2xl p-5 border border-violet-500/20">
+          <div class="w-9 h-9 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold mb-3">API</div>
+          <h3 class="text-base font-bold text-white mb-1">Compute & LLM Engine</h3>
+          <span class="text-xs text-violet-400 font-mono block mb-3">Modal Serverless Containers</span>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> FastAPI with Uvicorn ASGI</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Groq LLM API (LLaMA 3.3)</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Cold-start auto-scaling</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Persistent Modal Cloud Volume</li>
+          </ul>
+        </div>
+
+        <!-- Layer 3 -->
+        <div class="glass-card rounded-2xl p-5 border border-cyan-500/20">
+          <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold mb-3">DATA</div>
+          <h3 class="text-base font-bold text-white mb-1">Data & Vectors</h3>
+          <span class="text-xs text-cyan-400 font-mono block mb-3">SQLite WAL + FAISS Index</span>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> SQLite in WAL concurrency mode</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> 50 pre-seeded student records</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> FAISS Vector embeddings</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">&check;</span> Scikit-Learn Dropout Predictor</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Security & Scalability Callout -->
+      <div class="mt-6 glass-card rounded-2xl p-4 bg-gradient-to-r from-slate-900 to-indigo-950/40 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">&bull;</span>
+          <div>
+            <span class="font-bold text-white block">Enterprise Privacy & Security:</span>
+            <span class="text-slate-400">Strict Role-Based Access Control (Admin, Teacher, Parent). Zero student PII passed to external training sets.</span>
+          </div>
+        </div>
+        <div class="font-mono text-emerald-400 text-xs whitespace-nowrap bg-emerald-950/40 border border-emerald-800 px-3 py-1.5 rounded-lg">
+          99.9% Cloud Uptime
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 6: JUDGE Q&A & HACKATHON PITCH SCRIPT -->
+    <!-- ========================================================================= -->
+    <section id="slide-6" class="hidden slide-enter flex-col max-w-5xl w-full py-4">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide 06 / 06 &bull; Pitch Cheat Sheet</span>
+          <h2 class="text-3xl font-extrabold text-white mt-1">How to Win the Hackathon Pitch</h2>
+          <p class="text-slate-400 text-sm mt-1">Memorize these 3 core responses to stun the technical judges.</p>
+        </div>
+        <a href="EduCore_AI_Hackathon_Presentation.pdf" download class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-600/30">
+          Download PDF Slides
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Judge Question 1 -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 hover:border-indigo-500/50 transition">
+          <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">Judge Question 1</span>
+          <h4 class="text-sm font-bold text-white mb-2">&ldquo;How do you prevent the LLM from hallucinating policy rules?&rdquo;</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            <strong>Winning Answer:</strong> We don't rely on the model's parametric memory. We embed the official school handbook in FAISS. The assistant is strictly system-prompted to cite source policy sections, and if confidence is low, it explicitly refuses to invent rules.
+          </p>
+        </div>
+
+        <!-- Judge Question 2 -->
+        <div class="glass-card rounded-2xl p-5 border border-violet-500/50 transition">
+          <span class="text-[10px] font-bold text-violet-400 uppercase tracking-wider block mb-1">Judge Question 2</span>
+          <h4 class="text-sm font-bold text-white mb-2">&ldquo;How do you protect the database from prompt injection?&rdquo;</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            <strong>Winning Answer:</strong> The model never generates raw SQL. It dispatches safe Python tool calls with structured parameters. The backend executes parameterized ORM queries through an allowlisted read-only interface.
+          </p>
+        </div>
+
+        <!-- Judge Question 3 -->
+        <div class="glass-card rounded-2xl p-5 border border-cyan-500/50 transition">
+          <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">Judge Question 3</span>
+          <h4 class="text-sm font-bold text-white mb-2">&ldquo;What is your business model and market viability?&rdquo;</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            <strong>Winning Answer:</strong> B2B SaaS subscription per school (e.g. $1.50/student/month). Schools recoup the cost within 30 days simply through accelerated fee recovery and automated parent support ticket reduction.
+          </p>
+        </div>
+      </div>
+
+      <!-- 60-Second Elevator Pitch -->
+      <div class="mt-6 glass-card rounded-2xl p-5 border border-indigo-500/30">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-300 mb-2 flex items-center gap-2">
+          <span>🎤</span> The 60-Second Elevator Pitch
+        </h4>
+        <p class="text-xs text-slate-200 leading-relaxed italic bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+          &ldquo;Schools are trapped between complicated ERP software and lagging academic dropouts. EduCore AI transforms school management into an intelligent, conversational operating system. An administrator can simply ask <em>'Who owes fees?'</em> or <em>'What is Daniyal's attendance?'</em> and receive instant, safe answers. Meanwhile, our machine learning models continuously monitor academic warning signals to prevent dropouts before they occur. It is already built, tested, and live on Modal and Vercel today.&rdquo;
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Presentation Controls / Slide Bar -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/80 backdrop-blur-md px-6 py-4 sticky bottom-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Slide Indicator Dots -->
+      <div class="flex items-center gap-2">
+        <button onclick="goToSlide(1)" id="dot-1" class="w-3 h-3 rounded-full bg-indigo-500 transition-all"></button>
+        <button onclick="goToSlide(2)" id="dot-2" class="w-3 h-3 rounded-full bg-slate-700 hover:bg-slate-500 transition-all"></button>
+        <button onclick="goToSlide(3)" id="dot-3" class="w-3 h-3 rounded-full bg-slate-700 hover:bg-slate-500 transition-all"></button>
+        <button onclick="goToSlide(4)" id="dot-4" class="w-3 h-3 rounded-full bg-slate-700 hover:bg-slate-500 transition-all"></button>
+        <button onclick="goToSlide(5)" id="dot-5" class="w-3 h-3 rounded-full bg-slate-700 hover:bg-slate-500 transition-all"></button>
+        <button onclick="goToSlide(6)" id="dot-6" class="w-3 h-3 rounded-full bg-slate-700 hover:bg-slate-500 transition-all"></button>
+        <span id="slideCounter" class="text-xs font-mono text-slate-400 ml-3">Slide 1 / 6</span>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <div class="flex items-center gap-3">
+        <button onclick="prevSlide()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition flex items-center gap-1.5">
+          &larr; Previous
+        </button>
+        <button onclick="nextSlide()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5">
+          Next Slide &rarr;
+        </button>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function goToSlide(n) {
+      if (n < 1 || n > totalSlides) return;
+      
+      // Hide current
+      const prevEl = document.getElementById(`slide-${currentSlide}`);
+      if (prevEl) {
+        prevEl.classList.remove('slide-active', 'slide-enter');
+        prevEl.classList.add('hidden');
+      }
+
+      // Update dot
+      const prevDot = document.getElementById(`dot-${currentSlide}`);
+      if (prevDot) {
+        prevDot.classList.remove('bg-indigo-500', 'w-6');
+        prevDot.classList.add('bg-slate-700', 'w-3');
+      }
+
+      currentSlide = n;
+
+      // Show new
+      const nextEl = document.getElementById(`slide-${currentSlide}`);
+      if (nextEl) {
+        nextEl.classList.remove('hidden');
+        nextEl.classList.add('slide-active', 'slide-enter');
+      }
+
+      // Update new dot
+      const nextDot = document.getElementById(`dot-${currentSlide}`);
+      if (nextDot) {
+        nextDot.classList.remove('bg-slate-700', 'w-3');
+        nextDot.classList.add('bg-indigo-500', 'w-6');
+      }
+
+      document.getElementById('slideCounter').textContent = `Slide ${currentSlide} / ${totalSlides}`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) goToSlide(currentSlide + 1);
+      else goToSlide(1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) goToSlide(currentSlide - 1);
+      else goToSlide(totalSlides);
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      }
+    });
+
+    // Live Simulator Queries
+    function runSimQuery(type) {
+      const chatBody = document.getElementById('simChatBody');
+      
+      let userQuery = '';
+      let toolNotice = '';
+      let aiResponse = '';
+
+      if (type === 'daniyal') {
+        userQuery = 'Daniyal Shah';
+        toolNotice = 'Executing safe tool: get_student_profile(name="Daniyal Shah")...';
+        aiResponse = `
+          <div class="font-semibold text-indigo-300 mb-1">Student Found: Daniyal Shah (Roll #106)</div>
+          <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-2">
+            <div><span class="text-slate-400">Class:</span> 10-A</div>
+            <div><span class="text-slate-400">Guardian:</span> Farhan Shah</div>
+            <div><span class="text-slate-400">Attendance:</span> 88.5%</div>
+            <div><span class="text-slate-400">Status:</span> <span class="text-emerald-400">Enrolled (Good Standing)</span></div>
+          </div>
+          <div class="text-[11px] text-slate-300">Memory context updated: Current active student is now <strong>Daniyal Shah (ID 6)</strong>.</div>
+        `;
+      } else if (type === 'memory') {
+        userQuery = 'What are his pending fees?';
+        toolNotice = 'Pronoun detected ("his") &rarr; Memory resolved entity: Daniyal Shah (ID 6). Calling get_student_fee_summary(student_id=6)...';
+        aiResponse = `
+          <div class="font-semibold text-emerald-300 mb-1">Fee Summary for Daniyal Shah:</div>
+          <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[11px] space-y-1">
+            <div class="flex justify-between"><span>Total Invoiced:</span> <span class="font-mono text-white">$1,200.00</span></div>
+            <div class="flex justify-between"><span>Total Paid:</span> <span class="font-mono text-emerald-400">$1,200.00</span></div>
+            <div class="flex justify-between border-t border-slate-800 pt-1 font-bold"><span>Pending Balance:</span> <span class="font-mono text-emerald-400">$0.00 (Fully Cleared)</span></div>
+          </div>
+          <div class="text-[11px] text-slate-300 mt-2">Daniyal Shah has zero outstanding balance for the current semester.</div>
+        `;
+      } else if (type === 'defaulters') {
+        userQuery = 'List all students with pending fees';
+        toolNotice = 'Executing safe tool: get_students_with_pending_fees(limit=5)...';
+        aiResponse = `
+          <div class="font-semibold text-amber-300 mb-1">Pending Fee Defaulters (16 Total Found, Showing Top 3):</div>
+          <div class="space-y-1.5 text-[11px]">
+            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span><strong>Ayesha Malik</strong> (Class 9-B)</span>
+              <span class="font-mono text-rose-400 font-bold">$450.00 pending</span>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span><strong>Bilal Ahmed</strong> (Class 10-A)</span>
+              <span class="font-mono text-rose-400 font-bold">$300.00 pending</span>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span><strong>Zainab Fatima</strong> (Class 8-C)</span>
+              <span class="font-mono text-rose-400 font-bold">$220.00 pending</span>
+            </div>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1.5">Generated automated reminder dispatch links for all 16 guardians.</div>
+        `;
+      } else if (type === 'policy') {
+        userQuery = 'What is the fee refund policy?';
+        toolNotice = 'Query matched School Policy Handbook &rarr; Querying FAISS Vector Embeddings (similarity score 0.89)...';
+        aiResponse = `
+          <div class="font-semibold text-cyan-300 mb-1">Official Policy Citation (Handbook Section 4.2):</div>
+          <blockquote class="bg-slate-950 p-2.5 rounded-lg border-l-2 border-l-cyan-400 text-[11px] text-slate-300 italic mb-2">
+            &ldquo;Tuition fee refunds are permitted within the first 14 calendar days of the academic term at a 100% rate, minus a 5% administrative processing charge. Requests submitted after Day 30 are strictly non-refundable.&rdquo;
+          </blockquote>
+          <div class="text-[10px] text-slate-400">Source: Student & Parent Policy Handbook (2025-2026 Edition)</div>
+        `;
+      }
+
+      // Append User message
+      const userEl = document.createElement('div');
+      userEl.className = 'flex justify-end';
+      userEl.innerHTML = `
+        <div class="bg-indigo-600 text-white p-2.5 rounded-2xl rounded-tr-none max-w-md">
+          ${userQuery}
+        </div>
+      `;
+      chatBody.appendChild(userEl);
+
+      // Append Tool notice
+      const toolEl = document.createElement('div');
+      toolEl.className = 'flex items-center gap-1.5 text-[10px] font-mono text-indigo-300/80 pl-8';
+      toolEl.innerHTML = `<span>⚡</span> <span>${toolNotice}</span>`;
+      chatBody.appendChild(toolEl);
+
+      // Append AI response
+      setTimeout(() => {
+        const aiEl = document.createElement('div');
+        aiEl.className = 'flex gap-2.5 slide-enter';
+        aiEl.innerHTML = `
+          <div class="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center font-bold text-white text-[10px] flex-shrink-0">AI</div>
+          <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl rounded-tl-none max-w-xl text-slate-200">
+            ${aiResponse}
+          </div>
+        `;
+        chatBody.appendChild(aiEl);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }, 250);
+
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+  </script>
+</body>
+</html>

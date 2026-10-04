@@ -8,6 +8,7 @@ import Fees from './pages/Fees';
 import Results from './pages/Results';
 import AtRisk from './pages/AtRisk';
 import Chatbot from './pages/Chatbot';
+import Admissions from './pages/Admissions';
 
 // Backend endpoints enforce the secure HttpOnly session cookie. This only keeps the
 // client from rendering private navigation before a user signs in.
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="results" element={<Results />} />
           <Route path="at-risk" element={<AtRisk />} />
           <Route path="chatbot" element={<Chatbot />} />
+          <Route path="admissions" element={<Admissions />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

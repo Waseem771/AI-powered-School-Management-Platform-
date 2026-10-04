@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from sqlmodel import SQLModel, Field
 
 class StudentBase(SQLModel):
@@ -15,7 +15,7 @@ class Student(StudentBase, table=True):
     __tablename__ = "students"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StudentCreate(StudentBase):
     pass

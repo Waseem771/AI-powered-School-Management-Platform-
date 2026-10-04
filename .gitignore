@@ -35,3 +35,5 @@ ECC/
 Thumbs.db
 .vscode/
 .idea/
+
+backend/venv_312/
