@@ -61,18 +61,19 @@ export default function Admissions() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Desired Program</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Desired Grade for Admission</label>
               <select
                 required
                 value={program}
                 onChange={(e) => setProgram(e.target.value)}
                 className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Select a program...</option>
-                <option value="BSc Computer Science">BSc Computer Science</option>
-                <option value="BBA Business Administration">BBA Business Administration</option>
-                <option value="BA English Literature">BA English Literature</option>
-                <option value="BSc Engineering">BSc Engineering</option>
+                <option value="">Select a grade...</option>
+                <option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option>
+                <option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9</option>
+                <option value="Grade 10">Grade 10</option>
               </select>
             </div>
 
