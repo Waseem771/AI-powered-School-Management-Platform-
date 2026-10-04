@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import client from '../api/client';
 
 export default function Admissions() {
   const [rollNumber, setRollNumber] = useState('');
@@ -13,27 +14,19 @@ export default function Admissions() {
     setResult(null);
 
     try {
-      // Connect to the local backend / Modal backend
-      const response = await fetch('http://localhost:8000/api/admissions-crew/evaluate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          student_roll_number: rollNumber,
-          desired_program: program,
-        }),
+      // Connect to the backend using the configured Axios client
+      // This will automatically switch between localhost and Modal depending on the environment
+      const response = await client.post('/admissions-crew/evaluate', {
+        student_roll_number: rollNumber,
+        desired_program: program,
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setResult(`Evaluating Student: ${data.student_name}\n\n${data.recommendation}`);
-      } else {
-        setResult(`Error: ${data.detail || 'Could not evaluate admission.'}`);
-      }
+      const data = response.data;
+      setResult(`Evaluating Student: ${data.student_name}\n\n${data.recommendation}`);
+      
     } catch (error) {
       console.error('Error fetching admission evaluation:', error);
-      setResult("Sorry, there was an error connecting to the AI Admissions Agent. Please make sure the backend is running.");
+      setResult(`Error: ${error.response?.data?.detail || 'Could not connect to AI Admissions Agent. Please make sure the backend is running.'}`);
     } finally {
       setLoading(false);
     }
