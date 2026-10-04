@@ -2,6 +2,7 @@ from crewai import Task, Crew, Process
 from school_crew.agents.requirements_agent import create_requirements_agent
 from school_crew.agents.eligibility_agent import create_eligibility_agent
 from school_crew.agents.recommendation_agent import create_recommendation_agent
+from school_crew.dummy_policy import SCHOOL_ADMISSION_POLICY
 
 def run_admissions_crew(student_profile: str, desired_program: str):
     # 1. Instantiate Agents
@@ -11,7 +12,7 @@ def run_admissions_crew(student_profile: str, desired_program: str):
 
     # 2. Define Tasks
     task1 = Task(
-        description=f"Find the admission requirements for the '{desired_program}' program.",
+        description=f"Using the following official school admission policy, find the exact requirements for the '{desired_program}' program.\n\nOFFICIAL SCHOOL POLICY:\n{SCHOOL_ADMISSION_POLICY}",
         expected_output="A bulleted list of exact requirements (e.g., minimum GPA, required documents).",
         agent=req_agent
     )
