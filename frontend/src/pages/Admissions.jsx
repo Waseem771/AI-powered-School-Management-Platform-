@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bot, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Admissions() {
-  const [profile, setProfile] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
   const [program, setProgram] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -13,23 +13,27 @@ export default function Admissions() {
     setResult(null);
 
     try {
-      // NOTE: Replace this URL with your actual deployed Modal URL
-      const response = await fetch('https://whassanshaikh--educore-ai-school-platform-fastapi-app.modal.run/evaluate-admission', {
+      // Connect to the local backend / Modal backend
+      const response = await fetch('http://localhost:8000/api/admissions-crew/evaluate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          student_profile: profile,
+          student_roll_number: rollNumber,
           desired_program: program,
         }),
       });
 
       const data = await response.json();
-      setResult(data.recommendation);
+      if (response.ok) {
+        setResult(`Evaluating Student: ${data.student_name}\n\n${data.recommendation}`);
+      } else {
+        setResult(`Error: ${data.detail || 'Could not evaluate admission.'}`);
+      }
     } catch (error) {
       console.error('Error fetching admission evaluation:', error);
-      setResult("Sorry, there was an error connecting to the AI Admissions Agent. Please make sure the Modal backend is deployed.");
+      setResult("Sorry, there was an error connecting to the AI Admissions Agent. Please make sure the backend is running.");
     } finally {
       setLoading(false);
     }
@@ -39,7 +43,7 @@ export default function Admissions() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">AI Admissions Agent</h1>
-        <p className="text-slate-500 text-sm mt-1">Multi-Agent System (CrewAI) for evaluating student eligibility</p>
+        <p className="text-slate-500 text-sm mt-1">Multi-Agent System (CrewAI) for evaluating student eligibility using database records.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -51,7 +55,7 @@ export default function Admissions() {
             </div>
             <div>
               <h2 className="font-semibold text-slate-800">New Application</h2>
-              <p className="text-xs text-slate-500">Enter student details</p>
+              <p className="text-xs text-slate-500">Enter student Roll Number</p>
             </div>
           </div>
 
@@ -73,15 +77,15 @@ export default function Admissions() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Student Profile (Academics & Extra-curriculars)</label>
-              <textarea
+              <label className="block text-sm font-medium text-slate-700 mb-1">Student Roll Number (from Database)</label>
+              <input
+                type="text"
                 required
-                value={profile}
-                onChange={(e) => setProfile(e.target.value)}
-                rows={5}
+                value={rollNumber}
+                onChange={(e) => setRollNumber(e.target.value)}
                 className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g. High school GPA 3.8. Strong in Mathematics and Physics. Captain of the debate team..."
-              ></textarea>
+                placeholder="e.g. STU001"
+              />
             </div>
 
             <button
