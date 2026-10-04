@@ -22,7 +22,12 @@ export default function Admissions() {
       });
 
       const data = response.data;
-      setResult(`Evaluating Student: ${data.student_name}\n\n${data.recommendation}`);
+      
+      // CrewAI sometimes returns an object with a 'raw' property instead of a plain string.
+      const recommendationText = data.recommendation?.raw || data.recommendation || "No recommendation provided.";
+      const studentName = data.student_name || rollNumber;
+
+      setResult(`Evaluating Student: ${studentName}\n\n${recommendationText}`);
       
     } catch (error) {
       console.error('Error fetching admission evaluation:', error);
