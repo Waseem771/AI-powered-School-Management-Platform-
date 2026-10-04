@@ -27,6 +27,11 @@ A full-stack, demo-ready School Management System designed to replace manual Exc
    - Ingests 5 official school policy documents (`fee_policy.txt`, `exam_policy.txt`, `admission_policy.txt`, `conduct_rules.txt`, `academic_calendar.txt`).
    - Dense vector similarity search with FAISS and grounded answer generation.
    - Includes automatic local grounded fallback so it **never crashes** if an external API key is absent.
+7. **Intelligent Admissions Crew (CrewAI Multi-Agent System)**:
+   - A fully autonomous 3-agent pipeline simulating a real admissions committee.
+   - **Requirements Analyst Agent:** Dynamically reads plain-text policies to extract program prerequisites.
+   - **Eligibility Evaluator Agent:** Objectively assesses applicant profiles against extracted criteria, eliminating human bias.
+   - **Final Program Advisor Agent:** Drafts personalized acceptance/rejection emails, intelligently suggesting alternative programs for rejected students to improve retention.
 
 ---
 
@@ -69,6 +74,7 @@ start_all.bat
 | 5 | **Download Report Card PDF** | `/results` | Select Ahmed Khan (#045), view subject marks table, and click *"Download Report Card PDF"*. |
 | 6 | **AI At-Risk & SHAP Explanations** | `/at-risk` | Filter by *"High Risk (>70%)"*, click on Bilal Tariq (#012, 100% risk), and highlight the 3 SHAP plain-English reasons and intervention roadmap. |
 | 7 | **RAG Policy Chatbot** | `/chatbot` | Ask: *"What is the fee refund policy?"* or click one of the quick inquiry pills to see grounded answers with document citations. |
+| 8 | **Intelligent Admissions Crew** | `/admissions` | Submit a student roll number and desired program to watch the 3 AI Agents (Analyst, Evaluator, Advisor) autonomously evaluate the application and draft a response. |
 
 ---
 
