@@ -37,4 +37,20 @@ def run_admissions_crew(student_profile: str, desired_program: str):
     )
 
     result = admissions_crew.kickoff()
-    return result
+    
+    # Compile the work of ALL 3 agents so it can be seen on the frontend!
+    def get_text(task):
+        if hasattr(task, 'output') and hasattr(task.output, 'raw'):
+            return task.output.raw
+        return str(getattr(task, 'output', 'No output recorded.'))
+
+    full_report = "### 📋 Agent 1: Admission Requirements Analyst\n"
+    full_report += f"{get_text(task1)}\n\n"
+    
+    full_report += "### 📊 Agent 2: Eligibility Evaluator\n"
+    full_report += f"{get_text(task2)}\n\n"
+    
+    full_report += "### 🎓 Agent 3: Final Program Advisor\n"
+    full_report += f"{get_text(task3)}\n"
+    
+    return full_report
