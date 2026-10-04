@@ -16,7 +16,7 @@ export default function Admissions() {
     try {
       // Connect to the backend using the configured Axios client
       // This will automatically switch between localhost and Modal depending on the environment
-      const response = await client.post('/admissions-crew/evaluate', {
+      const response = await client.post('/api/admissions-crew/evaluate', {
         student_roll_number: rollNumber,
         desired_program: program,
       });
