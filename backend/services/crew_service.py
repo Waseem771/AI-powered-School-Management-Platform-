@@ -1,23 +1,16 @@
 import os
-
-try:
-    from crewai import Crew, Process
-    from langchain_groq import ChatGroq
-    from .agents.counselor import create_counselor_agent
-    from .agents.evaluator import create_evaluator_agent
-    from .agents.advisor import create_advisor_agent
-    from .agents.tasks import create_admissions_tasks
-    CREW_AI_AVAILABLE = True
-except ImportError:
-    CREW_AI_AVAILABLE = False
+from crewai import Crew, Process
+from langchain_groq import ChatGroq
+from .agents.counselor import create_counselor_agent
+from .agents.evaluator import create_evaluator_agent
+from .agents.advisor import create_advisor_agent
+from .agents.tasks import create_admissions_tasks
 
 def run_admissions_evaluation(student_profile_text: str):
     """
     Main function to be called by FastAPI endpoint.
     Orchestrates the CrewAI multi-agent admissions process using Groq LLM.
     """
-    if not CREW_AI_AVAILABLE:
-        return "⚠️ CrewAI is installing in the background... This is a simulated response for now."
     
     # 1. Setup the Groq LLM using the key from .env
     # We use the fast versatile model, but you can swap to "openai/gpt-oss-120b" if preferred.
