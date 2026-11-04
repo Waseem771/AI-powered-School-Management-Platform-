@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  ClipboardCheck
 } from 'lucide-react';
 import { getStoredUser } from '../lib/session';
 import { api } from '../api/client';
@@ -85,6 +86,13 @@ export default function Layout() {
       icon: Bot,
       badge: 'RAG',
       badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200'
+    },
+    {
+      to: '/admissions',
+      label: 'AI Admissions',
+      icon: ClipboardCheck,
+      badge: 'CrewAI',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200'
     },
   ];
 

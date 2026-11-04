@@ -37,3 +37,5 @@ Thumbs.db
 .idea/
 # Added by code-review-graph
 .code-review-graph/
+
+backend/venv_312/

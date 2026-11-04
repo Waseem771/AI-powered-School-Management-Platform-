@@ -16,7 +16,14 @@ def test_local_data_answers_do_not_need_an_llm_key():
     session.add(Invoice(student_id=student.id, amount=3500, month="October 2025", due_date="10-Oct-2025", challan_number="CHN-045", status="pending"))
     session.commit()
 
-    response = SchoolAssistantService(session).answer("What are the fee dues for Ahmed Khan?")
+    # Temporarily remove GROQ API key to test local fallback
+    import services.school_assistant_service as sas
+    original_key = sas.GROQ_API_KEY
+    sas.GROQ_API_KEY = ""
+    try:
+        response = SchoolAssistantService(session).answer("What are the fee dues for Ahmed Khan?")
+    finally:
+        sas.GROQ_API_KEY = original_key
 
     assert response["mode"] == "school_data"
     assert response["grounded"] is True

@@ -16,6 +16,7 @@ from routers.results import router as results_router
 from routers.dashboard import router as dashboard_router
 from routers.ai import router as ai_router
 from routers.chatbot import router as chatbot_router
+from routers.admissions_crew import router as admissions_crew_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -80,6 +81,7 @@ app.include_router(results_router)
 app.include_router(dashboard_router)
 app.include_router(ai_router)
 app.include_router(chatbot_router)
+app.include_router(admissions_crew_router)
 
 @app.get("/")
 def root():

@@ -49,8 +49,15 @@ image = (
         "python-dotenv>=1.0.0",
         "numpy>=1.26.0",
         "pandas>=2.2.0",
+        "crewai",
+        "langchain-groq"
     )
-    .add_local_dir(Path(__file__).parent, remote_path="/root/backend", copy=True)
+    .add_local_dir(
+        Path(__file__).parent, 
+        remote_path="/root/backend", 
+        ignore=["venv_312", "**/__pycache__", "**/*.pyc", "school.db", ".env"],
+        copy=True
+    )
 )
 
 

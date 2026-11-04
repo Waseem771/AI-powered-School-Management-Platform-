@@ -1,5 +1,10 @@
 import os
+import sys
 import io
+
+# Fix for windows console printing unicode characters
+sys.stdout.reconfigure(encoding='utf-8')
+
 from fastapi.testclient import TestClient
 from main import app
 
