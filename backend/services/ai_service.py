@@ -1,18 +1,24 @@
+import logging
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-import shap
-from typing import Dict, List, Any, Tuple
-import logging
 
 logger = logging.getLogger(__name__)
+
+try:
+    import shap
+except Exception as e:
+    logger.warning(f"SHAP could not be loaded ({e}). Using feature importance fallback.")
+    shap = None
+
+from typing import Dict, List, Any, Tuple
 
 FEATURE_NAMES = ["avg_marks_pct", "fee_defaults", "failing_subjects", "grade_trend"]
 
 class AtRiskModelService:
     def __init__(self):
         self.model: RandomForestClassifier = None
-        self.explainer: shap.TreeExplainer = None
+        self.explainer: Any = None
         self.is_trained: bool = False
         self._initialize_default_model()
 
@@ -63,10 +69,13 @@ class AtRiskModelService:
 
         self.model = RandomForestClassifier(n_estimators=60, max_depth=5, random_state=42)
         self.model.fit(X, y)
-        try:
-            self.explainer = shap.TreeExplainer(self.model)
-        except Exception as e:
-            logger.warning(f"SHAP TreeExplainer warning: {e}")
+        if shap is not None:
+            try:
+                self.explainer = shap.TreeExplainer(self.model)
+            except Exception as e:
+                logger.warning(f"SHAP TreeExplainer warning: {e}")
+                self.explainer = None
+        else:
             self.explainer = None
         self.is_trained = True
 
@@ -93,9 +102,12 @@ class AtRiskModelService:
 
         self.model = RandomForestClassifier(n_estimators=80, max_depth=5, random_state=42)
         self.model.fit(np.array(X), np.array(y))
-        try:
-            self.explainer = shap.TreeExplainer(self.model)
-        except Exception as e:
+        if shap is not None:
+            try:
+                self.explainer = shap.TreeExplainer(self.model)
+            except Exception as e:
+                self.explainer = None
+        else:
             self.explainer = None
         self.is_trained = True
 

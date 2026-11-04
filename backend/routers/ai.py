@@ -7,6 +7,7 @@ from models.student import Student
 from models.result import Result
 from models.fee import Invoice
 from routers.auth import get_current_user
+from services.risk_features import compute_student_features
 
 router = APIRouter(prefix="/ai", tags=["AI - At Risk"])
 
@@ -18,34 +19,7 @@ def get_ai_service():
 def _calculate_student_features(student_id: int, session: Session) -> Dict[str, Any]:
     marks = session.exec(select(Result).where(Result.student_id == student_id)).all()
     invoices = session.exec(select(Invoice).where(Invoice.student_id == student_id)).all()
-
-    if marks:
-        total_obtained = sum(m.marks_obtained for m in marks)
-        total_possible = sum(m.total_marks for m in marks)
-        avg_pct = (total_obtained / total_possible) * 100.0 if total_possible > 0 else 70.0
-        failing = sum(1 for m in marks if (m.marks_obtained / m.total_marks) < 0.40)
-    else:
-        avg_pct = 70.0
-        failing = 0
-
-    fee_defaults = sum(1 for inv in invoices if inv.status == "pending")
-
-    # Historical trend heuristic
-    if failing >= 2:
-        grade_trend = -21.0
-    elif avg_pct < 55:
-        grade_trend = -14.5
-    elif avg_pct > 80:
-        grade_trend = 6.5
-    else:
-        grade_trend = 1.0
-
-    return {
-        "avg_marks_pct": avg_pct,
-        "fee_defaults": fee_defaults,
-        "failing_subjects": failing,
-        "grade_trend": grade_trend
-    }
+    return compute_student_features(marks, invoices)
 
 @router.get("/at-risk")
 def get_all_at_risk_students(

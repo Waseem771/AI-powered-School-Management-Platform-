@@ -8,6 +8,7 @@ from models.fee import Invoice, Payment
 from models.student import Student
 from services.pdf_service import generate_fee_challan_pdf
 from routers.auth import get_current_user
+from config import TUITION_FEE_MONTHLY
 
 router = APIRouter(prefix="/fees", tags=["Fees"])
 
@@ -20,6 +21,18 @@ class ChallanGenerateRequest(BaseModel):
 class PaymentRequest(BaseModel):
     amount_paid: Optional[float] = None
     payment_mode: str = "cash"  # cash, bank, online
+
+
+def _unique_challan_number(session: Session) -> str:
+    for _ in range(20):
+        candidate = f"CHN-{random.randint(1000, 9999)}"
+        if not session.exec(select(Invoice).where(Invoice.challan_number == candidate)).first():
+            return candidate
+    # 4-digit space is crowded; widen it rather than fail on the unique constraint
+    while True:
+        candidate = f"CHN-{random.randint(100000, 999999)}"
+        if not session.exec(select(Invoice).where(Invoice.challan_number == candidate)).first():
+            return candidate
 
 @router.get("")
 def get_invoices(
@@ -63,7 +76,7 @@ def generate_challan(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    challan_num = f"CHN-{random.randint(1000, 9999)}"
+    challan_num = _unique_challan_number(session)
     invoice = Invoice(
         student_id=student.id,
         amount=req.amount,
@@ -115,7 +128,8 @@ def pay_invoice(
 @router.get("/{id}/pdf")
 def download_challan_pdf(
     id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _user=Depends(get_current_user),
 ):
     invoice = session.get(Invoice, id)
     if not invoice:
@@ -132,14 +146,15 @@ def download_challan_pdf(
         "section": student.section,
         "guardian_name": student.guardian_name
     }
+    tuition_amount = min(invoice.amount, float(TUITION_FEE_MONTHLY))
     invoice_data = {
         "challan_number": invoice.challan_number,
         "amount": invoice.amount,
         "month": invoice.month,
         "due_date": invoice.due_date,
         "status": invoice.status,
-        "tuition_amount": 3500.0,
-        "exam_amount": max(0.0, invoice.amount - 3500.0)
+        "tuition_amount": tuition_amount,
+        "exam_amount": invoice.amount - tuition_amount
     }
 
     pdf_content = generate_fee_challan_pdf(invoice_data, student_data)

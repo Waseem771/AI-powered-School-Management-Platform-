@@ -3,8 +3,13 @@ import glob
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
+try:
+    import faiss
+    from sentence_transformers import SentenceTransformer
+    HAS_FAISS = True
+except Exception as e:
+    HAS_FAISS = False
+
 from groq import Groq
 from config import BASE_DIR, GROQ_API_KEY, GROQ_MODEL, SCHOOL_NAME
 
@@ -12,8 +17,10 @@ KB_DIR = BASE_DIR / "knowledge_base"
 
 class PolicyRAGService:
     def __init__(self):
-        self.encoder: Optional[SentenceTransformer] = None
-        self.index: Optional[faiss.IndexFlatL2] = None
+        self.encoder = None
+        self.index = None
+        self.tfidf_vectorizer = None
+        self.tfidf_matrix = None
         self.chunks: List[Dict[str, Any]] = []
         self.groq_client: Optional[Groq] = None
         self.is_initialized: bool = False
@@ -21,12 +28,9 @@ class PolicyRAGService:
     def initialize(self):
         """
         Loads knowledge base documents, splits them into ~200 word chunks,
-        computes dense embeddings with sentence-transformers, and populates FAISS index.
+        computes dense embeddings with sentence-transformers + FAISS (or TF-IDF fallback),
+        and populates index.
         """
-        print("[RAG] Initializing SentenceTransformer model...")
-        # 'all-MiniLM-L6-v2' is lightweight, fast and produces 384-dimensional embeddings
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
-
         # Load knowledge base files
         self.chunks = []
         kb_files = glob.glob(str(KB_DIR / "*.txt"))
@@ -59,12 +63,27 @@ class PolicyRAGService:
             return
 
         print(f"[RAG] Indexed {len(self.chunks)} text chunks across policy files.")
-        texts = [c["text"] for c in self.chunks]
-        embeddings = self.encoder.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
-        dimension = embeddings.shape[1]
 
-        self.index = faiss.IndexFlatIP(dimension)  # Inner product for cosine similarity with normalized vectors
-        self.index.add(embeddings.astype('float32'))
+        if HAS_FAISS:
+            try:
+                print("[RAG] Initializing SentenceTransformer model...")
+                self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+                texts = [c["text"] for c in self.chunks]
+                embeddings = self.encoder.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
+                dimension = embeddings.shape[1]
+                self.index = faiss.IndexFlatIP(dimension)
+                self.index.add(embeddings.astype('float32'))
+            except Exception as e:
+                print(f"[RAG] FAISS/SentenceTransformer error: {e}. Falling back to TF-IDF.")
+                self.encoder = None
+                self.index = None
+
+        if self.index is None:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            print("[RAG] Using Scikit-Learn TF-IDF vector retrieval engine for policy documents.")
+            texts = [c["text"] for c in self.chunks]
+            self.tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+            self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(texts)
 
         # Setup Groq Client
         api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY)
@@ -81,21 +100,37 @@ class PolicyRAGService:
         self.is_initialized = True
 
     def retrieve_relevant_chunks(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
-        if not self.is_initialized or self.index is None:
+        if not self.is_initialized:
             self.initialize()
 
-        query_vector = self.encoder.encode([query], convert_to_numpy=True, normalize_embeddings=True).astype('float32')
-        scores, indices = self.index.search(query_vector, top_k)
-
-        results = []
-        for i, idx in enumerate(indices[0]):
-            if idx != -1 and idx < len(self.chunks):
-                results.append({
-                    "score": float(scores[0][i]),
-                    "source": self.chunks[idx]["source"],
-                    "text": self.chunks[idx]["text"]
-                })
-        return results
+        if self.index is not None and self.encoder is not None:
+            query_vector = self.encoder.encode([query], convert_to_numpy=True, normalize_embeddings=True).astype('float32')
+            scores, indices = self.index.search(query_vector, top_k)
+            results = []
+            for i, idx in enumerate(indices[0]):
+                if idx != -1 and idx < len(self.chunks):
+                    results.append({
+                        "score": float(scores[0][i]),
+                        "source": self.chunks[idx]["source"],
+                        "text": self.chunks[idx]["text"]
+                    })
+            return results
+        elif self.tfidf_vectorizer is not None and self.tfidf_matrix is not None:
+            from sklearn.metrics.pairwise import cosine_similarity
+            query_vector = self.tfidf_vectorizer.transform([query])
+            sims = cosine_similarity(query_vector, self.tfidf_matrix)[0]
+            top_indices = np.argsort(-sims)[:top_k]
+            results = []
+            for idx in top_indices:
+                score = float(sims[idx])
+                if score > 0:
+                    results.append({
+                        "score": score,
+                        "source": self.chunks[idx]["source"],
+                        "text": self.chunks[idx]["text"]
+                    })
+            return results
+        return []
 
     def answer_query(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """

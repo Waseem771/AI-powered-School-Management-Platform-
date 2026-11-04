@@ -117,7 +117,8 @@ def enter_or_update_marks(
 @router.get("/{student_id}/report-card/pdf")
 def download_report_card(
     student_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _user=Depends(get_current_user),
 ):
     student = session.get(Student, student_id)
     if not student:

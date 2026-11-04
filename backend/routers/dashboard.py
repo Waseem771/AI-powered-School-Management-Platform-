@@ -7,6 +7,7 @@ from models.fee import Invoice, Payment
 from models.result import Result
 from services.ai_service import ai_service
 from routers.auth import get_current_user
+from services.risk_features import compute_student_features
 from config import GRADES, SUBJECTS
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -70,17 +71,7 @@ def get_dashboard_stats(
         s_res = student_results_map.get(s.id, [])
         s_inv = student_invoices_map.get(s.id, [])
 
-        avg_marks = (sum(r.marks_obtained for r in s_res) / (len(s_res) * 100) * 100) if s_res else 70.0
-        failing = sum(1 for r in s_res if r.marks_obtained < 40)
-        fee_defs = sum(1 for inv in s_inv if inv.status == "pending")
-        trend = -15.0 if failing >= 2 else (5.0 if avg_marks > 80 else 0.0)
-
-        risk_data = ai_service.predict_student_risk({
-            "avg_marks_pct": avg_marks,
-            "fee_defaults": fee_defs,
-            "failing_subjects": failing,
-            "grade_trend": trend
-        })
+        risk_data = ai_service.predict_student_risk(compute_student_features(s_res, s_inv))
 
         cat = risk_data.get("risk_category")
         if cat == "High":

@@ -136,8 +136,8 @@ class SchoolAssistantService:
     ) -> Dict[str, Any]:
         lower = question.lower()
 
-        # ── Bulk: pending fees list ─────────────────────────────────────────
-        if self._is_pending_list_question(lower):
+        # ── Bulk: pending fees list (only when no specific student is named) ─
+        if self._is_pending_list_question(lower) and not self._student_identifier(question, history):
             grade = self._extract_grade(question)
             data = self.data.get_students_with_pending_fees(grade)
             count = data["count"]

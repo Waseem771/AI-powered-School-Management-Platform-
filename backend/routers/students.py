@@ -4,7 +4,7 @@ from typing import List, Optional
 from database import get_session
 from models.student import Student, StudentCreate, StudentUpdate, StudentRead
 from models.result import Result
-from models.fee import Invoice
+from models.fee import Invoice, Payment
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/students", tags=["Students"])
@@ -95,6 +95,9 @@ def delete_student(
 
     invoices = session.exec(select(Invoice).where(Invoice.student_id == id)).all()
     for inv in invoices:
+        payments = session.exec(select(Payment).where(Payment.invoice_id == inv.id)).all()
+        for payment in payments:
+            session.delete(payment)
         session.delete(inv)
 
     session.delete(student)
