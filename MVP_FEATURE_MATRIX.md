@@ -77,6 +77,12 @@
 | Handling of missing data | ❌ | No data reads as "Low risk" and "dues paid" |
 | Fees separated from academic risk | ❌ | Unpaid fees alone can produce High risk |
 
+## AI admissions (arrived with the GitHub merge, not in the original brief)
+
+| Feature | Status | Main gap |
+|---|---|---|
+| Admissions page and API | ❓ Not tested | Login check, optional loading, and the failure message are tested. **A real AI answer is not**, because that needs the Modal token. Not yet audited for quality. Uses a placeholder policy file (`dummy_policy.py`), not the real admission policy |
+
 ## P1: improve if the foundation allows
 
 | Feature | Status | Note |
@@ -106,7 +112,7 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 | ⚙️ Backend only | 3 |
 | ❌ Broken | 12 |
 | ⬜ Missing | 14 |
-| ❓ Not tested | 1 |
-| **Total** | **64** |
+| ❓ Not tested | 2 |
+| **Total** | **65** |
 
 Counts cover the P0, AI, and P1 tables above, with P2 excluded.

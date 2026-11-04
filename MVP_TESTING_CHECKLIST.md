@@ -14,14 +14,23 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| `test_data_assistant.py` on a fresh install | ❌ crash (SQLModel 0.0.48) | |
-| `test_school_assistant.py` on a fresh install | ❌ crash | |
-| `test_backend.py` on a fresh install | ❌ crash | |
-| Same three with SQLModel 0.0.44 | ✅ | |
-| `node --test src/lib/session.test.js` | ✅ 2 of 2 | |
-| `vite build` | ✅ (chunk-size warning) | |
+| `test_data_assistant.py` on a fresh install | ❌ crash (SQLModel 0.0.48) | ✅ M0 |
+| `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
+| `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
+| Same three with SQLModel 0.0.44 | ✅ | not needed now |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M0: 14 passed |
+| App starts without CrewAI | ⬜ | ✅ M0 |
+| Pinned stack reads and writes a copy of existing `school.db` | ⬜ | ✅ M0 |
+| Pins resolve for Python 3.11 (Modal) | ⬜ | ✅ M0, dry run only |
+| `modal_app.py` loads with the new install method | ⬜ | ✅ M0, not deployed |
+| Admissions: anonymous rejected, 503 on failure, no contact details sent | ⬜ | ✅ M0 |
+| Admissions: failure message shown on the page | ⬜ | ✅ M0, in browser |
+| Admissions: real AI answer | ⬜ | ⬜ needs token |
+| No known credential patterns in project files | ❌ | ✅ M0 |
+| `npm test` (session tests) | ✅ 2 of 2 | ✅ M0 |
+| `vite build` | ✅ (chunk-size warning) | ✅ M0 |
 | `npm audit --omit=dev` clean | ❌ 3 issues | |
-| Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | |
+| Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | ✅ M0, checksum matched |
 
 ## Authentication and authorisation
 

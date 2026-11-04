@@ -1,16 +1,18 @@
-fastapi>=0.115.0
-uvicorn>=0.30.0
-sqlmodel>=0.0.22
-reportlab>=4.2.0
-scikit-learn>=1.5.0
-shap>=0.45.0
-sentence-transformers>=3.0.0
-faiss-cpu>=1.8.0
-groq>=0.9.0
-pyjwt>=2.8.0
-passlib>=1.7.4
-bcrypt>=4.0.0
-python-multipart>=0.0.9
-python-dotenv>=1.0.0
-numpy>=1.26.0
-pandas>=2.2.0
+# Exact versions, tested on Python 3.13 locally and resolved for Python 3.11 (Modal).
+# Change a version only after a clean install passes: python -m pytest
+fastapi==0.162.0
+uvicorn==0.54.0
+sqlmodel==0.0.48
+reportlab==5.1.0
+scikit-learn==1.9.1
+shap==0.51.0
+sentence-transformers==6.2.0
+faiss-cpu==1.15.1
+groq==1.7.0
+pyjwt==2.15.1
+passlib==1.7.4
+bcrypt==5.0.0
+python-multipart==0.0.33
+python-dotenv==1.2.4
+numpy==2.4.6
+pandas==3.1.1

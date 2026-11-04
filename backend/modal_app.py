@@ -29,29 +29,12 @@ app = modal.App("educore-ai-school-platform")
 # 2. Persistent volume for SQLite database (/data/school.db)
 data_volume = modal.Volume.from_name("educore-data", create_if_missing=True)
 
-# 3. Define the container image with all backend dependencies
+# 3. Define the container image. Versions come only from the requirements files.
+backend_dir = Path(__file__).parent
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "fastapi>=0.115.0",
-        "uvicorn>=0.30.0",
-        "sqlmodel>=0.0.22",
-        "reportlab>=4.2.0",
-        "scikit-learn>=1.5.0",
-        "shap>=0.45.0",
-        "sentence-transformers>=3.0.0",
-        "faiss-cpu>=1.8.0",
-        "groq>=0.9.0",
-        "pyjwt>=2.8.0",
-        "passlib>=1.7.4",
-        "bcrypt>=4.0.0",
-        "python-multipart>=0.0.9",
-        "python-dotenv>=1.0.0",
-        "numpy>=1.26.0",
-        "pandas>=2.2.0",
-        "crewai",
-        "langchain-groq"
-    )
+    .pip_install_from_requirements(str(backend_dir / "requirements.txt"))
+    .pip_install_from_requirements(str(backend_dir / "requirements-admissions.txt"))
     .add_local_dir(
         Path(__file__).parent, 
         remote_path="/root/backend", 

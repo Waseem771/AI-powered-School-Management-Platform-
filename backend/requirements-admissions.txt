@@ -1,0 +1,2 @@
+# Optional: AI Admissions only. The rest of the app runs without these.
+crewai==1.15.35

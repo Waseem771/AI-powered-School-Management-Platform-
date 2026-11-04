@@ -52,6 +52,8 @@ def test_collection_summary_and_unknown_student_are_safe():
 
 
 if __name__ == "__main__":
-    test_student_lookup_and_fee_summary()
-    test_collection_summary_and_unknown_student_are_safe()
-    print("School data assistant tests passed.")
+    import sys
+
+    import pytest
+
+    sys.exit(pytest.main([__file__, "-q"]))

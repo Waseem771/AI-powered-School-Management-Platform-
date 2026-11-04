@@ -10,10 +10,10 @@ Run from `frontend/`.
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # output in dist/
-node --test src/lib/session.test.js
+npm test
 ```
 
-There is no lint, formatter, or `npm test` script. The backend must be running on `localhost:8000` (or `VITE_API_URL` set) for any page to load data.
+There is no lint or formatter. The backend must be running on `localhost:8000` (or `VITE_API_URL` set) for any page to load data.
 
 ## Stack
 
@@ -21,9 +21,9 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 
 ## Structure
 
-- `src/App.jsx`: routes `/login`, `/dashboard`, `/students`, `/fees`, `/results`, `/at-risk`, `/chatbot`. Protected routes render inside `components/Layout.jsx`.
+- `src/App.jsx`: routes `/login`, `/dashboard`, `/students`, `/fees`, `/results`, `/at-risk`, `/chatbot`, `/admissions`. Protected routes render inside `components/Layout.jsx`.
 - `src/api/client.js`: the single axios instance and `api` object. Adds the bearer token from `localStorage`, redirects to `/login` on 401. Add every new endpoint here, never call axios directly from a page.
-- `src/pages/`: `Login`, `Dashboard`, `Students`, `Fees`, `Results`, `AtRisk`, `Chatbot`.
+- `src/pages/`: `Login`, `Dashboard`, `Students`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
 - `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable`, `StatCard`, `ErrorBoundary`.
 - `src/lib/session.js`: `getStoredUser()` reads `educore_user` from `localStorage` with a safe default.
 

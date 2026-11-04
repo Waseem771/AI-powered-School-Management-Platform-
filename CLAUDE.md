@@ -26,6 +26,7 @@ They have separate dependencies and are deployed separately. See `DEPLOYMENT_GUI
 | Marks entry, grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx` |
 | AI at-risk prediction with SHAP reasons, interventions, risk simulator | `routers/ai.py`, `services/ai_service.py` | `pages/AtRisk.jsx` |
 | Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `rag_service.py` | `pages/Chatbot.jsx` |
+| AI admissions (optional, CrewAI) | `routers/admissions_crew.py`, `school_crew/` | `pages/Admissions.jsx` |
 
 ## Repo map
 
@@ -35,12 +36,15 @@ backend/            FastAPI app (run commands from here)
   config.py         .env loading, SCHOOL_*, auth settings, GRADES/SECTIONS/SUBJECTS, fee amounts
   database.py       engine, get_session, create_db_and_tables
   seed_data.py      seeds 50 students, invoices, results (skips if 50+ students exist)
-  modal_app.py      Modal deployment (own copy of the dependency list)
+  modal_app.py      Modal deployment (installs from the requirements files)
+  requirements*.txt exact versions: runtime, optional admissions, dev/test
+  conftest.py       test isolation: temporary database, no real keys
   models/           SQLModel tables: user, student, fee, result
-  routers/          auth, students, fees, results, dashboard, ai, chatbot
+  routers/          auth, students, fees, results, dashboard, ai, chatbot, admissions_crew
+  school_crew/      CrewAI agents for admissions (imported only when used)
   services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service
   knowledge_base/   5 policy .txt files used by the RAG chatbot
-  test_*.py         script-style tests (no pytest)
+  test_*.py         pytest tests; test_modal.py is a manual script, not collected
 frontend/           React app (run commands from here)
   src/api/client.js axios instance + the `api` object (every endpoint)
   src/pages/        one file per route
@@ -54,7 +58,7 @@ start_all.bat, run_backend*.bat, run_frontend*.bat   Windows launchers
 Run backend commands from `backend/`, because modules import each other by top-level name (`from config import ...`).
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt   # add requirements-admissions.txt for AI admissions
 python seed_data.py                      # safe to re-run: skips if 50+ students exist
 python -m uvicorn main:app --reload      # http://localhost:8000, Swagger at /docs
 python check_imports.py                  # diagnose missing or broken dependencies
@@ -72,16 +76,13 @@ npm run build
 
 ### Tests
 
-`pytest` is not in `requirements.txt`. Each backend test file runs as a script, so to run one test file, run it directly:
-
 ```bash
-python test_data_assistant.py        # from backend/; uses in-memory SQLite
-python test_school_assistant.py      # from backend/; uses in-memory SQLite
-python test_backend.py               # from backend/; end-to-end, needs the seeded school.db
-node --test src/lib/session.test.js  # from frontend/; there is no npm test script
+python -m pytest                 # from backend/; all backend tests
+python -m pytest test_backend.py # from backend/; one file
+npm test                         # from frontend/
 ```
 
-`test_backend.py` runs against the real `school.db` and creates and deletes a student there. It relies on `TestClient` keeping the login cookie, so calls without an auth header still authenticate. The in-memory tests read `backend/.env` through `config.py`, so a `GROQ_API_KEY` set there can send them down the Groq path.
+`backend/conftest.py` gives every test run a temporary seeded database and blank keys, so tests cannot touch `school.db` or call Groq. Running a test file directly (`python test_backend.py`) also goes through pytest and stays isolated. `test_backend.py` relies on `TestClient` keeping the login cookie, so calls without an auth header still authenticate.
 
 ## Environment variables
 
@@ -92,13 +93,14 @@ Backend, set in `backend/.env` (template: `.env.example`) or the Modal secret `e
 | `SCHOOL_NAME`, `SCHOOL_TAGLINE`, `SCHOOL_ADDRESS`, `SCHOOL_PHONE`, `SCHOOL_EMAIL`, `CURRENCY` | Branding used in PDFs and the chatbot |
 | `SECRET_KEY` | JWT signing key (HS256, 24h tokens) |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Optional. Without a key, everything falls back to local logic |
+| `MODAL_PROXY_TOKEN_ID`, `MODAL_PROXY_TOKEN_SECRET` | Optional. AI admissions only; without them that feature returns 503 |
 | `DATABASE_URL` | Defaults to local SQLite; Modal sets `sqlite:////data/school.db` |
 | `FRONTEND_URL` | Extra CORS origin |
 | `COOKIE_SECURE` | Set `true` for cross-site cookies in production |
 
 Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds the production value.
 
-`backend/.env` holds real secrets and must never be committed or pasted into docs.
+`backend/.env` is for secrets and must never be committed or pasted into docs. Credentials are read from the environment only, never written in code; `test_environment.py` fails if a known credential pattern appears in project files.
 
 ## Architecture
 
@@ -108,14 +110,15 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 
 - **No migrations.** The schema comes only from `SQLModel.metadata.create_all`, which won't alter existing tables. After changing a model locally, delete `school.db` and reseed. The Modal volume database needs the same care.
 - **Config:** `config.py` loads `.env` and also holds the fixed school structure (`GRADES`, `SECTIONS`, `SUBJECTS`) and fee amounts.
-- **Modal dependencies:** `modal_app.py` keeps its own copy of the dependency list. Update it whenever `requirements.txt` changes.
+- **Dependencies:** every package is pinned to an exact version that works on Python 3.13 (local) and resolves for 3.11 (Modal). `modal_app.py` installs from the requirements files, so there is one list. Check any change with a clean install and `python -m pytest`.
+- **Optional AI admissions:** CrewAI is imported inside the request handler. The app must start and work without it, returning 503 for that feature only.
 
 ### Data model
 
 - `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (string).
 - `invoices`: student_id, amount, month, due_date, unique `challan_number`, `status` (`pending` or `paid`). `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). `fee_structures` and `academic_years` exist but are barely used.
 - `results`: student_id, subject, marks_obtained, total_marks, exam_type. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F.
-- `users`: username, password hash (passlib/bcrypt), role.
+- `users`: username, password hash (currently fixed-salt SHA-256, moving to bcrypt in M1), role.
 
 ### API surface
 

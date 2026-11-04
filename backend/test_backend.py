@@ -1,9 +1,11 @@
-import os
 import sys
-import io
 
-# Fix for windows console printing unicode characters
-sys.stdout.reconfigure(encoding='utf-8')
+if __name__ == "__main__":
+    # Hand over to pytest before anything imports the app, so conftest.py can
+    # point it at a temporary database instead of school.db.
+    import pytest
+
+    sys.exit(pytest.main([__file__, "-q", "-s"]))
 
 from fastapi.testclient import TestClient
 from main import app
@@ -113,6 +115,3 @@ def test_all_endpoints():
     print("\n=======================================================")
     print(">>> ALL 8 BACKEND TEST SUITES PASSED SUCCESSFULLY! <<<")
     print("=======================================================")
-
-if __name__ == "__main__":
-    test_all_endpoints()

@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** proposal, awaiting approval. No code has been changed.
+**Status:** approved. M0 is complete on branch `mvp/foundation` (not pushed). Next: M1.
 
 ## Principles
 
@@ -30,12 +30,17 @@ Effort figures are rough working-session estimates, not commitments.
 
 ### Stage 1: Stop the bleeding (before any demo)
 
-#### M0. Safety net (small)
-- Git baseline (D1).
-- Pin all Python versions to a tested set, including `sqlmodel` below 0.0.45. Mirror in `modal_app.py`.
-- Add `pytest` as a dev dependency with isolated test databases, so tests can never touch `school.db`.
+#### M0. Safety net ✅ complete
+- Git baseline on `mvp/foundation`, merged with GitHub `main` so Admissions and other work are kept.
+- All Python versions pinned to one set that works on Python 3.13 and resolves for 3.11. `modal_app.py` installs from the same files.
+- `pytest` with isolated test databases, so tests can never touch `school.db`.
+- Admissions: login required, CrewAI optional, published token removed from code, contact details no longer sent to the AI.
 
-**Done when:** a fresh install in a clean environment passes all tests.
+**Done:** a fresh install in a clean environment passes all 14 tests.
+
+**Deployment impact when next deployed:** Modal rebuilds the image with the pinned versions. `MODAL_PROXY_TOKEN_ID` and `MODAL_PROXY_TOKEN_SECRET` must be in the `educore-secrets` Modal secret, or Admissions returns 503 (everything else keeps working). Not deployed yet.
+
+**Admissions follow-ups:** review answer quality and replace the placeholder policy with the real one, once a new token exists. Unused CrewAI variants (`routers/admissions.py`, `services/crew_service.py`, `services/agents/`) and `routers/assemble_educore.py` (a video script in the wrong folder) are candidates for removal in M9, with approval.
 
 #### M1. Authentication and security (medium)
 - Require `SECRET_KEY` at startup, except in explicit local dev mode. Scrub the key from docs.
@@ -155,5 +160,7 @@ M2 needs to land before M5 so the chatbot uses the corrected fee calculation. M3
 
 ## What is still needed
 
+- **Revoke the published Modal proxy token now** (see SECURITY_REVIEW.md, S0).
 - A Groq API key in your local `backend/.env` before M5. Do not paste it in chat.
+- A new Modal proxy token in your local `backend/.env` before reviewing Admissions.
 - Approval to deploy after M1.

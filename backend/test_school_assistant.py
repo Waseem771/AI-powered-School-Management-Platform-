@@ -32,5 +32,8 @@ def test_local_data_answers_do_not_need_an_llm_key():
 
 
 if __name__ == "__main__":
-    test_local_data_answers_do_not_need_an_llm_key()
-    print("School assistant orchestration tests passed.")
+    import sys
+
+    import pytest
+
+    sys.exit(pytest.main([__file__, "-q"]))

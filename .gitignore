@@ -39,3 +39,6 @@ Thumbs.db
 .code-review-graph/
 
 backend/venv_312/
+
+# Test caches
+.pytest_cache/

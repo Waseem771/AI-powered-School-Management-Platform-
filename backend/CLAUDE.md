@@ -7,13 +7,13 @@ Backend guidance for Claude Code. Project-wide context is in [../CLAUDE.md](../C
 Always run from `backend/` (imports are top-level: `from config import ...`).
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python seed_data.py
 python -m uvicorn main:app --reload     # :8000, docs at /docs
 python check_imports.py
 ```
 
-Tests are scripts: `python test_data_assistant.py`, `python test_school_assistant.py`, `python test_backend.py` (the last uses the real `school.db`).
+Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, so tests never touch `school.db`.
 
 ## Layout
 
@@ -29,7 +29,7 @@ Tests are scripts: `python test_data_assistant.py`, `python test_school_assistan
 
 - New endpoint: add the router function, register it in `main.py` if it is a new router, then add the matching method to `frontend/src/api/client.js`.
 - Model change: no migrations exist. Delete `school.db`, reseed, and apply the same care to the Modal volume.
-- New dependency: add to both `requirements.txt` and the pip list in `modal_app.py`.
+- New dependency: add an exact version to `requirements.txt` (or `requirements-admissions.txt`). `modal_app.py` installs from these files. It must also resolve for Python 3.11.
 - Heavy imports (sentence-transformers, FAISS) must stay lazy so startup stays fast; the RAG model initializes on first use.
 - Chatbot data tools stay read-only and allowlisted. A new tool needs: definition, `execute_tool` branch, local keyword fallback, structured-data mapping, and a test in `test_data_assistant.py` / `test_school_assistant.py`. It must work with no `GROQ_API_KEY`.
 - Keep secrets in `.env` only. Never log or echo `GROQ_API_KEY` or `SECRET_KEY`.
