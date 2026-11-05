@@ -1,136 +1,82 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { ClipboardCheck, Sparkles } from 'lucide-react';
 import client from '../api/client';
+import Button from '../components/ui/Button';
+import { SelectField, TextField } from '../components/ui/Field';
+import { Card, PageHeader } from '../components/ui/Page';
+import { EmptyState, ErrorNotice, LoadingState } from '../components/ui/States';
+import { apiErrorMessage } from '../lib/errors';
+
+const GRADE_OPTIONS = [
+  { value: '', label: 'Select a grade' },
+  ...['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].map((grade) => ({ value: grade, label: grade })),
+];
 
 export default function Admissions() {
   const [rollNumber, setRollNumber] = useState('');
   const [program, setProgram] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
+    setError('');
 
     try {
-      // Connect to the backend using the configured Axios client
-      // This will automatically switch between localhost and Modal depending on the environment
       const response = await client.post('/api/admissions-crew/evaluate', {
         student_roll_number: rollNumber,
         desired_program: program,
       });
-
       const data = response.data;
-      
-      // CrewAI sometimes returns an object with a 'raw' property instead of a plain string.
-      const recommendationText = data.recommendation?.raw || data.recommendation || "No recommendation provided.";
-      const studentName = data.student_name || rollNumber;
-
-      setResult(`Evaluating Student: ${studentName}\n\n${recommendationText}`);
-      
-    } catch (error) {
-      console.error('Error fetching admission evaluation:', error);
-      setResult(`Error: ${error.response?.data?.detail || 'Could not connect to AI Admissions Agent. Please make sure the backend is running.'}`);
+      // The service sometimes returns an object with a 'raw' property instead of a plain string.
+      setResult({
+        student: data.student_name || rollNumber,
+        text: data.recommendation?.raw || data.recommendation || 'No recommendation was returned.',
+      });
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The admissions check could not be completed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">AI Admissions Agent</h1>
-        <p className="text-slate-500 text-sm mt-1">Multi-Agent System (CrewAI) for evaluating student eligibility using database records.</p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Admissions" subtitle="An AI suggestion on a student's eligibility, from their school records. Staff make the decision." />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Input Form */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-slate-800">New Application</h2>
-              <p className="text-xs text-slate-500">Enter student Roll Number</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Desired Grade for Admission</label>
-              <select
-                required
-                value={program}
-                onChange={(e) => setProgram(e.target.value)}
-                className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a grade...</option>
-                <option value="Grade 6">Grade 6</option>
-                <option value="Grade 7">Grade 7</option>
-                <option value="Grade 8">Grade 8</option>
-                <option value="Grade 9">Grade 9</option>
-                <option value="Grade 10">Grade 10</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Student Roll Number (from Database)</label>
-              <input
-                type="text"
-                required
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g. STU001"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 animate-spin" /> Analyzing via CrewAI...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" /> Evaluate Eligibility
-                </span>
-              )}
-            </button>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="mb-4 text-base font-bold text-slate-900">Check eligibility</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <SelectField label="Grade applied for" required options={GRADE_OPTIONS} value={program} onChange={(e) => setProgram(e.target.value)} />
+            <TextField label="Student's roll number" required value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} />
+            <Button type="submit" disabled={loading} className="w-full">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <span>{loading ? 'Checking…' : 'Check Eligibility'}</span>
+            </Button>
           </form>
-        </div>
+        </Card>
 
-        {/* Output Result */}
-        <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-sm flex flex-col h-full min-h-[400px]">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-900/50 border border-emerald-800/50 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-white">AI Decision</h2>
-                <p className="text-xs text-slate-400">Agent Recommendation</p>
-              </div>
-            </div>
-            {result && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/20">COMPLETED</span>}
-          </div>
-
-          <div className="flex-1 text-slate-300 text-sm overflow-y-auto whitespace-pre-wrap">
-            {result ? (
-              result
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                <Bot className="w-12 h-12 mb-3 opacity-20" />
-                <p>Awaiting application submission...</p>
+        <Card className="flex min-h-72 flex-col p-5">
+          <h2 className="mb-3 text-base font-bold text-slate-900">AI suggestion</h2>
+          <div aria-live="polite" className="flex-1">
+            <ErrorNotice>{error}</ErrorNotice>
+            {loading && <LoadingState label="Reading the student's records. This can take a minute." />}
+            {!loading && !error && !result && (
+              <EmptyState icon={ClipboardCheck} title="Nothing checked yet" message="Enter a grade and roll number to get a suggestion." />
+            )}
+            {result && (
+              <div className="space-y-3 text-sm text-slate-800">
+                <p className="font-semibold">{result.student}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{result.text}</p>
+                <p className="border-t border-slate-200 pt-3 text-xs text-slate-600">An AI suggestion, which can be wrong. Please check the student's records before deciding.</p>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

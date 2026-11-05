@@ -56,10 +56,10 @@
 | **Chatbot: live vs policy distinction** | ✅ | M5: unrelated questions are declined, with no sources |
 | **Chatbot with Groq tool calling** | ❓ Not tested | M5: logic tested against a stand-in only. No valid key available |
 | **Chatbot without Groq** | ✅ | M5: every path works with no key |
-| **Responsive layout** | 🟡 | No page overflow. Tiny tap targets; wide tables |
-| **Loading states** | 🟡 | Present on all main pages |
-| **Empty states** | 🟡 | Present, but also shown wrongly on backend failure |
-| **Error states** | ❌ | Only Dashboard and Chatbot have them. Others look like "no data" |
+| **Responsive layout** | ✅ | M7: 44 px controls and cards on phones. Checked at 375 px in a browser, not on a real phone |
+| **Loading states** | ✅ | M7: one shared style |
+| **Empty states** | ✅ | M7: separate from failures, with a next step where one exists |
+| **Error states** | ✅ | M7: a message and working Try again on data pages |
 | **Demo data** | 🟡 | Consistent, but stale, thin, and uses public figures' names |
 | **DEMO MODE label** | ⬜ | None |
 
@@ -87,7 +87,7 @@
 
 | Feature | Status | Note |
 |---|---|---|
-| School profile and branding | 🟡 | PDFs use env values, the frontend is hardcoded, and there is no settings page |
+| School profile and branding | 🟡 | M7: the app's header reads the school's name and session from the backend. There is no settings page |
 | Academic year configuration | ⚙️ | Table exists, barely used; no UI |
 | Class and section configuration | ⬜ | Fixed lists in code, copied into the frontend |
 | Fee structure configuration | ⚙️ | Table is seeded and never read |
@@ -106,11 +106,11 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 36 |
-| 🟡 Partially functional | 10 |
+| ✅ Fully functional | 40 |
+| 🟡 Partially functional | 7 |
 | 🖥️ Frontend only | 0 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 3 |
+| ❌ Broken | 2 |
 | ⬜ Missing | 11 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |

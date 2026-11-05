@@ -1,31 +1,53 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  Receipt,
-  GraduationCap,
   AlertTriangle,
   Bot,
-  LogOut,
-  School,
-  Menu,
-  X,
-  ShieldCheck,
   ClipboardCheck,
-  KeyRound
+  GraduationCap,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Receipt,
+  School,
+  Users,
+  X,
 } from 'lucide-react';
 import { clearSession, getStoredUser } from '../lib/session';
+import { roleLabel, sessionLabel } from '../lib/schoolInfo';
 import { api } from '../api/client';
 import ChangePasswordDialog from './ChangePasswordDialog';
+
+const NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/students', label: 'Students', icon: Users },
+  { to: '/fees', label: 'Fees', icon: Receipt },
+  { to: '/results', label: 'Exam Results', icon: GraduationCap },
+  { to: '/at-risk', label: 'Academic Early Warning', icon: AlertTriangle },
+  { to: '/chatbot', label: 'School Assistant', icon: Bot },
+  { to: '/admissions', label: 'Admissions', icon: ClipboardCheck },
+];
 
 export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [school, setSchool] = useState(null);
   const menuButtonRef = useRef(null);
   const drawerRef = useRef(null);
   const navigate = useNavigate();
   const user = getStoredUser();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api.getSchoolInfo({ signal: controller.signal })
+      .then((res) => setSchool(res.data))
+      .catch((error) => {
+        // The header simply leaves out the school's details. Every page reports its own failures.
+        if (error.code !== 'ERR_CANCELED') console.warn('School details did not load:', error);
+      });
+    return () => controller.abort();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -55,7 +77,7 @@ export default function Layout() {
   }, [mobileMenuOpen]);
 
   const trapDrawerFocus = (event) => {
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab' || !mobileMenuOpen) return;
     const focusableElements = drawerRef.current?.querySelectorAll('a, button:not([disabled])');
     if (!focusableElements?.length) return;
     const first = focusableElements[0];
@@ -70,157 +92,106 @@ export default function Layout() {
     }
   };
 
-  const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/students', label: 'Students', icon: Users },
-    { to: '/fees', label: 'Fee Management', icon: Receipt },
-    { to: '/results', label: 'Exam Results', icon: GraduationCap },
-    {
-      to: '/at-risk',
-      label: 'Academic Early Warning',
-      icon: AlertTriangle,
-      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200'
-    },
-    {
-      to: '/chatbot',
-      label: 'Policy Chatbot',
-      icon: Bot,
-      badge: 'RAG',
-      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200'
-    },
-    {
-      to: '/admissions',
-      label: 'AI Admissions',
-      icon: ClipboardCheck,
-      badge: 'CrewAI',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200'
-    },
-  ];
+  const schoolName = school?.name ?? 'EduCore AI';
+  const session = sessionLabel(school);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Mobile Top Bar */}
-      <div className="md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">
-            AN
+    <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row">
+      {/* Mobile top bar */}
+      <div className="flex items-center justify-between bg-navy-900 px-4 py-2 text-white md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600">
+            <School className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-wide text-white">Al-Noor Academy</h1>
-            <p className="text-[10px] text-blue-300 font-medium">EduCore AI Platform</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-white">{schoolName}</p>
+            {session && <p className="truncate text-[11px] text-accent-300">{session}</p>}
           </div>
         </div>
         <button
           ref={menuButtonRef}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="min-h-11 min-w-11 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-200 hover:bg-navy-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={mobileMenuOpen}
           aria-controls="primary-navigation"
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
       {mobileMenuOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-slate-950/40 md:hidden"
+          className="fixed inset-0 z-30 bg-navy-950/50 md:hidden"
           aria-label="Close navigation menu"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar. It is only a dialog while it covers the page on a phone. */}
       <aside
         ref={drawerRef}
-        role="dialog"
-        aria-modal={mobileMenuOpen}
+        role={mobileMenuOpen ? 'dialog' : undefined}
+        aria-modal={mobileMenuOpen || undefined}
         aria-label="Main navigation"
         onKeyDown={trapDrawerFocus}
-        className={`fixed md:sticky top-0 h-screen z-40 bg-slate-900 text-white w-64 flex flex-col justify-between transition-transform duration-200 ease-in-out border-r border-slate-800 ${
+        className={`fixed top-0 z-40 flex h-[100dvh] w-64 flex-col justify-between overflow-y-auto bg-navy-900 text-white transition-transform duration-200 ease-in-out md:sticky ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         <div>
-          {/* Logo & School Header */}
-          <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md">
-              <School className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-3 border-b border-navy-700 p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600">
+              <School className="h-6 w-6 text-white" aria-hidden="true" />
             </div>
-            <div>
-              <h2 className="font-bold text-base leading-tight text-white">Al-Noor Academy</h2>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-[11px] text-slate-400 font-medium">EduCore AI &bull; Active</span>
-              </div>
+            <div className="min-w-0">
+              <p className="text-base font-bold leading-tight text-white">{schoolName}</p>
+              <p className="mt-0.5 text-xs font-medium text-accent-300">EduCore AI</p>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav id="primary-navigation" aria-label="Main navigation" className="p-3 space-y-1.5 mt-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-colors ${
-                      isActive
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold border ${item.badgeColor}`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
+          <nav id="primary-navigation" aria-label="Main navigation" className="mt-2 space-y-1 p-3">
+            {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-colors ${
+                    isActive ? 'bg-brand-600 text-white' : 'text-slate-200 hover:bg-navy-700 hover:text-white'
+                  }`
+                }
+              >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
           </nav>
         </div>
 
-        {/* User Profile & Logout */}
-        <div className="p-4 border-t border-slate-800">
-          <div className="bg-slate-800/60 rounded-xl p-3 flex items-center justify-between mb-3 border border-slate-700/50">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
-                {user.username?.charAt(0).toUpperCase() || 'A'}
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-white capitalize">{user.username}</p>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  <span>Administrator</span>
-                </p>
-              </div>
+        <div className="space-y-2 border-t border-navy-700 p-4">
+          <div className="flex items-center gap-2.5 px-1 pb-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-navy-600 text-xs font-bold text-white">
+              {user.username?.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{user.username}</p>
+              <p className="text-xs text-slate-300">{roleLabel(user.role)}</p>
             </div>
           </div>
-
           <button
             onClick={() => { setMobileMenuOpen(false); setChangingPassword(true); }}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border border-slate-700/50"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-navy-600 text-sm font-semibold text-slate-100 hover:bg-navy-700"
           >
-            <KeyRound className="w-3.5 h-3.5" />
+            <KeyRound className="h-4 w-4" aria-hidden="true" />
             <span>Change Password</span>
           </button>
-
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors border border-rose-900/30"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-navy-600 text-sm font-semibold text-slate-100 hover:bg-navy-700"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             <span>Sign Out</span>
           </button>
         </div>
@@ -228,22 +199,15 @@ export default function Layout() {
 
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0" inert={mobileMenuOpen ? '' : undefined} aria-hidden={mobileMenuOpen || undefined}>
-        {/* Top Navbar */}
-        <header className="hidden md:flex bg-white border-b border-slate-200/80 px-8 py-3.5 items-center justify-between sticky top-0 z-30 shadow-xs">
+      <div className="flex min-w-0 flex-1 flex-col" inert={mobileMenuOpen ? '' : undefined} aria-hidden={mobileMenuOpen || undefined}>
+        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-slate-200 bg-white px-8 py-3 md:flex">
           <div>
-            <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
-              Academic Session 2025-2026
-            </span>
+            {session && <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800">{session}</span>}
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-600">
-            <span className="font-medium text-slate-700">Logged in as: <b>{user.username}</b></span>
-          </div>
+          <p className="text-sm text-slate-700">Signed in as <b>{user.username}</b></p>
         </header>
 
-        {/* Page Views Container */}
-        <main id="main-content" className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
+        <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
           <Outlet />
         </main>
       </div>

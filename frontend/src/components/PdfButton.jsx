@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { openPdf, pdfErrorMessage } from '../lib/pdf';
+import { buttonClass } from './ui/Button';
+import { useToast } from './ui/Toast';
 
-export default function PdfButton({ fetchPdf, className, title, children }) {
+export default function PdfButton({ fetchPdf, variant = 'secondary', className = '', title, children }) {
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const handleClick = async () => {
     setLoading(true);
@@ -14,11 +17,11 @@ export default function PdfButton({ fetchPdf, className, title, children }) {
       })
     );
     setLoading(false);
-    if (!opened) window.alert(await pdfErrorMessage(failure));
+    if (!opened) toast.error(await pdfErrorMessage(failure));
   };
 
   return (
-    <button type="button" onClick={handleClick} disabled={loading} title={title} className={`${className} disabled:opacity-60`}>
+    <button type="button" onClick={handleClick} disabled={loading} aria-busy={loading} title={title} className={buttonClass(variant, className)}>
       {children}
     </button>
   );

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Sliders, X } from 'lucide-react';
 import { api } from '../api/client';
 import { apiErrorMessage } from '../lib/errors';
 import { MODEL_NOTE, bandLabel, bandStyle, explanationTitle, scoreText } from '../lib/risk';
+import Modal from './ui/Modal';
 
 const REQUEST_DELAY_MS = 250;
 
@@ -19,7 +19,7 @@ function Slider({ label, value, shown, min, max, onChange }) {
         max={max}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+        className="h-6 w-full cursor-pointer"
       />
     </label>
   );
@@ -55,24 +55,12 @@ export default function RiskSimulator({ onClose }) {
   }, [marks, failing, compareExams, trend]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div role="dialog" aria-modal="true" aria-label="Try the model" className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-100 space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600"><Sliders className="w-5 h-5" /></div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Try the model</h3>
-              <p className="text-xs text-slate-500">Made-up numbers, not a student's record. Nothing is saved.</p>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="min-h-9 min-w-9 flex items-center justify-center text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-        </div>
-
+    <Modal title="Try the model" description="Made-up numbers, not a student's record. Nothing is saved." size="xl" onClose={onClose}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
             <Slider label="Average marks" value={marks} shown={`${marks}%`} min={0} max={100} onChange={setMarks} />
             <Slider label="Failed subjects" value={failing} shown={failing} min={0} max={6} onChange={setFailing} />
-            <label className="flex items-center gap-2 text-slate-700 min-h-9">
+            <label className="flex items-center gap-2 text-slate-700 min-h-11">
               <input type="checkbox" checked={compareExams} onChange={(event) => setCompareExams(event.target.checked)} />
               <span>Has a midterm and final to compare</span>
             </label>
@@ -93,7 +81,7 @@ export default function RiskSimulator({ onClose }) {
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{explanationTitle(result.explanation_method)}</p>
                   {result.top_reasons.map((reason) => (
-                    <div key={reason} className="p-2 rounded-lg bg-white border border-slate-200 text-[11px] font-medium text-slate-800">{reason}</div>
+                    <div key={reason} className="p-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-800">{reason}</div>
                   ))}
                 </div>
               </div>
@@ -101,8 +89,7 @@ export default function RiskSimulator({ onClose }) {
           </div>
         </div>
 
-        <p className="text-[11px] text-slate-500">{MODEL_NOTE}</p>
-      </div>
-    </div>
+        <p className="text-xs text-slate-600">{MODEL_NOTE}</p>
+    </Modal>
   );
 }

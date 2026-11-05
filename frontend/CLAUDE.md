@@ -24,12 +24,15 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 - `src/App.jsx`: routes `/login`, `/dashboard`, `/students`, `/fees`, `/results`, `/at-risk`, `/chatbot`, `/admissions`. Protected routes render inside `components/Layout.jsx`.
 - `src/api/client.js`: the single axios instance and `api` object. Adds the bearer token from `localStorage`, redirects to `/login` on 401. Add every new endpoint here, never call axios directly from a page.
 - `src/pages/`: `Login`, `Dashboard`, `Students`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
-- `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable`, `StatCard`, `ErrorBoundary`.
-- `src/lib/`: `session.js` (stored user, `clearSession`), `pdf.js` (open a fetched PDF), `errors.js` (`apiErrorMessage`, safe text for users).
+- `src/components/ui/`: `Button` (and `buttonClass` for links), `Field` (`TextField`, `SelectField`, `SearchInput`), `Modal`, `States` (`LoadingState`, `EmptyState`, `ErrorState`, `ErrorNotice`), `Toast` (`useToast`), `Page` (`PageHeader`, `Card`, `FilterChips`, `Badge`).
+- `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable` (a table, or cards on phones, with all its states), `StudentPicker` (search, in place of a dropdown of the whole school), `StatCard`, `PdfButton`, `FeeDialogs`, `ChatCards`, `ChatTables`, `RiskDetailDialog`, `RiskSimulator`, `ErrorBoundary`.
+- `src/lib/`: `session.js` (stored user, `clearSession`), `pdf.js` (open a fetched PDF), `errors.js` (`apiErrorMessage`, safe text for users), `uiState.js`, `schoolInfo.js`, `fees.js`, `exams.js`, `risk.js`, `chatStatus.js`. Logic worth testing goes here, because `npm test` only runs `src/lib/*.test.js`.
 
 ## Conventions
 
-- Style with Tailwind utility classes; the visual language is slate neutrals with blue/indigo accents and rounded-2xl cards.
+- Style with Tailwind utility classes and the `navy`, `brand`, and `accent` tokens, with slate neutrals and rounded-2xl cards. Emerald, amber, and rose are for status only.
+- Build new screens from `components/ui/`. Controls must be at least 44 px (`min-h-11`). Never use `alert()` or `confirm()`.
+- A data view must separate loading, failed with Try again, and empty. Use plain language: no technical names such as RAG or SHAP on screen.
 - Pages fetch in `useEffect`, show a loading state, and show a friendly error with a retry (see `Dashboard.jsx`). Abort in-flight requests on unmount where it is cheap.
 - PDFs use `components/PdfButton.jsx`, which fetches them with the bearer token. Plain links cannot authenticate.
 - Keep accessibility intact in `Layout` (focus trap, Escape to close the drawer).

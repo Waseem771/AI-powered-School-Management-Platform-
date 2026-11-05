@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). Next: M7.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). Next: M8.
 
 ## Principles
 
@@ -134,12 +134,16 @@ Effort figures are rough working-session estimates, not commitments.
 
 ### Stage 2: Make it look and feel professional
 
-#### M7. Design system and shared UI (medium)
+#### M7. Design system and shared UI ✅ complete in code, not deployed
 - Tokens for navy, blue, and cyan. Consistent type, spacing, cards, buttons, and tables.
 - Shared `ErrorState`, `EmptyState`, `Modal`, `Toast`, and form fields. Replace `alert()` and `confirm()`.
 - Every page distinguishes loading, empty, and failed, with a working Retry.
 - 44 px touch targets. Card layout for tables on mobile. Replace the 500-item select with a search.
 - Plain language instead of "RAG", "SHAP AI", "ReportLab". Remove hardcoded labels.
+
+**Done:** shared components in `components/ui/`, used by every page. At 375 px, on all 7 pages: no sideways overflow, no control under 44 px, and no tables, only cards. Browser alerts are gone. A student search replaces both whole-school dropdowns. The school name and session in the app's header come from `GET /school/info`, and the login page shows the EduCore AI name and tagline.
+
+**Limits:** form errors appear at the top of a form, not beside each field. The login page has no school name, because it is shown before sign-in. The chatbot's suggested questions are still hidden on phones (M8). Not yet checked on a real phone, at tablet width, or by a person looking at every page.
 
 #### M8. Page improvements (medium to large)
 - **Login:** EduCore AI branding and tagline, validation, DEMO MODE label only in demo mode.

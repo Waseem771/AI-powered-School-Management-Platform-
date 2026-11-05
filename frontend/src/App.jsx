@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import { ToastProvider } from './components/ui/Toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
@@ -22,6 +23,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
+    <ToastProvider>
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -48,5 +50,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
+    </ToastProvider>
   );
 }

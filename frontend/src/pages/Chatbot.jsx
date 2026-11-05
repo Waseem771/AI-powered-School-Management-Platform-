@@ -7,7 +7,6 @@ import {
   HelpCircle,
   User,
   CheckCircle2,
-  RefreshCw,
   Database,
   Search,
   DollarSign,
@@ -237,15 +236,15 @@ export default function Chatbot() {
         {/* AI Engine Status */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-navy-800 text-white flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">What is running</h3>
-              <p className="text-[11px] text-slate-400">Checked with the server</p>
+              <h3 className="text-sm font-bold text-slate-800">What is running</h3>
+              <p className="text-xs text-slate-600">Checked with the server</p>
             </div>
           </div>
-          <div className="space-y-1.5 text-[11px]">
+          <div className="space-y-1.5 text-xs">
             {describeChatStatus(status).map(({ label, tone }) => {
               const color = { ok: 'text-emerald-600', warn: 'text-amber-600', off: 'text-slate-500' }[tone];
               const Icon = tone === 'ok' ? CheckCircle2 : AlertCircle;
@@ -266,7 +265,7 @@ export default function Chatbot() {
           <div className="flex border-b border-slate-100">
             {[['policy', 'Policy FAQs', FileText], ['data', 'Data Queries', Database]].map(([key, label, Icon]) => (
               <button key={key} onClick={() => setActiveTab(key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors ${activeTab === key ? 'text-blue-700 border-b-2 border-blue-600 bg-blue-50/60' : 'text-slate-500 hover:text-slate-700'}`}>
+                className={`flex-1 flex min-h-11 items-center justify-center gap-1.5 text-sm font-semibold transition-colors ${activeTab === key ? 'text-blue-700 border-b-2 border-blue-600 bg-blue-50/60' : 'text-slate-500 hover:text-slate-700'}`}>
                 <Icon className="w-3.5 h-3.5" />{label}
               </button>
             ))}
@@ -276,18 +275,18 @@ export default function Chatbot() {
             {activeTab === 'policy' && topics.map((t, i) => (
               <button key={i} onClick={() => handleSend(t.prompt)} disabled={loading}
                 className="w-full text-left p-2.5 rounded-xl text-xs bg-slate-50 hover:bg-indigo-50/80 hover:text-indigo-700 text-slate-700 font-medium transition-colors border border-slate-200/60 disabled:opacity-50">
-                <div className="font-bold text-[11px] text-slate-900 mb-0.5">{t.topic}</div>
-                <div className="text-[10px] text-slate-500 line-clamp-1">"{t.prompt}"</div>
+                <div className="font-bold text-xs text-slate-900 mb-0.5">{t.topic}</div>
+                <div className="text-xs text-slate-600 line-clamp-1">"{t.prompt}"</div>
               </button>
             ))}
 
             {activeTab === 'data' && DATA_PROMPTS.map((p, i) => (
               <button key={i} onClick={() => handleSend(p.prompt)} disabled={loading}
                 className="w-full text-left p-2.5 rounded-xl text-xs bg-slate-50 hover:bg-violet-50/80 hover:text-violet-700 text-slate-700 font-medium transition-colors border border-slate-200/60 disabled:opacity-50">
-                <div className="flex items-center gap-1.5 font-bold text-[11px] text-slate-900 mb-0.5">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 mb-0.5">
                   <Database className="w-3 h-3 text-violet-500" />{p.label}
                 </div>
-                <div className="text-[10px] text-slate-500 line-clamp-1">"{p.prompt}"</div>
+                <div className="text-xs text-slate-600 line-clamp-1">"{p.prompt}"</div>
               </button>
             ))}
           </div>
@@ -299,7 +298,7 @@ export default function Chatbot() {
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-navy-800 flex items-center justify-center text-white">
               <Bot className="w-5 h-5" />
             </div>
             <div>
@@ -309,13 +308,13 @@ export default function Chatbot() {
                 <button
                   onClick={() => setUseMemory(!useMemory)}
                   title={useMemory ? "Memory is ON: assistant remembers previous questions in this conversation. Click to toggle OFF." : "Memory is OFF: each question is isolated. Click to toggle ON."}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
+                  className={`inline-flex min-h-11 items-center gap-1 rounded-xl border px-3 text-xs font-semibold transition-colors ${
                     useMemory
                       ? 'bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-200'
                       : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
                   }`}
                 >
-                  <Brain className={`w-3 h-3 ${useMemory ? 'text-purple-600 animate-pulse' : 'text-slate-400'}`} />
+                  <Brain className={`w-3.5 h-3.5 ${useMemory ? 'text-purple-600' : 'text-slate-500'}`} />
                   <span>Memory: {useMemory ? 'ON' : 'OFF'}</span>
                   {useMemory && historyLength > 0 && (
                     <span className="ml-0.5 px-1 py-0.2 rounded-full bg-purple-200 text-purple-800 text-[9px]">
@@ -335,18 +334,10 @@ export default function Chatbot() {
               onClick={handleClearChat}
               disabled={loading}
               title="Clear conversation history & reset memory"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 border border-slate-200/80 transition-colors disabled:opacity-50"
+              className="flex min-h-11 items-center gap-1 px-3 rounded-xl text-sm text-slate-700 hover:text-rose-800 hover:bg-rose-50 border border-slate-300 transition-colors disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline font-medium text-[11px]">Clear Memory</span>
-            </button>
-            <button
-              onClick={handleClearChat}
-              disabled={loading}
-              title="Reset Chat"
-              className="min-h-9 min-w-9 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline font-medium">Clear Chat</span>
             </button>
           </div>
         </div>
@@ -358,13 +349,13 @@ export default function Chatbot() {
             return (
               <div key={m.id} className={`flex gap-3 ${isBot ? 'mr-auto max-w-2xl' : 'ml-auto max-w-xl flex-row-reverse'}`}>
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${isBot ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs' : 'bg-slate-900 text-white'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${isBot ? 'bg-navy-800 text-white' : 'bg-brand-600 text-white'}`}>
                   {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                 </div>
 
                 {/* Bubble */}
                 <div className="space-y-1.5 min-w-0">
-                  <div className={`p-4 rounded-2xl text-xs leading-relaxed ${isBot ? 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/60' : 'bg-blue-600 text-white rounded-tr-none shadow-sm'}`}>
+                  <div className={`p-4 rounded-2xl text-sm leading-relaxed ${isBot ? 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/60' : 'bg-blue-600 text-white rounded-tr-none shadow-sm'}`}>
                     <p className="whitespace-pre-wrap">{m.text}</p>
 
                     {/* Tool badges */}
@@ -401,7 +392,7 @@ export default function Chatbot() {
           {/* Typing indicator */}
           {loading && (
             <div className="flex gap-3 max-w-xl mr-auto" role="status">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-navy-800 text-white flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 animate-spin" />
               </div>
               <div className="p-3.5 rounded-2xl rounded-tl-none bg-slate-100 border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
@@ -410,7 +401,7 @@ export default function Chatbot() {
                     <span key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: `${delay}s` }} />
                   ))}
                 </div>
-                <span>Consulting knowledge base &amp; school database…</span>
+                <span>Checking school records and policies…</span>
               </div>
             </div>
           )}
@@ -427,10 +418,10 @@ export default function Chatbot() {
             placeholder='Ask about students, fees, results, or school policies…'
             maxLength={1000}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white disabled:opacity-50"
+            className="min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 sm:text-sm"
           />
           <button type="submit" disabled={loading || !inputQuery.trim()}
-            className="min-h-11 min-w-11 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-40">
+            aria-label="Send" className="min-h-11 min-w-11 flex items-center justify-center bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors disabled:opacity-40">
             <Send className="w-4 h-4" />
           </button>
         </form>

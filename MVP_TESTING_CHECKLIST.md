@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M6: 425 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M7: 428 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -182,11 +182,11 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Backend down: Dashboard shows error | ✅ by 5 s; zeros shown first in dev mode | |
-| Backend down: Students shows error | ❌ says no records | |
-| Backend down: Fees shows error | ❌ Rs. 0 | |
-| Backend down: Results shows error | ❌ "Promoted" | |
-| Backend down: At-Risk shows error | ❌ | ✅ M6 in code; not run with the server down |
+| Backend down: Dashboard shows error | ✅ by 5 s; zeros shown first in dev mode | ✅ M7, no false zeros |
+| Backend down: Students shows error | ❌ says no records | ✅ M7, Try again tested |
+| Backend down: Fees shows error | ❌ Rs. 0 | ✅ M7 |
+| Backend down: Results shows error | ❌ "Promoted" | 🟡 M7: uses the same shared error code, not run with the server down |
+| Backend down: At-Risk shows error | ❌ | ✅ M7 |
 | Backend down: Chatbot shows error | ✅ | |
 | Session expiry redirects to login | ⬜ code exists, not run in browser | |
 | Forms show field-level validation | ❌ | |
@@ -196,10 +196,10 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| No page overflow at 375 px, all pages | ✅ | |
-| Drawer navigation works at 375 px | ✅ | |
-| Tap targets at least 44 px | ❌ | |
-| Tables usable without sideways scroll | ❌ | |
+| No page overflow at 375 px, all pages | ✅ | ✅ M7 |
+| Drawer navigation works at 375 px | ✅ | ✅ M7 |
+| Tap targets at least 44 px | ❌ | ✅ M7, measured on all 7 pages |
+| Tables usable without sideways scroll | ❌ | ✅ M7, cards on phones |
 | Chatbot prompts available on mobile | ❌ | |
 | Tablet (768 px) | ⬜ | |
 | Real phone | ⬜ | |

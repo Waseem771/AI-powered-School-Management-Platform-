@@ -76,7 +76,7 @@ function FeeSummaryCard({ data }) {
       </div>
       {data.invoices?.length > 0 && (
         <>
-          <button onClick={() => setExpanded(e => !e)} className="flex items-center gap-1 text-[10px] text-emerald-700 font-semibold hover:underline">
+          <button onClick={() => setExpanded(e => !e)} className="flex min-h-11 items-center gap-1 text-xs text-emerald-700 font-semibold hover:underline">
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {expanded ? 'Hide' : 'Show'} {data.invoices.length} invoice(s)
           </button>
@@ -294,7 +294,7 @@ function PendingStudentsCard({ data }) {
       {/* Expand/collapse */}
       {data.students.length > 8 && (
         <button onClick={() => setExpanded(e => !e)}
-          className="flex items-center gap-1 text-[10px] text-red-700 font-semibold hover:underline">
+          className="flex min-h-11 items-center gap-1 text-xs text-red-700 font-semibold hover:underline">
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           {expanded ? 'Show less' : `Show all ${data.students.length} students`}
         </button>
@@ -341,7 +341,7 @@ function GradeStudentsCard({ data }) {
       </div>
       {data.students.length > 8 && (
         <button onClick={() => setExpanded(e => !e)}
-          className="flex items-center gap-1 text-[10px] text-cyan-700 font-semibold hover:underline">
+          className="flex min-h-11 items-center gap-1 text-xs text-cyan-700 font-semibold hover:underline">
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           {expanded ? 'Show less' : `Show all ${data.students.length} students`}
         </button>

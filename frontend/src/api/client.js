@@ -44,7 +44,7 @@ export const api = {
   getMe: () => client.get('/auth/me'),
 
   // Students
-  getStudents: (params) => client.get('/students', { params }),
+  getStudents: (params, options) => client.get('/students', { params, ...options }),
   getStudent: (id) => client.get(`/students/${id}`),
   createStudent: (data) => client.post('/students', data),
   updateStudent: (id, data) => client.put(`/students/${id}`, data),
@@ -55,7 +55,7 @@ export const api = {
   // Fees
   getFees: (params) => client.get('/fees', { params }),
   getFeeSummary: () => client.get('/fees/summary'),
-  getInvoicePayments: (invoiceId) => client.get(`/fees/${invoiceId}/payments`),
+  getInvoicePayments: (invoiceId, options) => client.get(`/fees/${invoiceId}/payments`, options),
   generateChallan: (data) => client.post('/fees/generate', data),
   payInvoice: (id, data) => client.post(`/fees/${id}/pay`, data),
   getChallanPdf: (invoiceId) =>
@@ -71,6 +71,7 @@ export const api = {
 
   // Dashboard
   getDashboardStats: (options) => client.get('/dashboard/stats', options),
+  getSchoolInfo: (options) => client.get('/school/info', options),
 
   // AI At-Risk
   getAtRiskStudents: (params) => client.get('/ai/at-risk', { params }),

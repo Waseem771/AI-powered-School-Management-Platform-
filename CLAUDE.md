@@ -40,7 +40,7 @@ backend/            FastAPI app (run commands from here)
   requirements*.txt exact versions: runtime, optional admissions, dev/test
   conftest.py       test isolation: temporary database, no real keys
   models/           SQLModel tables: user, student, fee, result
-  routers/          auth, students, fees, results, dashboard, ai, chatbot, admissions_crew
+  routers/          auth, students, fees, results, dashboard, ai, chatbot, admissions_crew, school
   school_crew/      CrewAI agents for admissions (imported only when used)
   services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service,
                     fee_ledger (all fee calculations), academics (all exam and promotion calculations),
@@ -53,7 +53,8 @@ backend/            FastAPI app (run commands from here)
 frontend/           React app (run commands from here)
   src/api/client.js axios instance + the `api` object (every endpoint)
   src/pages/        one file per route
-  src/components/   Layout, DataTable, StatCard, ErrorBoundary, ChatCards, ChatTables
+  src/components/   Layout, DataTable, StudentPicker, StatCard, PdfButton, FeeDialogs, ChatCards, ChatTables, risk dialogs
+  src/components/ui/ shared Button, Field, Modal, States, Toast, Page: use these for any new screen
   src/lib/session.js, session.test.js
 start_all.bat, run_backend*.bat, run_frontend*.bat   Windows launchers
 ```
@@ -139,6 +140,7 @@ All routes require auth except `/auth/login`, `/auth/logout`, and the root statu
 | `/fees` | `GET` (status, grade, student_id), `GET /summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf` |
 | `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /{student_id}/report-card/pdf` (same filters) |
 | `/dashboard` | `GET /stats` |
+| `/school` | `GET /info` (name, tagline, current academic session) |
 | `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}`, `POST /simulate` |
 | `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics`, `GET /status` |
 
@@ -187,6 +189,8 @@ Conversation memory is an in-process dict in `routers/chatbot.py`, stored per us
 ReportLab reads text as markup, so all stored text must go through `_field`, `_heading`, or `escape`. `services/pdf_text.py` prints Urdu in Noto Nastaliq and everything else in Helvetica, because neither font has the other's letters. Urdu needs `uharfbuzz`; if it cannot load, a note is printed in place of the Urdu rather than garbled letters. `uharfbuzz` is pinned to 0.50.2 because Windows Application Control on the development machine blocked 0.57.0. `pdf_text.py` also patches a ReportLab 5.1.0 crash in `setRise`, so recheck that when upgrading ReportLab. Right-to-left order within a mixed line is limited: Urdu runs read correctly, but they sit in left-to-right order among Latin words. Scripts other than Latin and Urdu are not supported.
 
 ### Frontend
+
+Pages are built from `src/components/ui/`, and colours come from the `navy`, `brand`, and `accent` tokens in `tailwind.config.js`. Every data view separates loading, failed (with Try again), and empty, through `DataTable` or `ui/States.jsx`, so a server failure never looks like no records. Controls are at least 44 px. Tables become cards on phones. There are no browser alert or confirm boxes: use `Modal` and `useToast`. Screens use plain language, with no technical names such as RAG or SHAP.
 
 All API calls go through the `api` object in `src/api/client.js`, which also handles the 401 redirect to `/login`. The base URL is `VITE_API_URL`, falling back to `localhost:8000` in dev and a hardcoded Modal URL in production builds. Pages live in `src/pages/` and are routed in `src/App.jsx` under the shared `Layout`. `ProtectedRoute` only checks that `educore_user` exists in `localStorage`; the backend enforces real access.
 

@@ -20,6 +20,7 @@ from routers.dashboard import router as dashboard_router
 from routers.ai import router as ai_router
 from routers.chatbot import router as chatbot_router
 from routers.admissions_crew import router as admissions_crew_router
+from routers.school import router as school_router
 
 
 @asynccontextmanager
@@ -103,6 +104,7 @@ app.include_router(dashboard_router)
 app.include_router(ai_router)
 app.include_router(chatbot_router)
 app.include_router(admissions_crew_router)
+app.include_router(school_router)
 
 
 @app.get("/")

@@ -1,71 +1,94 @@
-import React, { useState, useEffect } from 'react';
-import {
-  GraduationCap,
-  Download,
-  Plus,
-  Award,
-  CheckCircle2,
-  AlertCircle,
-  FileCheck,
-  Percent,
-  X
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, Download, GraduationCap, Plus, Search } from 'lucide-react';
 import { api } from '../api/client';
+import DataTable from '../components/DataTable';
 import PdfButton from '../components/PdfButton';
+import StatCard from '../components/StatCard';
+import StudentPicker from '../components/StudentPicker';
+import Button from '../components/ui/Button';
+import { SelectField, TextField } from '../components/ui/Field';
+import Modal from '../components/ui/Modal';
+import { Badge, Card, PageHeader } from '../components/ui/Page';
+import { EmptyState, ErrorNotice } from '../components/ui/States';
+import { useToast } from '../components/ui/Toast';
 import { apiErrorMessage } from '../lib/errors';
 import { examKey, examLabel, examParams, promotionBadge, promotionStyle } from '../lib/exams';
 
-const SUBJECTS = ["English", "Urdu", "Mathematics", "Science", "Islamiat", "Pakistan Studies"];
+const SUBJECT_OPTIONS = ['English', 'Urdu', 'Mathematics', 'Science', 'Islamiat', 'Pakistan Studies'].map((subject) => ({ value: subject, label: subject }));
+const EXAM_TYPE_OPTIONS = [
+  { value: 'Final Term', label: 'Final Term' },
+  { value: 'Midterm', label: 'Midterm' },
+];
+const FORM_ID = 'marks-form';
+const GRADE_TONES = { 'A+': 'good', A: 'good', B: 'info', C: 'warn', D: 'warn' };
+
+function MarksDialog({ student, examType, onClose, onSaved }) {
+  const [form, setForm] = useState({ subject: 'Mathematics', marks_obtained: '', total_marks: 100, exam_type: examType || 'Final Term' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const field = (key) => ({ value: form[key], onChange: (event) => setForm({ ...form, [key]: event.target.value }) });
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await api.enterMarks({
+        student_id: student.id,
+        subject: form.subject,
+        marks_obtained: parseFloat(form.marks_obtained),
+        total_marks: parseFloat(form.total_marks),
+        exam_type: form.exam_type,
+      });
+      onSaved(form);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The marks could not be saved. Please try again.'));
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Enter Marks"
+      description={student.name}
+      busy={saving}
+      onClose={onClose}
+      footer={(
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button type="submit" form={FORM_ID} disabled={saving}>{saving ? 'Saving…' : 'Save Marks'}</Button>
+        </>
+      )}
+    >
+      <ErrorNotice>{error}</ErrorNotice>
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+        <SelectField label="Subject" options={SUBJECT_OPTIONS} {...field('subject')} />
+        <div className="grid grid-cols-2 gap-4">
+          <TextField label="Marks obtained" type="number" step="0.5" min="0" max={form.total_marks} required {...field('marks_obtained')} />
+          <TextField label="Total marks" type="number" step="any" min="1" max="1000" required {...field('total_marks')} />
+        </div>
+        <SelectField label="Exam" options={EXAM_TYPE_OPTIONS} {...field('exam_type')} />
+      </form>
+    </Modal>
+  );
+}
 
 export default function Results() {
-  const [students, setStudents] = useState([]);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [student, setStudent] = useState(null);
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   // The exam being viewed. Null means the student's latest.
   const [selectedExam, setSelectedExam] = useState(null);
+  const [entering, setEntering] = useState(false);
+  const toast = useToast();
 
-  // Add / Edit Marks modal
-  const [isEntryOpen, setIsEntryOpen] = useState(false);
-  const [entryForm, setEntryForm] = useState({
-    subject: 'Mathematics',
-    marks_obtained: '',
-    total_marks: 100,
-    exam_type: 'Final Term'
-  });
-  const [entryMsg, setEntryMsg] = useState('');
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  useEffect(() => {
-    if (selectedStudentId) {
-      fetchStudentResults(selectedStudentId, selectedExam);
-    }
-  }, [selectedStudentId, selectedExam]);
-
-  const fetchStudents = async () => {
-    try {
-      const res = await api.getStudents();
-      setStudents(res.data);
-      if (res.data.length > 0) {
-        // Find Ahmed Khan first if present for showcase
-        const ahmed = res.data.find(s => s.roll_number === '045');
-        const defaultId = ahmed ? ahmed.id : res.data[0].id;
-        setSelectedStudentId(defaultId);
-      }
-    } catch (err) {
-      setLoadError(apiErrorMessage(err, 'Could not load students. Please try again.'));
-    }
-  };
-
-  const fetchStudentResults = async (id, exam) => {
+  const fetchResults = async () => {
+    if (!student) return;
     try {
       setLoading(true);
       setLoadError('');
-      const res = await api.getStudentResults(id, examParams(exam));
+      const res = await api.getStudentResults(student.id, examParams(selectedExam));
       setStudentData(res.data);
     } catch (err) {
       setStudentData(null);
@@ -75,364 +98,134 @@ export default function Results() {
     }
   };
 
-  const handleSelectStudent = (id) => {
+  useEffect(() => {
+    fetchResults();
+  }, [student?.id, selectedExam]);
+
+  const handleChooseStudent = (chosen) => {
     setSelectedExam(null);
-    setSelectedStudentId(id);
+    setStudentData(null);
+    setLoadError('');
+    setStudent(chosen);
   };
 
   const handleSelectExam = (key) => {
     const options = studentData?.available_exams || [];
-    setSelectedExam(options.find((exam) => examKey(exam) === key) || null);
+    setSelectedExam(options.find((option) => examKey(option) === key) || null);
   };
 
-  const openEntryForm = () => {
-    setEntryMsg('');
-    setEntryForm({
-      ...entryForm,
-      marks_obtained: '',
-      exam_type: studentData?.exam?.exam_type || entryForm.exam_type
-    });
-    setIsEntryOpen(true);
-  };
-
-  const handleSaveMarks = async (e) => {
-    e.preventDefault();
-    setEntryMsg('');
-    try {
-      await api.enterMarks({
-        student_id: parseInt(selectedStudentId),
-        subject: entryForm.subject,
-        marks_obtained: parseFloat(entryForm.marks_obtained),
-        total_marks: parseFloat(entryForm.total_marks),
-        exam_type: entryForm.exam_type
-      });
-      setIsEntryOpen(false);
-      // New marks always go into the current year, so show that year's copy of this exam.
-      const showing = { exam_type: entryForm.exam_type };
-      setSelectedExam(showing);
-    } catch (err) {
-      setEntryMsg(apiErrorMessage(err, 'Failed to record marks.'));
-    }
+  const handleMarksSaved = (form) => {
+    setEntering(false);
+    toast.success(`${form.subject} marks saved for ${student.name}.`);
+    // New marks always go into the current year, so show that year's copy of this exam.
+    setSelectedExam({ exam_type: form.exam_type });
   };
 
   const results = studentData?.results || [];
   const summary = studentData?.summary || {};
-  const currentStudent = studentData?.student || {};
   const promotion = studentData?.promotion;
   const exam = studentData?.exam;
   const availableExams = studentData?.available_exams || [];
   const hasMarks = results.length > 0;
   const badge = promotionBadge(promotion);
 
-  const getGradeColor = (grade) => {
-    switch (grade) {
-      case 'A+':
-      case 'A':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'B':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'C':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'D':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:
-        return 'bg-rose-100 text-rose-800 border-rose-200';
-    }
-  };
+  const columns = [
+    { header: 'Subject', mobile: 'title', render: (row) => <span className="font-bold text-slate-900">{row.subject}</span> },
+    { header: 'Marks', render: (row) => `${row.marks_obtained} of ${row.total_marks}` },
+    { header: 'Percentage', render: (row) => `${row.percentage}%` },
+    { header: 'Grade', render: (row) => <Badge tone={GRADE_TONES[row.grade] || 'bad'}>{row.grade}</Badge> },
+    { header: 'Result', render: (row) => (row.passed ? (
+      <span className="inline-flex items-center gap-1 font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Pass</span>
+    ) : (
+      <span className="inline-flex items-center gap-1 font-semibold text-rose-800"><AlertCircle className="h-4 w-4" aria-hidden="true" /> Fail</span>
+    )) },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Examination & Report Cards</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Grade entry, academic progress tracking, and official ReportLab Report Card PDF issuance.
-          </p>
-        </div>
-
-        {selectedStudentId && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={openEntryForm}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition-colors"
-            >
-              <Plus className="w-4 h-4 text-blue-600" />
-              <span>Update / Enter Mark</span>
-            </button>
+    <div className="space-y-5">
+      <PageHeader
+        title="Exam Results"
+        subtitle="Enter marks, see grades and promotion, and print report cards."
+        actions={student && (
+          <>
+            <Button variant="secondary" onClick={() => setEntering(true)}><Plus className="h-4 w-4" aria-hidden="true" /><span>Enter Marks</span></Button>
             {hasMarks && (
-              <PdfButton
-                fetchPdf={() => api.getReportCardPdf(selectedStudentId, examParams(exam))}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Report Card PDF</span>
+              <PdfButton variant="primary" fetchPdf={() => api.getReportCardPdf(student.id, examParams(exam))}>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                <span>Report Card</span>
               </PdfButton>
             )}
-          </div>
+          </>
         )}
-      </div>
+      />
 
-      {loadError && (
-        <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-          <span>{loadError}</span>
-        </div>
-      )}
-
-      {/* Student Selector Card */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="w-full sm:w-auto">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Select Student Record
-          </label>
-          <select
-            value={selectedStudentId}
-            onChange={(e) => handleSelectStudent(e.target.value)}
-            className="w-full sm:w-80 px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
-            {students.map(s => (
-              <option key={s.id} value={s.id}>
-                #{s.roll_number} - {s.name} ({s.grade}-{s.section})
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <Card className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
+        <StudentPicker student={student} onChange={handleChooseStudent} />
         {availableExams.length > 0 && (
-          <div className="w-full sm:w-auto">
-            <label htmlFor="exam-picker" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Exam
-            </label>
-            <select
-              id="exam-picker"
-              value={exam ? examKey(exam) : ''}
-              onChange={(e) => handleSelectExam(e.target.value)}
-              className="w-full sm:w-56 px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
-            >
-              {availableExams.map((option) => (
-                <option key={examKey(option)} value={examKey(option)}>{examLabel(option)}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Exam"
+            value={exam ? examKey(exam) : ''}
+            onChange={(event) => handleSelectExam(event.target.value)}
+            options={availableExams.map((option) => ({ value: examKey(option), label: examLabel(option) }))}
+          />
         )}
+      </Card>
 
-        {currentStudent.name && (
-          <div className="flex items-center gap-4 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Class</span>
-              <p className="text-xs font-bold text-slate-800">{currentStudent.grade} - {currentStudent.section}</p>
-            </div>
-            <div className="h-6 w-px bg-slate-200"></div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Guardian</span>
-              <p className="text-xs font-bold text-slate-800">{currentStudent.guardian_name}</p>
-            </div>
-            <div className="h-6 w-px bg-slate-200"></div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Roll No</span>
-              <p className="text-xs font-mono font-bold text-blue-700">#{currentStudent.roll_number}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Summary Score Banner */}
-      {hasMarks && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-blue-100 uppercase">Aggregate Marks</p>
-              <h3 className="text-2xl font-bold mt-1">
-                {summary.total_obtained} <span className="text-sm font-normal text-blue-200">/ {summary.total_max}</span>
-              </h3>
-            </div>
-            <Award className="w-10 h-10 text-white/40" />
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Overall Percentage</p>
-              <h3 className="text-2xl font-bold text-slate-800 mt-1">{summary.percentage}%</h3>
-            </div>
-            <Percent className="w-10 h-10 text-blue-500/20" />
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Overall Grade</p>
-              <h3 className="text-2xl font-black text-indigo-700 mt-1">Grade {summary.grade}</h3>
-            </div>
-            {badge && (
-              <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${promotionStyle(promotion.status)}`}>
-                {badge}
-              </span>
-            )}
-          </div>
-        </div>
+      {!student && (
+        <Card>
+          <EmptyState icon={Search} title="Choose a student" message="Search above by name or roll number to see their marks." />
+        </Card>
       )}
 
-      {/* Why, in the policy's terms */}
-      {hasMarks && promotion && promotion.status !== 'promoted' && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 space-y-0.5">
-          {promotion.reasons.length > 0
-            ? promotion.reasons.map((reason) => <p key={reason}>{reason}</p>)
-            : <p>{promotion.label}.</p>}
-          {promotion.retake_eligible && <p className="font-semibold">Eligible for the retake examination.</p>}
-        </div>
-      )}
-
-      {/* Marks Breakdown Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800">Academic Subject Performance Breakdown</h3>
-          {exam && <span className="text-xs text-slate-500 font-medium">{examLabel(exam)}</span>}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="py-3 px-4">Subject</th>
-                <th className="py-3 px-4">Marks Obtained</th>
-                <th className="py-3 px-4">Total Marks</th>
-                <th className="py-3 px-4">Percentage</th>
-                <th className="py-3 px-4">Grade</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="text-center py-8 text-slate-400">Loading student marks...</td>
-                </tr>
-              ) : results.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="text-center py-8 text-slate-400">No marks recorded yet for this student.</td>
-                </tr>
-              ) : (
-                results.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{r.subject}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-800">{r.marks_obtained}</td>
-                    <td className="py-3.5 px-4 text-slate-500">{r.total_marks}</td>
-                    <td className="py-3.5 px-4 font-mono font-medium">{r.percentage}%</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${getGradeColor(r.grade)}`}>
-                        {r.grade}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {r.passed ? (
-                        <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Pass
-                        </span>
-                      ) : (
-                        <span className="text-rose-600 font-semibold flex items-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5" /> Fail (&lt;40%)
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Enter / Update Marks Modal */}
-      {isEntryOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Record Subject Marks</h3>
-              <button onClick={() => setIsEntryOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {entryMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                {entryMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveMarks} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Subject</label>
-                <select
-                  value={entryForm.subject}
-                  onChange={(e) => setEntryForm({ ...entryForm, subject: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  {SUBJECTS.map(subj => (
-                    <option key={subj} value={subj}>{subj}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+      {student && (
+        <>
+          {hasMarks && !loading && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCard title="Total marks" value={`${summary.total_obtained} of ${summary.total_max}`} icon={GraduationCap} color="blue" />
+              <StatCard title="Percentage" value={`${summary.percentage}%`} color="blue" />
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Marks Obtained</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max={entryForm.total_marks}
-                    required
-                    aria-label="Marks Obtained"
-                    value={entryForm.marks_obtained}
-                    onChange={(e) => setEntryForm({ ...entryForm, marks_obtained: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
+                  <p className="text-sm font-semibold text-slate-600">Overall grade</p>
+                  <p className="mt-1 text-2xl font-bold text-navy-900">{summary.grade}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Total Marks</label>
-                  <input
-                    type="number"
-                    step="any"
-                    min="1"
-                    max="1000"
-                    required
-                    aria-label="Total Marks"
-                    value={entryForm.total_marks}
-                    onChange={(e) => setEntryForm({ ...entryForm, total_marks: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
+                {badge && <span className={`rounded-xl border px-3 py-1 text-sm font-semibold ${promotionStyle(promotion.status)}`}>{badge}</span>}
               </div>
+            </div>
+          )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Exam Type</label>
-                <select
-                  value={entryForm.exam_type}
-                  onChange={(e) => setEntryForm({ ...entryForm, exam_type: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="Final Term">Final Term Examination</option>
-                  <option value="Midterm">Midterm Examination</option>
-                </select>
-              </div>
+          {hasMarks && !loading && promotion && promotion.status !== 'promoted' && (
+            <div className="space-y-0.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              {promotion.reasons.length > 0
+                ? promotion.reasons.map((reason) => <p key={reason}>{reason}</p>)
+                : <p>{promotion.label}.</p>}
+              {promotion.retake_eligible && <p className="font-semibold">Eligible for the retake examination.</p>}
+            </div>
+          )}
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsEntryOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm"
-                >
-                  Save Marks
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <h2 className="text-base font-bold text-slate-900">Marks by subject</h2>
+              {exam && <span className="text-sm text-slate-600">{examLabel(exam)}</span>}
+            </div>
+            <DataTable
+              columns={columns}
+              rows={results}
+              loading={loading}
+              error={loadError}
+              onRetry={fetchResults}
+              loadingLabel="Loading marks…"
+              emptyState={{
+                icon: GraduationCap,
+                title: 'No marks yet',
+                message: `No marks are recorded for ${student.name}.`,
+                action: <Button onClick={() => setEntering(true)}><Plus className="h-4 w-4" aria-hidden="true" /><span>Enter Marks</span></Button>,
+              }}
+            />
+          </Card>
+        </>
       )}
+
+      {entering && <MarksDialog student={student} examType={exam?.exam_type} onClose={() => setEntering(false)} onSaved={handleMarksSaved} />}
     </div>
   );
 }
