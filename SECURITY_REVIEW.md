@@ -8,12 +8,12 @@
 
 ## Status after M1 (2026-11-05)
 
-**Fixed in the code on `mvp/foundation`. Production stays exposed until this is deployed.**
+**Deployed to production on 2026-11-05, and checked on the live backend without signing in.**
 
 | IDs | Status |
 |---|---|
 | S0 | Code fixed. The owner reported revoking the token in Modal on 2026-11-05. It stays visible in git history, but no longer works |
-| S0a, S1 | Fixed in code; live until deployed |
+| S0a, S1 | Fixed and deployed. Live PDFs and records now refuse requests with no login |
 | S2 | Fixed: PDFs are fetched with the login token. Confirmed in real Chrome across two origins |
 | S3 | Fixed: production refuses a missing, short, or published key. Key removed from docs. **A new key must be set on Modal** |
 | S4 | Fixed: no default password. Production refuses to run on the old one. Removed from the login page and docs |

@@ -1,12 +1,12 @@
 # EduCore AI: MVP Final Report
 
-**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **All branches are on GitHub. Nothing from M2 onward is merged or deployed.**
+**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **Update, 5 November 2026: all of this is merged to `main` and deployed to Modal and Vercel. Sign-in on the live site still needs checking by the owner.**
 
 ## Verdict
 
 **Ready for a local demonstration with the fictional school.** The full 10-minute demo runs start to finish, as an automated browser test and with the sample data.
 
-**Not ready to go online until you complete section 8, and not ready for a real school's records until section 6 of [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md) is done.** The live site still runs older code with known security problems.
+**Not ready for a real school's records until section 6 of [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md) is done.** The live site now runs this code, with the security fixes. It holds the older seeded Al-Noor records, not the demo school.
 
 ## 1. Summary of improvements
 
@@ -67,8 +67,8 @@ All run on 5 November 2026, on a clean install of the pinned packages (Python 3.
 
 Please do not assume these work:
 
-- **Anything on Modal or Vercel.** No deployment was made, so nothing has run in its real environment. That includes the new security policy, tested only on a local production build.
-- **Real Groq answers.** `backend/.env` has no key, so this was tested against a simulated service.
+- **Signed-in use of the live site.** On the live addresses, the backend starts, refuses requests without a login, hides its documentation, accepts the main Vercel address, and refuses others, and the frontend serves its security policy. Nobody has yet signed in there, or opened a PDF or asked the assistant there.
+- **Real Groq answers.** Tested locally against a simulated service only. The live secret does hold a Groq key, so the first live questions will be the first real test, and they send student names, marks, and fees to Groq.
 - **A real Admissions answer.** It needs a Modal token. Leave it out of demos.
 - **A real phone or tablet,** only browsers set to those sizes.
 - **Printed paper,** and Urdu names read by a native reader.
@@ -79,7 +79,7 @@ Please do not assume these work:
 
 | Status | Findings |
 |---|---|
-| **Needs you now** | **The live site** still has S0a, S1, S3, S4, and S5 until pull request #1 is deployed |
+| Closed by deploying | **S0, S0a, S1, S3, S4, S5:** token revoked, live PDFs and records need a login, the signing key is new, and the default password is replaced. Checked on the live backend |
 | Fixed in code | Sign-in key and password handling, hashing, sign-in limits, exact-origin CORS, logout, PDF access, safe PDF text, file names, chatbot input limits, per-user chat, delete protection, security headers, and a browser security policy |
 | Partly fixed | **S11:** tokens stay in browser storage, now short-lived and backed by a security policy. **S12:** contact details are on fewer screens. **S15:** contact details no longer go to Groq, but names, marks, and fees do when a key is set, so schools must be told |
 | Open | **S9:** no staff roles, so every account has full access. No general request limits beyond sign-in. No record of who changed what |
@@ -107,7 +107,7 @@ Details: [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 In order of urgency:
 
 1. ~~Revoke the published Modal token.~~ Done on 5 November 2026.
-2. **Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL`** in the Modal secret, then **approve deploying** the security fixes.
+2. ~~Set the Modal secret and deploy the security fixes.~~ Done on 5 November 2026. **Now sign in on the live site and check it.**
 3. ~~Approve pushing branches M2 to M10.~~ Done on 5 November 2026.
 4. **Answer two policy questions:** does a 40-49% subject count as a pass (now Grade F and Pass, as written), and should promotion use Final Term only?
 5. **Review:** click through the app, print the samples on A4, and have an Urdu reader check the names.
@@ -126,7 +126,7 @@ Sign in at <http://localhost:5173> as `admin`, with the password printed **once*
 
 ## 10. Deployment
 
-**Nothing has been deployed.** [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) has the steps. In brief:
+**Deployed on 5 November 2026.** [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) has the steps for any later deployment. In brief:
 
 1. Set the Modal secret `educore-secrets`: `SECRET_KEY`, `ADMIN_PASSWORD`, `FRONTEND_URL`.
 2. **Upgrade the Modal database, with a backup, before deploying the new code.** The app refuses to start on an old database, leaving it untouched.

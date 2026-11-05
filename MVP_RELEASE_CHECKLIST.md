@@ -10,8 +10,9 @@ The live site still runs older code. These do not wait for the rest.
 
 - ✅ Revoked the Modal proxy token published in the repo's history (owner, 2026-11-05)
 - [ ] 👤 Create a new token, only if using Admissions
-- [ ] 👤 Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret `educore-secrets`
-- [ ] 👤 Approve merging and deploying the safety fixes in pull request #1
+- ✅ Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret `educore-secrets`
+- ✅ Merged to `main` and deployed (2026-11-05)
+- [ ] 👤 Sign in on the live site and check students, fee totals, PDFs, and the assistant
 
 ## 2. Decisions still open 👤
 
@@ -25,7 +26,7 @@ The live site still runs older code. These do not wait for the rest.
 
 - ✅ M0 to M10 complete in code, on branches built one on another. Results are in [MVP_FINAL_REPORT.md](MVP_FINAL_REPORT.md)
 - ✅ Branches M2 to M10 pushed to GitHub, not merged
-- [ ] Merge in order and confirm tests still pass after each
+- ✅ `main` fast-forwarded to `mvp/m10-qa`, whose tests passed
 - ✅ M10: full QA pass on the local production build
 
 ## 4. Tests
@@ -40,14 +41,14 @@ The live site still runs older code. These do not wait for the rest.
 - [ ] 👤 Challan, report card, and receipt printed on A4, and Urdu names checked by a native reader
 - ✅ Browser security policy tested with PDFs, on a local production build
 - ✅ Session expiry tested in a browser
-- [ ] Security policy confirmed on Vercel
+- ✅ Security policy served by Vercel. PDFs under it still need trying there
 
 ## 5. Online demo
 
-- [ ] Database upgraded before the code that needs it, with a backup: see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md), Step 5
-- [ ] Backend deployed to Modal with `max_containers=1`
+- ✅ Database upgraded before the code that needs it, with a backup: see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md), Step 5
+- ✅ Backend deployed to Modal with `max_containers=1`
 - [ ] 👤 Price of one warm container checked, then a decision made
-- [ ] Frontend deployed to Vercel, and `VITE_API_URL` set
+- ✅ Frontend deployed to Vercel
 - [ ] Sign-in, PDFs, and chatbot checked on the live addresses
 - [ ] Rehearsed from start to finish using [SAMPLE_DEMO_SCENARIO.md](SAMPLE_DEMO_SCENARIO.md)
 - [ ] Screenshots or a recording ready, in case of failure

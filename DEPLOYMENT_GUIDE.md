@@ -39,10 +39,12 @@ In the Modal dashboard, open **Secrets** and create or edit `educore-secrets` wi
 |---|---|---|
 | `SECRET_KEY` | Yes | The output of Step 2 |
 | `ADMIN_PASSWORD` | Yes, on first deploy or if the account still uses an old default | A private password of at least 10 characters |
-| `FRONTEND_URL` | Yes | Your exact Vercel address, such as `https://your-app.vercel.app`, with no trailing slash. Separate several with commas |
+| `FRONTEND_URL` | Yes | Your exact main Vercel address, such as `https://your-app.vercel.app`, with no trailing slash. Separate several with commas. Vercel also shows long addresses for individual builds: use the short main one |
 | `GROQ_API_KEY` | No | Without it, the chatbot uses its local answers |
 | `GROQ_MODEL` | No | For example `openai/gpt-oss-120b` |
 | `MODAL_PROXY_TOKEN_ID`, `MODAL_PROXY_TOKEN_SECRET` | No | Needed only for AI Admissions. Without them, only that feature is unavailable |
+
+After saving, confirm the change really reached the secret **before stopping the live app**. An edit that did not save leaves the app unable to start, and the site offline.
 
 Do not set `APP_ENV` on Modal. Without it, the app uses its production safeguards.
 
@@ -93,6 +95,8 @@ To undo: restore the backup file, named `school.db.backup-<date>`, on the volume
 ```bash
 modal deploy modal_app.py
 ```
+
+If the app fails to start repeatedly, Modal marks it as crash-looping and retries only every 10 minutes, and deploying unchanged code does not clear that. After fixing the cause, run `modal app stop educore-ai-school-platform`, then deploy again. A changed secret also needs this stop and deploy to take effect.
 
 The app runs in **one container at a time**, because SQLite on a Modal Volume is safe with a single writer only. The first request after an idle period can take 10 seconds or more. Before a live demo, open the app a few minutes early, or keep a container warm with `min_containers=1` in `modal_app.py`, which costs money while it runs.
 
