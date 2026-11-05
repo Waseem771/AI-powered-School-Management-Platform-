@@ -15,10 +15,10 @@
 
 | Feature | Status | Main gap |
 |---|---|---|
-| **Login** | 🟡 | Works. Password prefilled and shown on page. No validation messages beyond required fields |
-| **Logout** | 🟡 | Cookie cleared, but token stays in `localStorage` and remains valid |
+| **Login** | ✅ | M1: blank form, bcrypt, throttling, clear errors. Branding is M8 |
+| **Logout** | ✅ | M1: token revoked on the server, all local data cleared |
 | **Protected routes (current source)** | ✅ | All 20 data routes reject anonymous requests |
-| **Protected PDFs in production** | ❌ | Live deployment returns 200 anonymously |
+| **Protected PDFs in production** | ❌ | Fixed in code (M1). Live deployment still returns 200 anonymously until deployed |
 | **Dashboard: total students** | ✅ | Real count |
 | **Dashboard: fees collected / pending** | 🟡 | Real, but from invoice status rather than payments |
 | **Dashboard: exam performance** | 🟡 | Real averages, but a subject with no marks shows a fake 70.0 |
@@ -41,7 +41,7 @@
 | **Payment records view / receipts** | ⬜ | `payments` table is never shown |
 | **Late fees, sibling concession** | ⬜ | In policy text only |
 | **Challan PDF** | 🟡 | Normal names work. `<` crashes it. Urdu not extractable. Letter size rather than A4 |
-| **Challan PDF in deployed setup (cross-site)** | ❌ | Current source returns 401 JSON under the documented config |
+| **Challan PDF in deployed setup (cross-site)** | ✅ | M1: fetched with the login token. Confirmed in Chrome across two origins, not yet on Vercel and Modal |
 | **Marks entry** | 🟡 | Saves and upserts correctly. No range or subject validation in the API |
 | **Grade calculation** | 🟡 | Consistent with policy table, but F below 50 conflicts with pass at 40 |
 | **Subject-wise results view** | 🟡 | Works. Pass/Fail is wrong when total is not 100. Midterm and final are mixed |
@@ -106,11 +106,11 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 7 |
-| 🟡 Partially functional | 26 |
+| ✅ Fully functional | 10 |
+| 🟡 Partially functional | 24 |
 | 🖥️ Frontend only | 1 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 12 |
+| ❌ Broken | 11 |
 | ⬜ Missing | 14 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |

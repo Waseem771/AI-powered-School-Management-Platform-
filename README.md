@@ -8,7 +8,7 @@ A full-stack, demo-ready School Management System designed to replace manual Exc
 ## 🌟 Key Features
 
 1. **JWT Secure Admin Authentication**:
-   - Industry-standard bearer token login with pre-configured demo account: `admin` / `admin123`.
+   - Bearer token login with bcrypt password hashing, login throttling, and server-side sign-out. Set the admin password with `ADMIN_PASSWORD`.
 2. **Student Enrollment & Management**:
    - Full CRUD support with search, filtering by grade, sections, and parent contact details.
    - Seeded with **50 realistic student profiles** across Grades 6 through 10.
@@ -67,7 +67,7 @@ start_all.bat
 
 | # | Action | Screen | Impact |
 |---|--------|--------|--------|
-| 1 | **Login** | `/login` | Click *"Prefill Demo Login"* (`admin` / `admin123`) and sign in. Demonstrates JWT security. |
+| 1 | **Login** | `/login` | Sign in with the admin password you configured. |
 | 2 | **Dashboard** | `/dashboard` | View enrollment (50 students), fees collected vs pending, grade bar charts, and AI radar. |
 | 3 | **Register Student** | `/students` | Filter by Grade 8, click *"Register New Student"*, fill details, and show live update. |
 | 4 | **Download Challan PDF** | `/fees` | Click *"Challan PDF"* on Ahmed Khan (#045, CHN-1045) to open the official ReportLab two-part bank & parent slip. |

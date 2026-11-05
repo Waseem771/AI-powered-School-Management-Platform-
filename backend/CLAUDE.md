@@ -17,7 +17,7 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 
 ## Layout
 
-- `main.py`: FastAPI app, CORS, router registration, lifespan (creates tables, default `admin` / `admin123`).
+- `main.py`: FastAPI app, CORS, router registration, lifespan (creates tables, sets up the admin account through `services/admin_setup.py`).
 - `config.py`: env loading, `GRADES`, `SECTIONS`, `SUBJECTS`, fee amounts, JWT settings.
 - `database.py`: SQLite engine and `get_session` dependency.
 - `models/`: `user.py`, `student.py` (Base/Create/Update/Read schemas), `fee.py` (Invoice, Payment, FeeStructure, AcademicYear), `result.py` (`calculate_grade`).

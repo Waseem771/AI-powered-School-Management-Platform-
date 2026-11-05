@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 is complete on branch `mvp/foundation` (not pushed). Next: M1.
+**Status:** approved. M0 and M1 are complete on branch `mvp/foundation` (not pushed or deployed). Next: deploy decision, then M2.
 
 ## Principles
 
@@ -42,7 +42,7 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Admissions follow-ups:** review answer quality and replace the placeholder policy with the real one, once a new token exists. Unused CrewAI variants (`routers/admissions.py`, `services/crew_service.py`, `services/agents/`) and `routers/assemble_educore.py` (a video script in the wrong folder) are candidates for removal in M9, with approval.
 
-#### M1. Authentication and security (medium)
+#### M1. Authentication and security ✅ complete in code, not deployed
 - Require `SECRET_KEY` at startup, except in explicit local dev mode. Scrub the key from docs.
 - bcrypt with upgrade at login.
 - Admin password from env on first run; no default in production; a change-password endpoint.
@@ -50,7 +50,18 @@ Effort figures are rough working-session estimates, not commitments.
 - Login rate limit. Exact-origin CORS. Full logout, with token revocation.
 - Hide `/docs` in production. Exclude `.env` and `*.db` from the Modal image. `npm audit fix`.
 
-**Done when:** every S1 to S8 test in the checklist passes. **Then ask you about deploying**, because this closes the live PDF exposure.
+**Done:** 68 backend tests pass on a clean install. Production startup was tested on a copy of `school.db`: the default password was replaced, the hash became bcrypt, and row counts and money totals did not change.
+
+**To deploy, in this order** (full steps in `DEPLOYMENT_GUIDE.md`):
+1. Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret. Without the first two the backend will not start. Without the third, browsers cannot reach it.
+2. Publish the frontend. The old frontend's PDF links stop working on the new backend, so both must go together.
+3. `modal deploy modal_app.py`.
+
+**What changes for users:** everyone is signed out once, and Vercel preview addresses are blocked unless listed in `FRONTEND_URL`.
+
+**Database effect:** one new table, `revoked_tokens`, created automatically. No existing table changes. See "Rolling back" in the guide, because bcrypt hashes cannot be read by older code.
+
+**`min_containers=1` is not set**, because it costs money. Check the price and add it before a live demo (D4).
 
 #### M2. Fee and payment integrity (medium)
 - Input validation on invoices and payments.

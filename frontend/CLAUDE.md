@@ -25,13 +25,13 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 - `src/api/client.js`: the single axios instance and `api` object. Adds the bearer token from `localStorage`, redirects to `/login` on 401. Add every new endpoint here, never call axios directly from a page.
 - `src/pages/`: `Login`, `Dashboard`, `Students`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
 - `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable`, `StatCard`, `ErrorBoundary`.
-- `src/lib/session.js`: `getStoredUser()` reads `educore_user` from `localStorage` with a safe default.
+- `src/lib/`: `session.js` (stored user, `clearSession`), `pdf.js` (open a fetched PDF), `errors.js` (`apiErrorMessage`, safe text for users).
 
 ## Conventions
 
 - Style with Tailwind utility classes; the visual language is slate neutrals with blue/indigo accents and rounded-2xl cards.
 - Pages fetch in `useEffect`, show a loading state, and show a friendly error with a retry (see `Dashboard.jsx`). Abort in-flight requests on unmount where it is cheap.
-- PDFs open as plain links to the backend PDF URLs and authenticate via the HttpOnly cookie.
+- PDFs use `components/PdfButton.jsx`, which fetches them with the bearer token. Plain links cannot authenticate.
 - Keep accessibility intact in `Layout` (focus trap, Escape to close the drawer).
 - Do not add `console.log`; existing code only uses `console.error`/`warn` for failures.
 
@@ -43,5 +43,5 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 
 - `ProtectedRoute` only checks `educore_user`; the backend does the real authorization.
 - The Risk Simulator in `AtRisk.jsx` is a local formula, not the real model.
-- Production builds fall back to a hardcoded Modal URL when `VITE_API_URL` is unset; update `.env.production` when the backend URL changes.
-- The backend CORS allows ports 5173 and 5174 only (plus `FRONTEND_URL` and `*.vercel.app`).
+- Production builds need `VITE_API_URL`; update `.env.production` and Vercel when the backend URL changes. The backend must list this site in `FRONTEND_URL`.
+- In development, the backend CORS allows ports 5173 and 5174, plus `FRONTEND_URL`. Production allows `FRONTEND_URL` only.

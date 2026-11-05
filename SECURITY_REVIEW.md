@@ -6,6 +6,28 @@
 
 **Secrets:** `backend/.env` matches `.env.example`, and `GROQ_API_KEY` is blank.
 
+## Status after M1 (2026-11-05)
+
+**Fixed in the code on `mvp/foundation`. Production stays exposed until this is deployed.**
+
+| IDs | Status |
+|---|---|
+| S0 | Code fixed. **The token must still be revoked in Modal** |
+| S0a, S1 | Fixed in code; live until deployed |
+| S2 | Fixed: PDFs are fetched with the login token. Confirmed in real Chrome across two origins |
+| S3 | Fixed: production refuses a missing, short, or published key. Key removed from docs. **A new key must be set on Modal** |
+| S4 | Fixed: no default password. Production refuses to run on the old one. Removed from the login page and docs |
+| S5 | Fixed: bcrypt, with old hashes upgraded at next login |
+| S6 | Fixed: 10 failures per username, 30 per address, per 15 minutes |
+| S7 | Fixed: exact origins only |
+| S8 | Fixed: logout revokes the token and clears all local data, including chat history |
+| S11 | Partly: token lifetime cut to 8 hours and auth cookies removed. A browser CSP is still open, and needs testing with the PDF viewer (M10) |
+| S17, S20 | Fixed on the API. Frontend gets basic headers through `vercel.json` |
+| S19 | Python pinned, `follow-redirects` fixed. **Accepted for now:** 2 moderate `react-router` advisories need a major upgrade to v7. They concern open redirects from dynamic navigation and server rendering; this app navigates only to fixed paths and has no server rendering. Revisit in M10 |
+| S9, S10, S12 to S16, S21 | Still open; planned in M2 to M5 and P1 |
+
+**Added in M1:** `POST /auth/change-password`, which ends all older sessions, and a Change Password dialog. No request limit applies to anything except login and password changes; general limits are not built.
+
 ## Do these first
 
 These need **you**, because they touch your production accounts and I will not deploy without approval:

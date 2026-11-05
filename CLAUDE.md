@@ -72,7 +72,7 @@ npm run dev      # http://localhost:5173
 npm run build
 ```
 
-`start_all.bat` in the repo root opens both servers on Windows. No linter or formatter is configured for either side. Default login is `admin` / `admin123`.
+`start_all.bat` in the repo root opens both servers on Windows. No linter or formatter is configured for either side. Local runs need `APP_ENV=development` in `backend/.env` (see `.env.example`). With no admin account and no `ADMIN_PASSWORD`, development prints a one-time password to the console.
 
 ### Tests
 
@@ -82,7 +82,7 @@ python -m pytest test_backend.py # from backend/; one file
 npm test                         # from frontend/
 ```
 
-`backend/conftest.py` gives every test run a temporary seeded database and blank keys, so tests cannot touch `school.db` or call Groq. Running a test file directly (`python test_backend.py`) also goes through pytest and stays isolated. `test_backend.py` relies on `TestClient` keeping the login cookie, so calls without an auth header still authenticate.
+`backend/conftest.py` gives every test run a temporary seeded database and blank keys, so tests cannot touch `school.db` or call Groq. Running a test file directly (`python test_backend.py`) also goes through pytest and stays isolated.
 
 ## Environment variables
 
@@ -91,12 +91,14 @@ Backend, set in `backend/.env` (template: `.env.example`) or the Modal secret `e
 | Variable | Purpose |
 |----------|---------|
 | `SCHOOL_NAME`, `SCHOOL_TAGLINE`, `SCHOOL_ADDRESS`, `SCHOOL_PHONE`, `SCHOOL_EMAIL`, `CURRENCY` | Branding used in PDFs and the chatbot |
-| `SECRET_KEY` | JWT signing key (HS256, 24h tokens) |
+| `APP_ENV` | `development` for local work. Unset or anything else means production safeguards |
+| `SECRET_KEY` | JWT signing key (HS256, 8h tokens). Production refuses to start if it is missing, short, or a key once published in this repo |
+| `ADMIN_PASSWORD` | Sets the admin password when the account is created or still on a known default. Required then in production. Does not overwrite a password changed in the app |
+| `ADMIN_PASSWORD_RESET` | `true` forces `ADMIN_PASSWORD` to apply, for a forgotten password. Remove afterwards |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Optional. Without a key, everything falls back to local logic |
 | `MODAL_PROXY_TOKEN_ID`, `MODAL_PROXY_TOKEN_SECRET` | Optional. AI admissions only; without them that feature returns 503 |
 | `DATABASE_URL` | Defaults to local SQLite; Modal sets `sqlite:////data/school.db` |
-| `FRONTEND_URL` | Extra CORS origin |
-| `COOKIE_SECURE` | Set `true` for cross-site cookies in production |
+| `FRONTEND_URL` | Allowed CORS origins, exact and comma-separated. Required for browsers in production |
 
 Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds the production value.
 
@@ -106,7 +108,7 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 
 ### Backend layout
 
-`main.py` wires up the routers in `routers/`, which call `services/` and use the SQLModel tables in `models/`. Startup creates the tables and the default `admin` / `admin123` user.
+`main.py` wires up the routers in `routers/`, which call `services/` and use the SQLModel tables in `models/`. Startup creates missing tables and runs `services/admin_setup.py:ensure_admin_account`, which also refuses to run production on a known default password.
 
 - **No migrations.** The schema comes only from `SQLModel.metadata.create_all`, which won't alter existing tables. After changing a model locally, delete `school.db` and reseed. The Modal volume database needs the same care.
 - **Config:** `config.py` loads `.env` and also holds the fixed school structure (`GRADES`, `SECTIONS`, `SUBJECTS`) and fee amounts.
@@ -118,15 +120,16 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 - `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (string).
 - `invoices`: student_id, amount, month, due_date, unique `challan_number`, `status` (`pending` or `paid`). `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). `fee_structures` and `academic_years` exist but are barely used.
 - `results`: student_id, subject, marks_obtained, total_marks, exam_type. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F.
-- `users`: username, password hash (currently fixed-salt SHA-256, moving to bcrypt in M1), role.
+- `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role.
+- `revoked_tokens`: tokens ended by logout, kept until they expire.
 
 ### API surface
 
-All routes except `/auth/login` require auth.
+All routes require auth except `/auth/login`, `/auth/logout`, and the root status route.
 
 | Prefix | Routes |
 |--------|--------|
-| `/auth` | `POST /login`, `POST /logout`, `GET /me` |
+| `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
 | `/students` | `GET` (search, grade), `POST`, `GET/PUT/DELETE /{id}` |
 | `/fees` | `GET` (status, grade), `POST /generate`, `POST /{id}/pay`, `GET /{id}/pdf` |
 | `/results` | `GET /{student_id}`, `POST` (upsert marks), `GET /{student_id}/report-card/pdf` |
@@ -136,9 +139,11 @@ All routes except `/auth/login` require auth.
 
 ### Auth
 
-`routers/auth.py:get_current_user` accepts a bearer token or the HttpOnly `educore_access_token` cookie. The frontend stores the token in `localStorage` and attaches it in an axios interceptor in `src/api/client.js`, because the Vercel and Modal domains differ. Protected routes declare `_user = Depends(get_current_user)`.
+`routers/auth.py:get_current_user` accepts a bearer token only; there are no auth cookies. The frontend stores the token in `localStorage` and attaches it in an axios interceptor in `src/api/client.js`. Protected routes declare `_user = Depends(get_current_user)`.
 
-The two PDF routes (`/fees/{id}/pdf`, `/results/{student_id}/report-card/pdf`) also require auth via the same dependency. The frontend opens them as plain `<a href>` links, so they authenticate through the HttpOnly cookie rather than the bearer header.
+Tokens carry a `jti`, which logout adds to `revoked_tokens`, and a fingerprint of the password hash, so changing a password ends all older sessions. Failed logins are limited per username and per address by `services/login_throttle.py`. That throttle is in memory, which relies on the single Modal container.
+
+The PDF routes use the same dependency. The frontend fetches them as blobs through `src/lib/pdf.js` and `components/PdfButton.jsx`, because plain links cannot send the token.
 
 ### Chatbot routing
 
@@ -170,7 +175,7 @@ All API calls go through the `api` object in `src/api/client.js`, which also han
 
 The chatbot page keeps its history, session id, and memory toggle in `localStorage` (`educore_chat_history`, `educore_chat_session_id`, `educore_chat_memory_enabled`). The Risk Simulator in `AtRisk.jsx` is a client-side formula, not a call to the real model.
 
-CORS in `main.py` allows localhost:5173 and 5174, `FRONTEND_URL`, and any `*.vercel.app` origin. Cross-site cookies need `COOKIE_SECURE=true`.
+CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173 and 5174 in development. In production, `/docs` and `/openapi.json` are off and security headers are added.
 
 ## Known gotchas
 
@@ -184,7 +189,7 @@ CORS in `main.py` allows localhost:5173 and 5174, `FRONTEND_URL`, and any `*.ver
 
 ## Deployment
 
-Backend: `modal secret create educore-secrets ...`, then `modal run modal_app.py::seed_database_volume`, then `modal deploy modal_app.py`. Frontend: import the repo into Vercel with root directory `frontend` and set `VITE_API_URL` to the Modal URL. Full steps are in `DEPLOYMENT_GUIDE.md`.
+Backend: set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret `educore-secrets`, then `modal deploy modal_app.py`. It runs one container (`max_containers=1`) because SQLite on a Volume needs a single writer. Frontend: import the repo into Vercel with root directory `frontend` and set `VITE_API_URL` to the Modal URL. Full steps are in `DEPLOYMENT_GUIDE.md`.
 
 ## Code graph
 

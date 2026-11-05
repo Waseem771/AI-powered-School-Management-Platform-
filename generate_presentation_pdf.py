@@ -147,7 +147,7 @@ def build_presentation_pdf():
         ],
         [
             Paragraph("<b>🛡️ Key Differentiator:</b> Allowlisted SQL Tool Layer (Zero Hallucination)", card_body),
-            Paragraph("<b>🔑 Demo Credentials:</b> admin / admin123", card_body)
+            Paragraph("<b>🔑 Demo access:</b> provided during your demonstration", card_body)
         ]
     ]
     t_cover = Table(cover_data, colWidths=[350, 370])

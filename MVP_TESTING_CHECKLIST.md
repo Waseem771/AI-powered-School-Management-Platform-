@@ -18,7 +18,8 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M0: 14 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M1: 68 passed |
+| Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
 | App starts without CrewAI | ⬜ | ✅ M0 |
 | Pinned stack reads and writes a copy of existing `school.db` | ⬜ | ✅ M0 |
 | Pins resolve for Python 3.11 (Modal) | ⬜ | ✅ M0, dry run only |
@@ -27,9 +28,9 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Admissions: failure message shown on the page | ⬜ | ✅ M0, in browser |
 | Admissions: real AI answer | ⬜ | ⬜ needs token |
 | No known credential patterns in project files | ❌ | ✅ M0 |
-| `npm test` (session tests) | ✅ 2 of 2 | ✅ M0 |
-| `vite build` | ✅ (chunk-size warning) | ✅ M0 |
-| `npm audit --omit=dev` clean | ❌ 3 issues | |
+| `npm test` | ✅ 2 of 2 | ✅ M1: 10 of 10 |
+| `vite build` | ✅ (chunk-size warning) | ✅ M1 |
+| `npm audit --omit=dev` clean | ❌ 3 issues | 🟡 M1: 2 moderate, accepted (see SECURITY_REVIEW) |
 | Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | ✅ M0, checksum matched |
 
 ## Authentication and authorisation
@@ -40,19 +41,21 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Wrong password gives 401 with a generic message | ✅ | |
 | Missing field gives 422 | ✅ | |
 | All protected routes reject anonymous requests (source) | ✅ | |
-| Production PDFs reject anonymous requests | ❌ | |
+| Production PDFs reject anonymous requests | ❌ | ✅ in code; live after deploy |
 | Expired token rejected | ✅ | |
 | Garbage token rejected | ✅ | |
-| Token signed with the documented key rejected | ❌ | |
-| App refuses to start without a strong key | ❌ | |
-| Login page has no prefilled or printed password | ❌ | |
-| Repeated wrong passwords get throttled | ❌ | |
-| Passwords hashed with bcrypt | ❌ | |
-| Logout clears all local data | ❌ | |
-| Token unusable after logout | ❌ | |
+| Token signed with the documented key rejected | ❌ | ✅ M1 |
+| App refuses to start without a strong key | ❌ | ✅ M1 |
+| Login page has no prefilled or printed password | ❌ | ✅ M1, in browser |
+| Repeated wrong passwords get throttled | ❌ | ✅ M1, in browser |
+| Passwords hashed with bcrypt | ❌ | ✅ M1 |
+| Logout clears all local data | ❌ | ✅ M1, in browser |
+| Token unusable after logout | ❌ | ✅ M1, in browser |
 | Unknown origin rejected by CORS | ✅ | |
-| Arbitrary `*.vercel.app` rejected by CORS | ❌ | |
-| PDF opens when frontend and API are on different domains | ❌ | |
+| Arbitrary `*.vercel.app` rejected by CORS | ❌ | ✅ M1 |
+| PDF opens when frontend and API are on different domains | ❌ | ✅ M1, real Chrome across two local origins. Recheck on Vercel and Modal |
+| Change password ends other sessions | ⬜ | ✅ M1, in browser |
+| Other PDF links work (Results, Students) | ⬜ | ✅ M1, fetch checked with new-tab step stubbed |
 | Role permissions enforced | ⬜ not built | |
 
 ## Students

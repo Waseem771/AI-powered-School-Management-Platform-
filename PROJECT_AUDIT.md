@@ -6,7 +6,7 @@
 
 Companion documents: [MVP_FEATURE_MATRIX.md](MVP_FEATURE_MATRIX.md), [MVP_IMPLEMENTATION_ROADMAP.md](MVP_IMPLEMENTATION_ROADMAP.md), [DATABASE_AND_API_REVIEW.md](DATABASE_AND_API_REVIEW.md), [SECURITY_REVIEW.md](SECURITY_REVIEW.md), [MVP_TESTING_CHECKLIST.md](MVP_TESTING_CHECKLIST.md).
 
-> **Update, 2026-11-04.** This audit examined this folder before it was merged with GitHub `main`. The later comparison found that GitHub had 12 more commits, including a CrewAI Admissions feature that is live on production. That also explains F1: production runs GitHub's code, which lacks the local PDF auth. Admissions, a published Modal token, and a missing login check on it are covered in [SECURITY_REVIEW.md](SECURITY_REVIEW.md) (S0, S0a). F8 and F11 are resolved in M0.
+> **Update, 2026-11-04.** This audit examined this folder before it was merged with GitHub `main`. The later comparison found that GitHub had 12 more commits, including a CrewAI Admissions feature that is live on production. That also explains F1: production runs GitHub's code, which lacks the local PDF auth. Admissions, a published Modal token, and a missing login check on it are covered in [SECURITY_REVIEW.md](SECURITY_REVIEW.md) (S0, S0a). F8 and F11 are resolved in M0. F2, F3, and F9 are resolved in code by M1, and F1 once M1 is deployed. See the status table in SECURITY_REVIEW.md.
 
 ---
 
