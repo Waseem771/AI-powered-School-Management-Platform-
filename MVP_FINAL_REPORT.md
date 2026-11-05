@@ -1,6 +1,6 @@
 # EduCore AI: MVP Final Report
 
-**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **Update, 5 November 2026: all of this is merged to `main` and deployed to Modal and Vercel. Sign-in on the live site still needs checking by the owner.**
+**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **Update, 5 November 2026: all of this is merged to `main` and deployed to Modal and Vercel. The owner signed in on the live site and reported that all looks right.**
 
 ## Verdict
 
@@ -67,8 +67,8 @@ All run on 5 November 2026, on a clean install of the pinned packages (Python 3.
 
 Please do not assume these work:
 
-- **Signed-in use of the live site.** On the live addresses, the backend starts, refuses requests without a login, hides its documentation, accepts the main Vercel address, and refuses others, and the frontend serves its security policy. Nobody has yet signed in there, or opened a PDF or asked the assistant there.
-- **Real Groq answers.** Tested locally against a simulated service only. The live secret does hold a Groq key, so the first live questions will be the first real test, and they send student names, marks, and fees to Groq.
+- **Live use beyond the owner's check.** On the live addresses, the backend starts, refuses requests without a login, hides its documentation, accepts the main Vercel address, and refuses others, and the frontend serves its security policy. The owner then signed in and reported that all looks right. There are no automated tests against the live site.
+- **Real Groq answers.** Automated tests use a simulated service only. The live secret holds a Groq key, so live questions can send student names, marks, and fees to Groq. Their answers have had only the owner's look, not a planned review.
 - **A real Admissions answer.** It needs a Modal token. Leave it out of demos.
 - **A real phone or tablet,** only browsers set to those sizes.
 - **Printed paper,** and Urdu names read by a native reader.
@@ -107,7 +107,7 @@ Details: [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 In order of urgency:
 
 1. ~~Revoke the published Modal token.~~ Done on 5 November 2026.
-2. ~~Set the Modal secret and deploy the security fixes.~~ Done on 5 November 2026. **Now sign in on the live site and check it.**
+2. ~~Set the Modal secret and deploy the security fixes.~~ Done on 5 November 2026, and the owner checked the live site.
 3. ~~Approve pushing branches M2 to M10.~~ Done on 5 November 2026.
 4. **Answer two policy questions:** does a 40-49% subject count as a pass (now Grade F and Pass, as written), and should promotion use Final Term only?
 5. **Review:** click through the app, print the samples on A4, and have an Urdu reader check the names.

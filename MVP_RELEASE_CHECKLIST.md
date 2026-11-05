@@ -12,7 +12,7 @@ The live site still runs older code. These do not wait for the rest.
 - [ ] 👤 Create a new token, only if using Admissions
 - ✅ Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret `educore-secrets`
 - ✅ Merged to `main` and deployed (2026-11-05)
-- [ ] 👤 Sign in on the live site and check students, fee totals, PDFs, and the assistant
+- ✅ Owner signed in on the live site and reported that all looks right (2026-11-05)
 
 ## 2. Decisions still open 👤
 
@@ -49,7 +49,7 @@ The live site still runs older code. These do not wait for the rest.
 - ✅ Backend deployed to Modal with `max_containers=1`
 - [ ] 👤 Price of one warm container checked, then a decision made
 - ✅ Frontend deployed to Vercel
-- [ ] Sign-in, PDFs, and chatbot checked on the live addresses
+- ✅ Owner checked the live addresses (2026-11-05)
 - [ ] Rehearsed from start to finish using [SAMPLE_DEMO_SCENARIO.md](SAMPLE_DEMO_SCENARIO.md)
 - [ ] Screenshots or a recording ready, in case of failure
 
