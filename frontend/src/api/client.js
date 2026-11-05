@@ -52,6 +52,8 @@ export const api = {
 
   // Fees
   getFees: (params) => client.get('/fees', { params }),
+  getFeeSummary: () => client.get('/fees/summary'),
+  getInvoicePayments: (invoiceId) => client.get(`/fees/${invoiceId}/payments`),
   generateChallan: (data) => client.post('/fees/generate', data),
   payInvoice: (id, data) => client.post(`/fees/${id}/pay`, data),
   getChallanPdf: (invoiceId) =>

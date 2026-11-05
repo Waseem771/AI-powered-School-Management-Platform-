@@ -18,7 +18,8 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M1: 68 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M2: 116 passed |
+| Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M2 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
 | App starts without CrewAI | ⬜ | ✅ M0 |
 | Pinned stack reads and writes a copy of existing `school.db` | ⬜ | ✅ M0 |
@@ -28,7 +29,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Admissions: failure message shown on the page | ⬜ | ✅ M0, in browser |
 | Admissions: real AI answer | ⬜ | ⬜ needs token |
 | No known credential patterns in project files | ❌ | ✅ M0 |
-| `npm test` | ✅ 2 of 2 | ✅ M1: 10 of 10 |
+| `npm test` | ✅ 2 of 2 | ✅ M2: 15 of 15 |
 | `vite build` | ✅ (chunk-size warning) | ✅ M1 |
 | `npm audit --omit=dev` clean | ❌ 3 issues | 🟡 M1: 2 moderate, accepted (see SECURITY_REVIEW) |
 | Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | ✅ M0, checksum matched |
@@ -81,21 +82,22 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Generate valid challan | ✅ | |
-| Negative or zero amount rejected | ❌ | |
-| Duplicate month rejected | ❌ | |
-| Junk month or date rejected | ❌ | |
-| Form defaults to current month | ❌ | |
-| Unknown student gives 404 | ✅ | |
-| Full payment recorded and persists | ✅ | |
-| Second payment on paid invoice rejected | ❌ | |
-| Partial payment shows correct balance | ❌ | |
-| Overpayment rejected | ❌ | |
-| Negative or zero payment rejected | ❌ | |
-| Invalid payment mode rejected | ❌ | |
-| Dashboard collected equals sum of payments | ❌ after bad payments | |
-| Summary cards stay correct under filters | ❌ | |
-| "Overdue" only when past due date | ❌ | |
+| Generate valid challan | ✅ | ✅ M2, in browser |
+| Negative or zero amount rejected | ❌ | ✅ M2 |
+| Duplicate month rejected | ❌ | ✅ M2, in browser |
+| Junk month or date rejected | ❌ | ✅ M2 |
+| Form defaults to current month | ❌ | ✅ M2, in browser |
+| Unknown student gives 404 | ✅ | ✅ M2 |
+| Full payment recorded and persists | ✅ | ✅ M2 |
+| Second payment on paid invoice rejected | ❌ | ✅ M2 |
+| Simultaneous payments record only one | ⬜ | ✅ M2 |
+| Partial payment shows correct balance | ❌ | ✅ M2, in browser |
+| Overpayment rejected | ❌ | ✅ M2, in browser |
+| Negative or zero payment rejected | ❌ | ✅ M2 |
+| Invalid payment mode rejected | ❌ | ✅ M2 |
+| Dashboard collected equals sum of payments | ❌ after bad payments | ✅ M2 |
+| Summary cards stay correct under filters | ❌ | ✅ M2, in browser |
+| "Overdue" only when past due date | ❌ | ✅ M2 |
 
 ## Results and grades
 

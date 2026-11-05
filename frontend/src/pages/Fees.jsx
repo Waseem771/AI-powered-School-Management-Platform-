@@ -15,32 +15,65 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import PdfButton from '../components/PdfButton';
+import { apiErrorMessage } from '../lib/errors';
+import {
+  challanFormError,
+  defaultDueDate,
+  formatRupees,
+  monthLabel,
+  monthPickerValue,
+  paymentAmountError,
+} from '../lib/fees';
+
+const DEFAULT_FEE_AMOUNT = 4000;
+const STATUS_FILTERS = ['all', 'pending', 'partial', 'paid'];
+
+function newChallanForm(studentId = '') {
+  const month = monthPickerValue();
+  return { student_id: studentId, amount: DEFAULT_FEE_AMOUNT, month, due_date: defaultDueDate(month) };
+}
 
 export default function Fees() {
   const [invoices, setInvoices] = useState([]);
   const [students, setStudents] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   // Generate Challan Modal
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
-  const [challanForm, setChallanForm] = useState({
-    student_id: '',
-    amount: 4000,
-    month: 'November 2025',
-    due_date: '10-Nov-2025'
-  });
+  const [challanForm, setChallanForm] = useState(() => newChallanForm());
   const [generateError, setGenerateError] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   // Pay Modal
   const [payingInvoice, setPayingInvoice] = useState(null);
   const [paymentMode, setPaymentMode] = useState('cash');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
   useEffect(() => {
     fetchInvoices();
+    fetchSummary();
     fetchStudentsList();
   }, [statusFilter]);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await api.getFeeSummary();
+      setSummary(res.data);
+    } catch (err) {
+      console.error('Error fetching fee summary:', err);
+    }
+  };
+
+  const refreshFees = () => {
+    fetchInvoices();
+    fetchSummary();
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -68,34 +101,74 @@ export default function Fees() {
     }
   };
 
+  const openGenerateDialog = () => {
+    setChallanForm(newChallanForm(challanForm.student_id));
+    setGenerateError('');
+    setIsGenerateOpen(true);
+  };
+
+  const handleChallanMonthChange = (month) => {
+    setChallanForm((form) => ({ ...form, month, due_date: month ? defaultDueDate(month) : '' }));
+  };
+
   const handleGenerateChallan = async (e) => {
     e.preventDefault();
-    setGenerateError('');
+    const problem = challanFormError(challanForm);
+    setGenerateError(problem || '');
+    if (problem) return;
+
+    setGenerating(true);
     try {
       await api.generateChallan({
         student_id: parseInt(challanForm.student_id),
         amount: parseFloat(challanForm.amount),
-        month: challanForm.month,
+        month: monthLabel(challanForm.month),
         due_date: challanForm.due_date
       });
       setIsGenerateOpen(false);
-      fetchInvoices();
+      refreshFees();
     } catch (err) {
-      setGenerateError(err.response?.data?.detail || 'Failed to generate challan.');
+      setGenerateError(apiErrorMessage(err, 'Could not issue the challan. Please check the details.'));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const openPaymentDialog = async (invoice) => {
+    setPayingInvoice(invoice);
+    setPaymentAmount(String(invoice.balance));
+    setPaymentMode('cash');
+    setPaymentError('');
+    setPaymentHistory([]);
+    if (invoice.amount_paid > 0) {
+      try {
+        const res = await api.getInvoicePayments(invoice.id);
+        setPaymentHistory(res.data);
+      } catch (err) {
+        console.error('Error fetching payment history:', err);
+      }
     }
   };
 
   const handleConfirmPayment = async () => {
-    if (!payingInvoice) return;
+    if (!payingInvoice || paying) return;
+    const problem = paymentAmountError(paymentAmount, payingInvoice.balance);
+    setPaymentError(problem || '');
+    if (problem) return;
+
+    setPaying(true);
     try {
       await api.payInvoice(payingInvoice.id, {
-        amount_paid: payingInvoice.amount,
+        amount_paid: parseFloat(paymentAmount),
         payment_mode: paymentMode
       });
       setPayingInvoice(null);
-      fetchInvoices();
+      refreshFees();
     } catch (err) {
-      alert('Payment processing failed.');
+      setPaymentError(apiErrorMessage(err, 'The payment could not be recorded. Please try again.'));
+      refreshFees();
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -109,14 +182,6 @@ export default function Fees() {
     );
   });
 
-  const totalCollected = invoices
-    .filter(i => i.status === 'paid')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
-  const totalPending = invoices
-    .filter(i => i.status === 'pending')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -128,7 +193,7 @@ export default function Fees() {
           </p>
         </div>
         <button
-          onClick={() => setIsGenerateOpen(true)}
+          onClick={openGenerateDialog}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -144,7 +209,7 @@ export default function Fees() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-slate-400 uppercase">Total Invoices</p>
-            <h4 className="text-lg font-bold text-slate-800">{invoices.length} Challans</h4>
+            <h4 className="text-lg font-bold text-slate-800">{summary?.invoice_count ?? 0} Challans</h4>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-3">
@@ -153,7 +218,7 @@ export default function Fees() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-slate-400 uppercase">Recovered Amount</p>
-            <h4 className="text-lg font-bold text-emerald-700">Rs. {totalCollected.toLocaleString()}</h4>
+            <h4 className="text-lg font-bold text-emerald-700">{formatRupees(summary?.collected)}</h4>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-3">
@@ -161,8 +226,9 @@ export default function Fees() {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase">Pending Receivables</p>
-            <h4 className="text-lg font-bold text-rose-700">Rs. {totalPending.toLocaleString()}</h4>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase">Outstanding Balance</p>
+            <h4 className="text-lg font-bold text-rose-700">{formatRupees(summary?.outstanding)}</h4>
+            <p className="text-[11px] text-slate-500">{formatRupees(summary?.overdue)} overdue</p>
           </div>
         </div>
       </div>
@@ -181,7 +247,7 @@ export default function Fees() {
         </div>
 
         <div className="flex items-center gap-2">
-          {['all', 'pending', 'paid'].map((s) => (
+          {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -240,16 +306,26 @@ export default function Fees() {
                     <td className="py-3.5 px-4 font-medium text-slate-800">
                       {inv.month}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
-                      Rs. {inv.amount.toLocaleString()}
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-slate-900">{formatRupees(inv.amount)}</div>
+                      {inv.amount_paid > 0 && inv.balance > 0 && (
+                        <div className="text-[11px] text-slate-500">
+                          Paid {formatRupees(inv.amount_paid)} &bull; <span className="font-semibold text-rose-700">Owes {formatRupees(inv.balance)}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-600">
-                      {inv.due_date}
+                      <div>{inv.due_date}</div>
+                      {inv.is_overdue && <div className="text-[11px] font-bold text-rose-700">Overdue</div>}
                     </td>
                     <td className="py-3.5 px-4">
                       {inv.status === 'paid' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                           <CheckCircle2 className="w-3 h-3" /> Paid
+                        </span>
+                      ) : inv.status === 'partial' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <Clock className="w-3 h-3" /> Part Paid
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
@@ -258,13 +334,12 @@ export default function Fees() {
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
-                      {/* Mark Paid Button */}
-                      {inv.status === 'pending' && (
+                      {inv.status !== 'paid' && (
                         <button
-                          onClick={() => setPayingInvoice(inv)}
+                          onClick={() => openPaymentDialog(inv)}
                           className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors"
                         >
-                          Mark Paid
+                          Record Payment
                         </button>
                       )}
 
@@ -323,20 +398,22 @@ export default function Fees() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Month</label>
+                  <label htmlFor="challan-month" className="block text-xs font-bold text-slate-700 mb-1">Month</label>
                   <input
-                    type="text"
+                    id="challan-month"
+                    type="month"
                     required
                     value={challanForm.month}
-                    onChange={(e) => setChallanForm({ ...challanForm, month: e.target.value })}
-                    placeholder="e.g. November 2025"
+                    onChange={(e) => handleChallanMonthChange(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Total Fee (PKR)</label>
+                  <label htmlFor="challan-amount" className="block text-xs font-bold text-slate-700 mb-1">Total Fee (PKR)</label>
                   <input
+                    id="challan-amount"
                     type="number"
+                    min="1"
                     required
                     value={challanForm.amount}
                     onChange={(e) => setChallanForm({ ...challanForm, amount: e.target.value })}
@@ -346,13 +423,13 @@ export default function Fees() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Due Date</label>
+                <label htmlFor="challan-due-date" className="block text-xs font-bold text-slate-700 mb-1">Due Date</label>
                 <input
-                  type="text"
+                  id="challan-due-date"
+                  type="date"
                   required
                   value={challanForm.due_date}
                   onChange={(e) => setChallanForm({ ...challanForm, due_date: e.target.value })}
-                  placeholder="e.g. 10-Nov-2025"
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -367,9 +444,10 @@ export default function Fees() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm"
+                  disabled={generating}
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm disabled:opacity-60"
                 >
-                  Generate Challan
+                  {generating ? 'Issuing…' : 'Generate Challan'}
                 </button>
               </div>
             </form>
@@ -383,18 +461,64 @@ export default function Fees() {
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
             <h3 className="text-base font-bold text-slate-900">Record Fee Payment</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Confirming payment for <b>{payingInvoice.student_name}</b> ({payingInvoice.challan_number})
+              Payment for <b>{payingInvoice.student_name}</b> ({payingInvoice.challan_number})
             </p>
+
+            {paymentError && (
+              <div role="alert" className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{paymentError}</span>
+              </div>
+            )}
 
             <div className="my-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-slate-500">Amount Due:</span>
-                <span className="font-bold text-slate-900">Rs. {payingInvoice.amount.toLocaleString()}</span>
+                <span className="text-slate-500">Invoice Total:</span>
+                <span className="font-semibold text-slate-700">{formatRupees(payingInvoice.amount)}</span>
+              </div>
+              {payingInvoice.amount_paid > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Already Paid:</span>
+                  <span className="font-semibold text-slate-700">{formatRupees(payingInvoice.amount_paid)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-slate-500">Still Owed:</span>
+                <span className="font-bold text-slate-900">{formatRupees(payingInvoice.balance)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Billing Month:</span>
                 <span className="font-semibold text-slate-700">{payingInvoice.month}</span>
               </div>
+            </div>
+
+            {paymentHistory.length > 0 && (
+              <div className="mb-4 text-xs">
+                <p className="font-bold text-slate-700 mb-1">Earlier Payments</p>
+                <ul className="space-y-1 text-slate-600">
+                  {paymentHistory.map((payment) => (
+                    <li key={payment.id} className="flex justify-between">
+                      <span className="capitalize">{payment.payment_mode} &bull; {new Date(payment.paid_at).toLocaleDateString()}</span>
+                      <span className="font-semibold">{formatRupees(payment.amount_paid)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label htmlFor="payment-amount" className="block text-xs font-bold text-slate-700 mb-1">Amount Received (PKR)</label>
+              <input
+                id="payment-amount"
+                type="number"
+                min="1"
+                max={payingInvoice.balance}
+                step="any"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Enter less than the full amount to record part payment.</p>
             </div>
 
             <div className="space-y-2 mb-4">
@@ -436,9 +560,10 @@ export default function Fees() {
               <button
                 type="button"
                 onClick={handleConfirmPayment}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs"
+                disabled={paying}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs disabled:opacity-60"
               >
-                Confirm Payment
+                {paying ? 'Saving…' : 'Confirm Payment'}
               </button>
             </div>
           </div>

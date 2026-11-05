@@ -63,6 +63,8 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
     due_date = invoice_data.get("due_date", "10-Oct-2025")
     challan_no = invoice_data.get("challan_number", "CHN-1045")
     status = invoice_data.get("status", "Pending").upper()
+    amount_paid = invoice_data.get("amount_paid", 0)
+    balance = invoice_data.get("balance", total)
 
     def build_copy_block(copy_title: str):
         block = []
@@ -108,6 +110,11 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
             [Paragraph("Examination & Lab Charges", normal_style), Paragraph(f"Rs. {exam:,.0f}", normal_style)],
             [Paragraph("<b>TOTAL PAYABLE AMOUNT</b>", total_style), Paragraph(f"<b>Rs. {total:,.0f}</b>", total_style)],
         ]
+        if amount_paid > 0:
+            fee_items.extend([
+                [Paragraph("Paid to date", normal_style), Paragraph(f"Rs. {amount_paid:,.0f}", normal_style)],
+                [Paragraph("<b>BALANCE DUE</b>", total_style), Paragraph(f"<b>Rs. {balance:,.0f}</b>", total_style)],
+            ])
         fee_table = Table(fee_items, colWidths=[360, 160])
         fee_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E0E7FF")),

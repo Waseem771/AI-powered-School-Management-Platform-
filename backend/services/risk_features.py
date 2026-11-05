@@ -31,7 +31,7 @@ def compute_student_features(
         avg_pct = DEFAULT_AVG_PCT
         failing = 0
 
-    fee_defaults = sum(1 for inv in invoices if inv.status == "pending")
+    fee_defaults = sum(1 for inv in invoices if inv.status != "paid")
 
     # Heuristic: no historical marks are stored, so trend is inferred from current marks.
     if failing >= 2:

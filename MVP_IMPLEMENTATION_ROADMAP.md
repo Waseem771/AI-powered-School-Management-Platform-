@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are complete on branch `mvp/foundation` (not pushed or deployed). Next: deploy decision, then M2.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). Next: M3.
 
 ## Principles
 
@@ -63,7 +63,7 @@ Effort figures are rough working-session estimates, not commitments.
 
 **`min_containers=1` is not set**, because it costs money. Check the price and add it before a live demo (D4).
 
-#### M2. Fee and payment integrity (medium)
+#### M2. Fee and payment integrity ✅ complete in code, not deployed
 - Input validation on invoices and payments.
 - Payments-based balances, with `partial` status.
 - Reject double payments and overpayments; transactional writes.
@@ -71,7 +71,11 @@ Effort figures are rough working-session estimates, not commitments.
 - One shared calculation for dashboard, fees page, and chatbot.
 - Real due dates, enabling real "overdue" (migration).
 
-**Done when:** all fee negative cases return the right errors, and totals reconcile with payment rows.
+**Done:** all fee negative cases return the right errors, and a test reconciles the Fees page, dashboard, and chatbot against the payments table. Tested with 8 simultaneous payments: exactly one is recorded.
+
+**Simpler than planned:** no new due-date column was needed. New challans store the month and due date in one fixed format, and older text is read tolerantly, so an unreadable date is simply never called overdue. The only schema change is one unique index, applied with `migrate_db.py`. It has been tested on a copy of `school.db`, and **has not been run on the real `school.db` or on Modal**.
+
+**Left for later:** receipts and a per-student fee history page (M8). Late fees and sibling concessions remain unbuilt.
 
 #### M3. Student and results integrity (medium)
 - Validation on all student fields and marks. Friendly 409 on duplicate rolls.

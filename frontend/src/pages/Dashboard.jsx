@@ -134,7 +134,7 @@ export default function Dashboard() {
         <StatCard
           title="Pending Receivables"
           value={`Rs. ${(kpis.total_pending || 0).toLocaleString()}`}
-          subtitle="Overdue fee challans"
+          subtitle={`Rs. ${(kpis.total_overdue || 0).toLocaleString()} overdue`}
           icon={Clock}
           color="amber"
         />

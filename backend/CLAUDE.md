@@ -28,7 +28,7 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 ## Conventions
 
 - New endpoint: add the router function, register it in `main.py` if it is a new router, then add the matching method to `frontend/src/api/client.js`.
-- Model change: no migrations exist. Delete `school.db`, reseed, and apply the same care to the Modal volume.
+- Model change: new tables are created automatically. Changes to existing tables go in `migrate_db.py`, additive and tested on a copy. Never delete a database to apply a change.
 - New dependency: add an exact version to `requirements.txt` (or `requirements-admissions.txt`). `modal_app.py` installs from these files. It must also resolve for Python 3.11.
 - Heavy imports (sentence-transformers, FAISS) must stay lazy so startup stays fast; the RAG model initializes on first use.
 - Chatbot data tools stay read-only and allowlisted. A new tool needs: definition, `execute_tool` branch, local keyword fallback, structured-data mapping, and a test in `test_data_assistant.py` / `test_school_assistant.py`. It must work with no `GROQ_API_KEY`.

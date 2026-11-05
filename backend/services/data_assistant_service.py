@@ -7,6 +7,7 @@ from sqlmodel import Session, col, or_, select
 from models.fee import Invoice
 from models.result import Result, calculate_grade
 from models.student import Student
+from services.fee_ledger import STATUS_PAID, outstanding_balance, paid_by_invoice, school_totals
 
 
 class SchoolDataAssistant:
@@ -163,16 +164,16 @@ class SchoolDataAssistant:
         return [self._student_brief(s) for s in students]
 
     def get_students_with_pending_fees(self, grade: Optional[str] = None) -> Dict[str, Any]:
-        """Return all students who have at least one pending invoice."""
-        # Get all pending invoices
-        stmt = select(Invoice).where(Invoice.status == "pending")
-        pending_invoices = self.session.exec(stmt).all()
+        """Return all students who still owe money on at least one invoice."""
+        open_invoices = self.session.exec(select(Invoice).where(Invoice.status != STATUS_PAID)).all()
+        paid = paid_by_invoice(self.session)
 
         # Aggregate by student_id
         student_pending: Dict[int, float] = {}
         student_invoice_count: Dict[int, int] = {}
-        for inv in pending_invoices:
-            student_pending[inv.student_id] = student_pending.get(inv.student_id, 0.0) + inv.amount
+        for inv in open_invoices:
+            balance = outstanding_balance(inv.amount, paid.get(inv.id, 0.0))
+            student_pending[inv.student_id] = student_pending.get(inv.student_id, 0.0) + balance
             student_invoice_count[inv.student_id] = student_invoice_count.get(inv.student_id, 0) + 1
 
         if not student_pending:
@@ -244,17 +245,21 @@ class SchoolDataAssistant:
         invoices = self.session.exec(
             select(Invoice).where(Invoice.student_id == student.id).order_by(Invoice.created_at.desc())
         ).all()
+        paid_amounts = paid_by_invoice(self.session, [i.id for i in invoices])
         invoiced = round(sum(i.amount for i in invoices), 2)
-        paid = round(sum(i.amount for i in invoices if i.status == "paid"), 2)
+        paid = round(sum(paid_amounts.values()), 2)
+        pending = round(sum(outstanding_balance(i.amount, paid_amounts.get(i.id, 0.0)) for i in invoices), 2)
         return {
             "found": True,
             "student": self._student_brief(student),
-            "totals": {"invoiced": invoiced, "paid": paid, "pending": round(invoiced - paid, 2)},
+            "totals": {"invoiced": invoiced, "paid": paid, "pending": pending},
             "invoices": [
                 {
                     "challan_number": i.challan_number,
                     "month": i.month,
                     "amount": i.amount,
+                    "amount_paid": paid_amounts.get(i.id, 0.0),
+                    "balance": outstanding_balance(i.amount, paid_amounts.get(i.id, 0.0)),
                     "due_date": i.due_date,
                     "status": i.status,
                 }
@@ -291,16 +296,14 @@ class SchoolDataAssistant:
         }
 
     def get_collection_summary(self) -> Dict[str, Any]:
-        invoices = self.session.exec(select(Invoice)).all()
-        invoiced = round(sum(i.amount for i in invoices), 2)
-        paid = round(sum(i.amount for i in invoices if i.status == "paid"), 2)
-        pending = round(invoiced - paid, 2)
+        totals = school_totals(self.session)
         return {
-            "invoices": len(invoices),
-            "invoiced": invoiced,
-            "paid": paid,
-            "pending": pending,
-            "collection_rate": round((paid / invoiced) * 100, 1) if invoiced else 0.0,
+            "invoices": totals["invoice_count"],
+            "invoiced": totals["invoiced"],
+            "paid": totals["collected"],
+            "pending": totals["outstanding"],
+            "overdue": totals["overdue"],
+            "collection_rate": totals["collection_rate"],
         }
 
     # ──────────────────────────────────────────────────────────────────────────

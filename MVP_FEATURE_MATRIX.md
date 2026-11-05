@@ -20,7 +20,7 @@
 | **Protected routes (current source)** | ✅ | All 20 data routes reject anonymous requests |
 | **Protected PDFs in production** | ❌ | Fixed in code (M1). Live deployment still returns 200 anonymously until deployed |
 | **Dashboard: total students** | ✅ | Real count |
-| **Dashboard: fees collected / pending** | 🟡 | Real, but from invoice status rather than payments |
+| **Dashboard: fees collected / pending** | ✅ | M2: from payment rows, with an overdue figure |
 | **Dashboard: exam performance** | 🟡 | Real averages, but a subject with no marks shows a fake 70.0 |
 | **Dashboard: grade distribution** | ✅ | Real |
 | **Dashboard: date ranges** | ⬜ | None; all data is all-time |
@@ -32,13 +32,13 @@
 | **Edit student** | 🟡 | Duplicate roll or null field gives a 500 |
 | **Delete student** | 🟡 | Works, but permanently destroys fee and exam history |
 | **Student profile page** | ⬜ | No page; data exists only in table rows |
-| **Fee invoice list and status filter** | 🟡 | Works, but summary cards are wrong when filtered |
-| **Issue challan** | 🟡 | Accepts negative, zero, duplicate-month, and junk values. Stale defaults |
-| **Record payment (UI path)** | 🟡 | Full payment only |
-| **Payment integrity (API)** | ❌ | Double, partial, over, and negative payments all accepted |
-| **Partial payments and balances** | ⬜ | Rs. 1 marks the invoice fully paid |
+| **Fee invoice list and status filter** | ✅ | M2: shows balance and overdue; summary cards are independent of filters |
+| **Issue challan** | ✅ | M2: validated, one per student per month, current-month defaults |
+| **Record payment (UI path)** | ✅ | M2: full or part payment, with clear errors |
+| **Payment integrity (API)** | ✅ | M2: double, over, negative, and simultaneous payments rejected |
+| **Partial payments and balances** | ✅ | M2 |
 | **Per-student fee history** | ⚙️ | Available only through a chatbot tool |
-| **Payment records view / receipts** | ⬜ | `payments` table is never shown |
+| **Payment records view / receipts** | 🟡 | M2: earlier payments shown in the payment dialog. Receipts are M8 |
 | **Late fees, sibling concession** | ⬜ | In policy text only |
 | **Challan PDF** | 🟡 | Normal names work. `<` crashes it. Urdu not extractable. Letter size rather than A4 |
 | **Challan PDF in deployed setup (cross-site)** | ✅ | M1: fetched with the login token. Confirmed in Chrome across two origins, not yet on Vercel and Modal |
@@ -106,12 +106,12 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 10 |
-| 🟡 Partially functional | 24 |
+| ✅ Fully functional | 16 |
+| 🟡 Partially functional | 21 |
 | 🖥️ Frontend only | 1 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 11 |
-| ⬜ Missing | 14 |
+| ❌ Broken | 10 |
+| ⬜ Missing | 12 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |
 

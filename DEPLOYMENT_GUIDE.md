@@ -78,6 +78,34 @@ Modal prints it after deploying:
 https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
 ```
 
+### Step 7: Upgrade an existing database
+
+This stops a student getting two challans for one month at database level. The app already checks this itself, so it is safe to do at a quiet time after deploying. Skip it for a brand-new database.
+
+First, see the report. It changes nothing, and lists any fee records that need a person to review:
+
+```bash
+modal run modal_app.py::upgrade_database
+```
+
+Then stop the app so nothing is writing, and apply. This backs up the database on the volume first:
+
+```bash
+modal app stop educore-ai-school-platform
+```
+
+```bash
+modal run modal_app.py::upgrade_database --apply
+```
+
+```bash
+modal deploy modal_app.py
+```
+
+If the report lists duplicate challans, the upgrade stops and changes nothing. Decide which challan is right before trying again.
+
+To undo: run `DROP INDEX uq_invoices_student_month;` or restore the backup file, named `school.db.backup-<date>`, on the volume.
+
 ---
 
 ## Part 2: Frontend on Vercel

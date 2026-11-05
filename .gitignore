@@ -42,3 +42,6 @@ backend/venv_312/
 
 # Test caches
 .pytest_cache/
+
+# Database backups made by migrate_db.py
+*.backup-*

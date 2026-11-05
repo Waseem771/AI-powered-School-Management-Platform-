@@ -1,5 +1,7 @@
 # EduCore AI: Database and API Review
 
+> **Update, M2:** fee findings in sections 2, 4, 5, 6, and 8 are fixed on branch `mvp/m2-fees`, as designed in section 8. A unique index replaces the planned billing-period and due-date columns; see the roadmap.
+
 **Audit date:** 2026-11-04. Inspected on read-only copies. `backend/school.db` was not changed.
 
 ## 1. Database as found

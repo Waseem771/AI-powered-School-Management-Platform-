@@ -1,6 +1,6 @@
 from sqlmodel import Session, SQLModel, create_engine
 
-from models.fee import Invoice
+from models.fee import Invoice, Payment
 from models.result import Result
 from models.student import Student
 from services.data_assistant_service import SchoolDataAssistant
@@ -21,11 +21,14 @@ def setup_session():
     session.add(student)
     session.commit()
     session.refresh(student)
+    paid_invoice = Invoice(student_id=student.id, amount=3500, month="October 2025", due_date="10-Oct-2025", challan_number="CHN-045A", status="paid")
     session.add_all([
-        Invoice(student_id=student.id, amount=3500, month="October 2025", due_date="10-Oct-2025", challan_number="CHN-045A", status="paid"),
+        paid_invoice,
         Invoice(student_id=student.id, amount=3500, month="November 2025", due_date="10-Nov-2025", challan_number="CHN-045B", status="pending"),
         Result(student_id=student.id, subject="Mathematics", marks_obtained=82, total_marks=100),
     ])
+    session.commit()
+    session.add(Payment(invoice_id=paid_invoice.id, amount_paid=3500))
     session.commit()
     return session
 

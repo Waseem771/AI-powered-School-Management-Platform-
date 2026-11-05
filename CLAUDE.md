@@ -42,7 +42,9 @@ backend/            FastAPI app (run commands from here)
   models/           SQLModel tables: user, student, fee, result
   routers/          auth, students, fees, results, dashboard, ai, chatbot, admissions_crew
   school_crew/      CrewAI agents for admissions (imported only when used)
-  services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service
+  services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service,
+                    fee_ledger (all fee calculations), admin_setup, login_throttle, risk_features
+  migrate_db.py     reports on and upgrades an existing database, with a backup
   knowledge_base/   5 policy .txt files used by the RAG chatbot
   test_*.py         pytest tests; test_modal.py is a manual script, not collected
 frontend/           React app (run commands from here)
@@ -110,7 +112,7 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 
 `main.py` wires up the routers in `routers/`, which call `services/` and use the SQLModel tables in `models/`. Startup creates missing tables and runs `services/admin_setup.py:ensure_admin_account`, which also refuses to run production on a known default password.
 
-- **No migrations.** The schema comes only from `SQLModel.metadata.create_all`, which won't alter existing tables. After changing a model locally, delete `school.db` and reseed. The Modal volume database needs the same care.
+- **Schema changes.** `SQLModel.metadata.create_all` adds new tables but never alters existing ones. Changes to existing tables go through `migrate_db.py`, which backs up first, reports problems, and only changes anything with `--apply`. Keep changes additive, and never delete a database to apply one.
 - **Config:** `config.py` loads `.env` and also holds the fixed school structure (`GRADES`, `SECTIONS`, `SUBJECTS`) and fee amounts.
 - **Dependencies:** every package is pinned to an exact version that works on Python 3.13 (local) and resolves for 3.11 (Modal). `modal_app.py` installs from the requirements files, so there is one list. Check any change with a clean install and `python -m pytest`.
 - **Optional AI admissions:** CrewAI is imported inside the request handler. The app must start and work without it, returning 503 for that feature only.
@@ -118,7 +120,7 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 ### Data model
 
 - `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (string).
-- `invoices`: student_id, amount, month, due_date, unique `challan_number`, `status` (`pending` or `paid`). `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). `fee_structures` and `academic_years` exist but are barely used.
+- `invoices`: student_id, amount, month (`November 2026`), due_date (`10-Nov-2026`), unique `challan_number`, `status` (`pending`, `partial`, or `paid`), one per student per month. `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). Payment rows are the source of truth for money received. `fee_structures` and `academic_years` exist but are barely used.
 - `results`: student_id, subject, marks_obtained, total_marks, exam_type. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F.
 - `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role.
 - `revoked_tokens`: tokens ended by logout, kept until they expire.
@@ -131,7 +133,7 @@ All routes require auth except `/auth/login`, `/auth/logout`, and the root statu
 |--------|--------|
 | `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
 | `/students` | `GET` (search, grade), `POST`, `GET/PUT/DELETE /{id}` |
-| `/fees` | `GET` (status, grade), `POST /generate`, `POST /{id}/pay`, `GET /{id}/pdf` |
+| `/fees` | `GET` (status, grade, student_id), `GET /summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf` |
 | `/results` | `GET /{student_id}`, `POST` (upsert marks), `GET /{student_id}/report-card/pdf` |
 | `/dashboard` | `GET /stats` |
 | `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}` |
@@ -180,6 +182,7 @@ CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173
 ## Known gotchas
 
 - Risk features for both the dashboard and the At-Risk page come from `services/risk_features.py:compute_student_features`. Change feature logic there only, so the two never drift apart.
+- All fee money comes from `services/fee_ledger.py`, which the dashboard, Fees page, and chatbot share. Add fee calculations there only.
 - Challan numbers are `CHN-` plus a random number, checked against existing invoices (`_unique_challan_number` in `routers/fees.py`).
 - The challan PDF splits the invoice amount into tuition (capped at `TUITION_FEE_MONTHLY` from `config.py`) and the remainder as exam fee.
 - Deleting a student also removes their results, invoices, and the invoices' payments.

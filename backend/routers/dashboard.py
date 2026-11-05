@@ -7,6 +7,7 @@ from models.fee import Invoice, Payment
 from models.result import Result
 from services.ai_service import ai_service
 from routers.auth import get_current_user
+from services.fee_ledger import school_totals
 from services.risk_features import compute_student_features
 from config import GRADES, SUBJECTS
 
@@ -23,9 +24,9 @@ def get_dashboard_stats(
 
     # Invoices & Fees
     invoices = session.exec(select(Invoice)).all()
-    total_invoiced = sum(inv.amount for inv in invoices)
-    total_paid = sum(inv.amount for inv in invoices if inv.status == "paid")
-    total_pending = sum(inv.amount for inv in invoices if inv.status == "pending")
+    fee_totals = school_totals(session)
+    total_paid = fee_totals["collected"]
+    total_pending = fee_totals["outstanding"]
 
     # Grade distribution
     grade_counts = {}
@@ -89,7 +90,8 @@ def get_dashboard_stats(
             "at_risk_students": high_risk_count,
             "medium_risk_students": medium_risk_count,
             "low_risk_students": low_risk_count,
-            "collection_rate": round((total_paid / total_invoiced * 100), 1) if total_invoiced > 0 else 0
+            "total_overdue": fee_totals["overdue"],
+            "collection_rate": fee_totals["collection_rate"]
         },
         "grade_distribution": grade_distribution,
         "fee_summary": [

@@ -39,7 +39,7 @@ image = (
     .add_local_dir(
         Path(__file__).parent, 
         remote_path="/root/backend", 
-        ignore=["venv_312", "**/__pycache__", "**/*.pyc", "school.db", ".env"],
+        ignore=["venv_312", "**/__pycache__", "**/*.pyc", "school.db", "*.backup-*", ".env"],
         copy=True
     )
 )
@@ -88,3 +88,19 @@ def seed_database_volume():
     seed_database()
     data_volume.commit()
     print("✅ Database successfully seeded into Modal Volume (/data/school.db)!")
+
+
+@app.function(image=image, volumes={"/data": data_volume}, timeout=300)
+def upgrade_database(apply: bool = False):
+    """Reports on the volume's database; with --apply, backs it up and upgrades it. See DEPLOYMENT_GUIDE.md."""
+    import sys
+    sys.path.insert(0, "/root/backend")
+    os.chdir("/root/backend")
+
+    from migrate_db import main as migrate
+
+    exit_code = migrate(["/data/school.db", "--apply"] if apply else ["/data/school.db"])
+    if apply:
+        data_volume.commit()
+    if exit_code != 0:
+        raise SystemExit(exit_code)

@@ -1,6 +1,9 @@
 from typing import Optional
 from datetime import datetime, timezone
+from sqlalchemy import Index
 from sqlmodel import SQLModel, Field
+
+INVOICE_STUDENT_MONTH_INDEX = "uq_invoices_student_month"
 
 class AcademicYear(SQLModel, table=True):
     __tablename__ = "academic_years"
@@ -20,14 +23,16 @@ class FeeStructure(SQLModel, table=True):
 
 class Invoice(SQLModel, table=True):
     __tablename__ = "invoices"
+    # Existing databases get this index from migrate_db.py; create_all only adds it to new ones.
+    __table_args__ = (Index(INVOICE_STUDENT_MONTH_INDEX, "student_id", "month", unique=True),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     student_id: int = Field(index=True, foreign_key="students.id")
-    amount: float = Field(default=4000.0)
-    month: str = Field(default="October 2025")
-    due_date: str = Field(default="10-Oct-2025")
+    amount: float
+    month: str  # "November 2026"
+    due_date: str  # "10-Nov-2026"
     challan_number: str = Field(index=True, unique=True)
-    status: str = Field(default="pending", index=True)  # 'paid' or 'pending'
+    status: str = Field(default="pending", index=True)  # 'pending', 'partial' or 'paid'
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Payment(SQLModel, table=True):
