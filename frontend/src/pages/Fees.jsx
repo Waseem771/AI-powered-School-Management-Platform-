@@ -14,6 +14,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { api } from '../api/client';
+import PdfButton from '../components/PdfButton';
 
 export default function Fees() {
   const [invoices, setInvoices] = useState([]);
@@ -268,16 +269,14 @@ export default function Fees() {
                       )}
 
                       {/* Download PDF Challan */}
-                      <a
-                        href={api.getChallanPdfUrl(inv.id)}
-                        target="_blank"
-                        rel="noreferrer"
+                      <PdfButton
+                        fetchPdf={() => api.getChallanPdf(inv.id)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-[11px] font-bold transition-colors"
                         title="Download Official 2-Part Fee Challan PDF"
                       >
                         <Download className="w-3 h-3" />
                         <span>Challan PDF</span>
-                      </a>
+                      </PdfButton>
                     </td>
                   </tr>
                 ))

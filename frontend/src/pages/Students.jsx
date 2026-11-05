@@ -13,6 +13,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { api } from '../api/client';
+import PdfButton from '../components/PdfButton';
 
 const GRADES = ["All Grades", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 const SECTIONS = ["A", "B"];
@@ -241,16 +242,14 @@ export default function Students() {
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                       {/* Report Card PDF trigger */}
-                      <a
-                        href={api.getReportCardPdfUrl(s.id)}
-                        target="_blank"
-                        rel="noreferrer"
+                      <PdfButton
+                        fetchPdf={() => api.getReportCardPdf(s.id)}
                         title="Download Report Card PDF"
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-semibold"
                       >
                         <GraduationCap className="w-3.5 h-3.5" />
                         <span>Report Card</span>
-                      </a>
+                      </PdfButton>
                       <button
                         onClick={() => openEditModal(s)}
                         title="Edit Student"

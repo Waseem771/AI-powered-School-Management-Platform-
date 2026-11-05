@@ -10,8 +10,8 @@ import AtRisk from './pages/AtRisk';
 import Chatbot from './pages/Chatbot';
 import Admissions from './pages/Admissions';
 
-// Backend endpoints enforce the secure HttpOnly session cookie. This only keeps the
-// client from rendering private navigation before a user signs in.
+// The backend enforces access on every request. This only keeps the client from
+// rendering private navigation before a user signs in.
 function ProtectedRoute({ children }) {
   const user = localStorage.getItem('educore_user');
   if (!user) {

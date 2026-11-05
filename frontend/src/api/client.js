@@ -1,14 +1,11 @@
 import axios from 'axios';
+import { clearSession } from '../lib/session';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? 'https://whassanshaikh--educore-ai-school-platform-fastapi-app.modal.run'
-    : 'http://localhost:8000');
+// Production builds get this from VITE_API_URL (see frontend/.env.production).
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,8 +27,7 @@ client.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // If unauthorized on protected route, redirect to login
       if (window.location.pathname !== '/login') {
-        localStorage.removeItem('educore_token');
-        localStorage.removeItem('educore_user');
+        clearSession();
         window.location.href = '/login';
       }
     }
@@ -43,6 +39,8 @@ export const api = {
   // Auth
   login: (username, password) => client.post('/auth/login', { username, password }),
   logout: () => client.post('/auth/logout'),
+  changePassword: (currentPassword, newPassword) =>
+    client.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword }),
   getMe: () => client.get('/auth/me'),
 
   // Students
@@ -56,12 +54,14 @@ export const api = {
   getFees: (params) => client.get('/fees', { params }),
   generateChallan: (data) => client.post('/fees/generate', data),
   payInvoice: (id, data) => client.post(`/fees/${id}/pay`, data),
-  getChallanPdfUrl: (invoiceId) => `${API_BASE_URL}/fees/${invoiceId}/pdf`,
+  getChallanPdf: (invoiceId) =>
+    client.get(`/fees/${invoiceId}/pdf`, { responseType: 'blob' }).then((response) => response.data),
 
   // Results
   getStudentResults: (studentId) => client.get(`/results/${studentId}`),
   enterMarks: (data) => client.post('/results', data),
-  getReportCardPdfUrl: (studentId) => `${API_BASE_URL}/results/${studentId}/report-card/pdf`,
+  getReportCardPdf: (studentId) =>
+    client.get(`/results/${studentId}/report-card/pdf`, { responseType: 'blob' }).then((response) => response.data),
 
   // Dashboard
   getDashboardStats: (options) => client.get('/dashboard/stats', options),

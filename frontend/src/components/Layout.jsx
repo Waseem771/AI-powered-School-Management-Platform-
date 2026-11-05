@@ -13,13 +13,16 @@ import {
   X,
   Sparkles,
   ShieldCheck,
-  ClipboardCheck
+  ClipboardCheck,
+  KeyRound
 } from 'lucide-react';
-import { getStoredUser } from '../lib/session';
+import { clearSession, getStoredUser } from '../lib/session';
 import { api } from '../api/client';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const menuButtonRef = useRef(null);
   const drawerRef = useRef(null);
   const navigate = useNavigate();
@@ -31,7 +34,7 @@ export default function Layout() {
     } catch (error) {
       console.warn('Logout request did not complete:', error);
     }
-    localStorage.removeItem('educore_user');
+    clearSession();
     navigate('/login');
   };
 
@@ -208,6 +211,14 @@ export default function Layout() {
           </div>
 
           <button
+            onClick={() => { setMobileMenuOpen(false); setChangingPassword(true); }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border border-slate-700/50"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Change Password</span>
+          </button>
+
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors border border-rose-900/30"
           >
@@ -216,6 +227,8 @@ export default function Layout() {
           </button>
         </div>
       </aside>
+
+      {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0" inert={mobileMenuOpen ? '' : undefined} aria-hidden={mobileMenuOpen || undefined}>

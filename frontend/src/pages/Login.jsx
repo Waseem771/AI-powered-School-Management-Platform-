@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { School, Lock, User, ArrowRight, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
+import { School, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../api/client';
+import { apiErrorMessage } from '../lib/errors';
 
 export default function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -26,16 +27,10 @@ export default function Login() {
       }));
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid username or password. Please verify credentials.');
+      setError(apiErrorMessage(err, 'Could not sign in. Please check your details and try again.'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setError('');
   };
 
   return (
@@ -74,7 +69,8 @@ export default function Login() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. admin"
+                  autoComplete="username"
+                  aria-label="Username"
                   required
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
                 />
@@ -91,7 +87,8 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  aria-label="Password"
                   required
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
                 />
@@ -114,26 +111,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Demo Helper Pill */}
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-            <button
-              type="button"
-              onClick={fillDemoCredentials}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Prefill Demo Login: <b>admin / admin123</b></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Badges */}
-        <div className="flex items-center justify-center gap-4 text-xs text-slate-400 mt-6">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> JWT 256-Bit Auth
-          </span>
-          <span>&bull;</span>
-          <span>FastAPI + SQLite Engine</span>
         </div>
       </div>
     </div>

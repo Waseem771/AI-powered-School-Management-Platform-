@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '../api/client';
+import PdfButton from '../components/PdfButton';
 
 const SUBJECTS = ["English", "Urdu", "Mathematics", "Science", "Islamiat", "Pakistan Studies"];
 
@@ -125,15 +126,13 @@ export default function Results() {
               <Plus className="w-4 h-4 text-blue-600" />
               <span>Update / Enter Mark</span>
             </button>
-            <a
-              href={api.getReportCardPdfUrl(selectedStudentId)}
-              target="_blank"
-              rel="noreferrer"
+            <PdfButton
+              fetchPdf={() => api.getReportCardPdf(selectedStudentId)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
             >
               <Download className="w-4 h-4" />
               <span>Download Report Card PDF</span>
-            </a>
+            </PdfButton>
           </div>
         )}
       </div>
