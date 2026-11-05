@@ -87,7 +87,7 @@ def test_all_endpoints(admin_password):
     print("Dashboard KPIs:", dash_data["kpis"])
     print("Grade Distribution:", dash_data["grade_distribution"])
 
-    print("\n--- 7. Testing AI At-Risk Prediction with SHAP ---")
+    print("\n--- 7. Testing AI At-Risk Estimates ---")
     ai_res = client.get("/ai/at-risk", headers=headers)
     assert ai_res.status_code == 200
     at_risk_list = ai_res.json()
@@ -96,7 +96,7 @@ def test_all_endpoints(admin_password):
     print(f"High risk students identified: {len(high_risk)}")
     if high_risk:
         sample = high_risk[0]
-        print(f"Sample High-Risk Student: {sample['name']} | Roll: {sample['roll_number']} | Risk: {sample['risk_score']}% | Reasons: {sample['top_reasons']}")
+        print(f"Sample High-Risk Student: {sample['name']} | Roll: {sample['roll_number']} | Score: {sample['risk_score']}")
 
     print("\n--- 8. Testing RAG Policy Chatbot ---")
     # Topics

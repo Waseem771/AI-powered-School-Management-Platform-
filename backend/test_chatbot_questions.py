@@ -338,7 +338,7 @@ def test_at_risk_list_skips_students_with_no_marks_and_low_risk(session):
 def test_one_students_risk_with_no_marks_gives_no_estimate(session):
     response = ask(session, "Is Hina Soomro at risk?")
 
-    assert "No marks" in response["answer"]
+    assert "Not enough marks" in response["answer"]
     assert response["structured_data"] is None
 
 

@@ -103,6 +103,29 @@ def monthly_totals(session: Session, month: Optional[str] = None) -> List[dict]:
     return rows
 
 
+def fee_follow_ups(session: Session, student_ids: Iterable[int], today: Optional[date] = None) -> Dict[int, dict]:
+    """Which students have overdue invoices, for the accounts office. Never part of any academic score."""
+    today = today or school_today()
+    ids = list(student_ids)
+    invoices = session.exec(select(Invoice).where(col(Invoice.student_id).in_(ids))).all()
+    paid = paid_by_invoice(session, [invoice.id for invoice in invoices])
+
+    counts = {student_id: 0 for student_id in ids}
+    amounts = {student_id: 0.0 for student_id in ids}
+    for invoice in invoices:
+        if is_overdue(invoice.status, invoice.due_date, today):
+            counts[invoice.student_id] += 1
+            amounts[invoice.student_id] += outstanding_balance(invoice.amount, paid.get(invoice.id, 0.0))
+    return {
+        student_id: {
+            "needed": counts[student_id] > 0,
+            "overdue_invoices": counts[student_id],
+            "overdue_amount": round(amounts[student_id], 2),
+        }
+        for student_id in ids
+    }
+
+
 def school_totals(session: Session, today: Optional[date] = None) -> dict:
     """Whole-school totals, shared by the dashboard, Fees page, and chatbot so they cannot disagree."""
     today = today or school_today()

@@ -1,5 +1,14 @@
+"""The academic risk estimate: a Random Forest over marks only, explained by its real SHAP values.
+
+The model learns from made-up students at startup, not from this school's records. It has no fee
+input of any kind, because paying late says nothing about a student's ability. Fee follow-up is a
+separate flag (`fee_ledger.fee_follow_ups`).
+
+There are two forests, with and without a trend. Most students have no midterm and final from the
+same year, and a neutral value filled in for them would be invented data going into the model.
+"""
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -15,274 +24,204 @@ except ImportError:
 try:
     import shap
 except Exception as e:
-    logger.warning(f"SHAP could not be loaded ({e}). Using feature importance fallback.")
+    logger.warning(f"SHAP could not be loaded ({e}). Reasons will state the student's record instead.")
     shap = None
 
-FEATURE_NAMES = ["avg_marks_pct", "fee_defaults", "failing_subjects", "grade_trend"]
+MODEL_NOTE = "Trained on synthetic data. Not validated on real students. A teacher should review before acting."
+
+CATEGORY_HIGH = "High"
+CATEGORY_MEDIUM = "Medium"
+CATEGORY_LOW = "Low"
+NOT_ENOUGH_DATA = "Not enough data"
+
+HIGH_ABOVE_SCORE = 70
+MEDIUM_FROM_SCORE = 40
+# A model trained on made-up students has no grounds for certainty in either direction.
+MIN_SCORE = 5
+MAX_SCORE = 95
+
+METHOD_SHAP = "shap"
+METHOD_RECORD = "record"
+_MAX_REASONS = 3
+
+_BASE_FEATURES = ("avg_marks_pct", "failing_subjects")
+_TREND_FEATURE = "grade_trend"
+_TRAINING_ROWS = 600
+_TRAINING_SEED = 42
+_SUBJECT_COUNT = 6
+
+
+def _score(probability: float) -> int:
+    return min(MAX_SCORE, max(MIN_SCORE, int(round(probability * 100))))
+
+
+def _category(score: int) -> str:
+    if score > HIGH_ABOVE_SCORE:
+        return CATEGORY_HIGH
+    return CATEGORY_MEDIUM if score >= MEDIUM_FROM_SCORE else CATEGORY_LOW
+
+
+def _synthetic_students(with_trend: bool) -> Tuple[np.ndarray, np.ndarray]:
+    """Made-up students, labelled by a hand-written rule with some chance in it.
+
+    This teaches the model the rule's general shape, nothing more. It is why every page says the
+    model has not been validated.
+    """
+    random = np.random.RandomState(_TRAINING_SEED)
+    rows, labels = [], []
+    for _ in range(_TRAINING_ROWS):
+        average = random.uniform(25, 98)
+        failing = random.binomial(_SUBJECT_COUNT, float(np.clip((55 - average) / 45, 0.02, 0.8)))
+        trend = random.uniform(-30, 20)
+
+        points = 45 if average < 50 else (20 if average < 65 else 0)
+        points += failing * 18
+        if with_trend:
+            points += 20 if trend < -10 else (8 if trend < 0 else 0)
+
+        chance_at_risk = 1 / (1 + np.exp(-(points - 35) / 8))
+        labels.append(int(random.random_sample() < chance_at_risk))
+        rows.append([average, failing, trend] if with_trend else [average, failing])
+    return np.array(rows), np.array(labels)
+
+
+class TrainedModel:
+    def __init__(self, with_trend: bool):
+        self.features: Tuple[str, ...] = _BASE_FEATURES + ((_TREND_FEATURE,) if with_trend else ())
+        rows, labels = _synthetic_students(with_trend)
+        self.forest = RandomForestClassifier(
+            n_estimators=120, max_depth=5, min_samples_leaf=5, random_state=_TRAINING_SEED
+        ).fit(rows, labels)
+        self.explainer: Any = None
+        self.base_value: float = 0.0
+        if shap is not None:
+            try:
+                self.explainer = shap.TreeExplainer(self.forest)
+                self.base_value = float(np.ravel(self.explainer.expected_value)[-1])
+            except Exception as error:
+                logger.warning(f"SHAP explainer unavailable: {error}")
+                self.explainer = None
+
+    def contributions(self, row: np.ndarray) -> np.ndarray:
+        """How much each input moved this student's probability of being at risk, away from the base value."""
+        values = self.explainer.shap_values(row.reshape(1, -1))
+        if isinstance(values, list):
+            return np.asarray(values[1][0])
+        values = np.asarray(values)
+        return values[0, :, 1] if values.ndim == 3 else values[0]
+
+
+def _row_for(model: TrainedModel, features: Dict[str, Any]) -> np.ndarray:
+    return np.array([float(features[name]) for name in model.features])
+
+
+def _has_trend(features: Dict[str, Any]) -> bool:
+    return features.get(_TREND_FEATURE) is not None
+
+
+def _fact(feature: str, features: Dict[str, Any]) -> str:
+    """A plain statement from the student's record, for a feature the model used."""
+    if feature == "avg_marks_pct":
+        return f"Average of {float(features['avg_marks_pct']):.1f}% in the latest exam"
+    if feature == "failing_subjects":
+        count = int(features["failing_subjects"])
+        return "No failed subjects" if count == 0 else f"Failed {count} subject{'s' if count > 1 else ''}"
+    change = float(features[_TREND_FEATURE])
+    if change == 0:
+        return "Average unchanged from Midterm to Final Term"
+    word = "fell" if change < 0 else "rose"
+    return f"Average {word} {abs(change):.1f} points from Midterm to Final Term"
+
+
+def _metrics(features: Dict[str, Any]) -> Dict[str, Any]:
+    average = features.get("avg_marks_pct")
+    trend = features.get(_TREND_FEATURE)
+    return {
+        "avg_marks_pct": round(float(average), 1) if average is not None else None,
+        "failing_subjects": int(features.get("failing_subjects") or 0),
+        "grade_trend": round(float(trend), 1) if trend is not None else None,
+        "subjects_counted": features.get("subjects_counted"),
+    }
+
+
+def _assessment(
+    features: Dict[str, Any],
+    score: Optional[int],
+    factors: Sequence[Dict[str, Any]] = (),
+    reasons: Sequence[str] = (),
+    method: Optional[str] = None,
+) -> Dict[str, Any]:
+    return {
+        "risk_score": score,
+        "risk_category": _category(score) if score is not None else NOT_ENOUGH_DATA,
+        "factors": list(factors),
+        "top_reasons": list(reasons),
+        "explanation_method": method,
+        "metrics": _metrics(features),
+    }
+
 
 class AtRiskModelService:
     def __init__(self):
-        self.model: Any = None
-        self.explainer: Any = None
-        self.is_trained: bool = False
+        self.models: Dict[bool, TrainedModel] = {}
         if ML_AVAILABLE:
-            self._initialize_default_model()
+            self.models = {False: TrainedModel(with_trend=False), True: TrainedModel(with_trend=True)}
 
-    def _initialize_default_model(self):
-        """
-        Trains an initial robust model on representative baseline educational data
-        to ensure accurate scoring immediately on server startup.
-        """
-        # Synthetic baseline dataset representing typical school risk distribution
-        np.random.seed(42)
-        n_samples = 300
-        
-        # Features: [avg_marks_pct, fee_defaults, failing_subjects, grade_trend]
-        # avg_marks_pct: 30 to 95
-        # fee_defaults: 0 to 4
-        # failing_subjects: 0 to 5
-        # grade_trend: -30 to +20
-        X_data = []
-        y_data = []
+    def _can_score(self, features: Dict[str, Any]) -> bool:
+        return bool(self.models) and features.get("has_enough_marks", True)
 
-        for _ in range(n_samples):
-            avg_marks = np.random.uniform(35, 95)
-            failing = 0 if avg_marks > 60 else (1 if avg_marks > 50 else np.random.randint(2, 5))
-            fee_def = np.random.choice([0, 1, 2, 3], p=[0.65, 0.20, 0.10, 0.05])
-            trend = np.random.uniform(-25, 15)
+    def predict_student_risk(self, features: Dict[str, Any]) -> Dict[str, Any]:
+        """One student's estimate with its explanation."""
+        if not self._can_score(features):
+            return _assessment(features, None)
+        model = self.models[_has_trend(features)]
+        row = _row_for(model, features)
+        score = _score(float(model.forest.predict_proba(row.reshape(1, -1))[0][1]))
 
-            # Heuristic ground truth for risk label: 1 = high/at-risk, 0 = safe/low risk
-            risk_points = 0
-            if avg_marks < 50:
-                risk_points += 45
-            elif avg_marks < 65:
-                risk_points += 20
-            
-            risk_points += failing * 18
-            risk_points += fee_def * 15
-            if trend < -10:
-                risk_points += 20
-            elif trend < 0:
-                risk_points += 8
+        factors = self._shap_factors(model, row, features)
+        if factors:
+            reasons = [f"{factor['text']}: {factor['direction']} concern" for factor in factors[:_MAX_REASONS]]
+            return _assessment(features, score, factors, reasons, METHOD_SHAP)
+        reasons = [_fact(name, features) for name in model.features]
+        return _assessment(features, score, (), reasons, METHOD_RECORD)
 
-            is_at_risk = 1 if risk_points >= 40 else 0
-
-            X_data.append([avg_marks, fee_def, failing, trend])
-            y_data.append(is_at_risk)
-
-        X = np.array(X_data)
-        y = np.array(y_data)
-
-        self.model = RandomForestClassifier(n_estimators=60, max_depth=5, random_state=42)
-        self.model.fit(X, y)
-        if shap is not None:
-            try:
-                self.explainer = shap.TreeExplainer(self.model)
-            except Exception as e:
-                logger.warning(f"SHAP TreeExplainer warning: {e}")
-                self.explainer = None
-        else:
-            self.explainer = None
-        self.is_trained = True
-
-    def train_on_students(self, student_records: List[Dict[str, Any]]):
-        """
-        Re-trains or calibrates the model with current student database records.
-        """
-        if len(student_records) < 10:
-            return  # retain default baseline
-
-        X = []
-        y = []
-        for r in student_records:
-            feat = [
-                float(r.get("avg_marks_pct", 70.0)),
-                float(r.get("fee_defaults", 0)),
-                float(r.get("failing_subjects", 0)),
-                float(r.get("grade_trend", 0.0))
+    def predict_many(self, all_features: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Scores for a list, in the same order, without explanations, which are only worth their cost one at a time."""
+        results: List[Dict[str, Any]] = [_assessment(features, None) for features in all_features]
+        for with_trend, model in self.models.items():
+            indexes = [
+                index for index, features in enumerate(all_features)
+                if self._can_score(features) and _has_trend(features) == with_trend
             ]
-            X.append(feat)
-            # Student is marked at-risk if failing >= 2 or avg < 50 or fee_def >= 2
-            is_risk = 1 if (feat[2] >= 2 or feat[0] < 50 or (feat[1] >= 2 and feat[0] < 60)) else 0
-            y.append(is_risk)
+            if not indexes:
+                continue
+            rows = np.array([_row_for(model, all_features[index]) for index in indexes])
+            for index, probability in zip(indexes, model.forest.predict_proba(rows)[:, 1]):
+                results[index] = _assessment(all_features[index], _score(float(probability)))
+        return results
 
-        self.model = RandomForestClassifier(n_estimators=80, max_depth=5, random_state=42)
-        self.model.fit(np.array(X), np.array(y))
-        if shap is not None:
-            try:
-                self.explainer = shap.TreeExplainer(self.model)
-            except Exception as e:
-                self.explainer = None
-        else:
-            self.explainer = None
-        self.is_trained = True
+    @staticmethod
+    def _shap_factors(model: TrainedModel, row: np.ndarray, features: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """The model's own reasons, largest first. Empty if SHAP is unavailable or cannot explain this row."""
+        if model.explainer is None:
+            return []
+        try:
+            values = model.contributions(row)
+        except Exception as error:
+            logger.warning(f"Error computing SHAP values: {error}")
+            return []
+        factors = []
+        for name, value in zip(model.features, values):
+            impact = round(float(value) * 100)
+            if impact != 0:
+                factors.append({
+                    "feature": name,
+                    "text": _fact(name, features),
+                    "impact": impact,
+                    "direction": "raises" if value > 0 else "lowers",
+                })
+        return sorted(factors, key=lambda factor: abs(factor["impact"]), reverse=True)
 
-    def predict_student_risk(self, features: Dict[str, float]) -> Dict[str, Any]:
-        """
-        Predicts risk score (0-100%) and returns SHAP plain-English explanations.
-        """
-        feat_vector = np.array([[
-            float(features.get("avg_marks_pct", 70.0)),
-            float(features.get("fee_defaults", 0)),
-            float(features.get("failing_subjects", 0)),
-            float(features.get("grade_trend", 0.0))
-        ]])
-
-        if self.model is not None:
-            probs = self.model.predict_proba(feat_vector)[0]
-            # Probability of class 1 (At-Risk)
-            risk_probability = float(probs[1] if len(probs) > 1 else probs[0])
-            risk_score = int(round(risk_probability * 100))
-        else:
-            avg_marks = float(features.get("avg_marks_pct", 70.0))
-            failing = int(features.get("failing_subjects", 0))
-            fee_def = int(features.get("fee_defaults", 0))
-            trend = float(features.get("grade_trend", 0.0))
-            
-            risk_points = 0
-            if avg_marks < 50: risk_points += 45
-            elif avg_marks < 65: risk_points += 20
-            risk_points += failing * 18
-            risk_points += fee_def * 15
-            if trend < -10: risk_points += 20
-            elif trend < 0: risk_points += 8
-            risk_score = min(int(risk_points), 100)
-
-        # Enforce realistic bounds & consistency
-        if features.get("failing_subjects", 0) >= 3 or (features.get("avg_marks_pct", 100) < 50 and features.get("fee_defaults", 0) >= 2):
-            risk_score = max(risk_score, 75)
-        elif features.get("failing_subjects", 0) == 0 and features.get("avg_marks_pct", 0) >= 75 and features.get("fee_defaults", 0) == 0:
-            risk_score = min(risk_score, 25)
-
-        # Risk Category
-        if risk_score > 70:
-            category = "High"
-            badge_color = "red"
-        elif risk_score >= 40:
-            category = "Medium"
-            badge_color = "amber"
-        else:
-            category = "Low"
-            badge_color = "emerald"
-
-        reasons = self._generate_shap_reasons(feat_vector[0], features)
-
-        return {
-            "risk_score": risk_score,
-            "risk_category": category,
-            "badge_color": badge_color,
-            "top_reasons": reasons,
-            "metrics": {
-                "avg_marks_pct": round(features.get("avg_marks_pct", 0), 1),
-                "fee_defaults": int(features.get("fee_defaults", 0)),
-                "failing_subjects": int(features.get("failing_subjects", 0)),
-                "grade_trend": round(features.get("grade_trend", 0), 1)
-            }
-        }
-
-    def _generate_shap_reasons(self, feat_array: np.ndarray, raw_meta: Dict[str, Any]) -> List[str]:
-        """
-        Uses SHAP values to rank feature contributions and translate into
-        friendly plain-English sentences.
-        """
-        reasons = []
-        shap_values = None
-
-        if self.explainer is not None:
-            try:
-                shap_res = self.explainer.shap_values(feat_array.reshape(1, -1))
-                # For binary classification, shap_values might be a list of arrays [class0, class1]
-                if isinstance(shap_res, list) and len(shap_res) > 1:
-                    shap_values = shap_res[1][0]
-                elif isinstance(shap_res, np.ndarray) and len(shap_res.shape) == 3:
-                    shap_values = shap_res[0, :, 1]
-                else:
-                    shap_values = np.array(shap_res).flatten()
-            except Exception as e:
-                logger.warning(f"Error computing SHAP values: {e}")
-                shap_values = None
-
-        avg_marks = feat_array[0]
-        fee_def = feat_array[1]
-        failing = feat_array[2]
-        trend = feat_array[3]
-
-        candidate_reasons = []
-
-        # 1. Academic performance
-        if failing > 0:
-            candidate_reasons.append({
-                "importance": 40 + failing * 15,
-                "text": f"Failing {int(failing)} core subject{'s' if failing > 1 else ''}"
-            })
-
-        if avg_marks < 50:
-            candidate_reasons.append({
-                "importance": 35 + (50 - avg_marks),
-                "text": f"Critically low academic average ({avg_marks:.1f}%)"
-            })
-        elif avg_marks < 65:
-            candidate_reasons.append({
-                "importance": 20,
-                "text": f"Sub-par overall performance ({avg_marks:.1f}%)"
-            })
-
-        # 2. Grade trend
-        if trend < -15:
-            prev_pct = avg_marks - trend
-            candidate_reasons.append({
-                "importance": 30 + abs(trend),
-                "text": f"Avg marks dropped significantly from {prev_pct:.0f}% to {avg_marks:.0f}%"
-            })
-        elif trend < -5:
-            candidate_reasons.append({
-                "importance": 15,
-                "text": f"Downward academic trajectory ({trend:.1f}% decline)"
-            })
-        elif trend > 5:
-            candidate_reasons.append({
-                "importance": -15,
-                "text": f"Positive academic momentum (+{trend:.1f}%)"
-            })
-
-        # 3. Fee defaults
-        if fee_def >= 2:
-            candidate_reasons.append({
-                "importance": 25 + fee_def * 10,
-                "text": f"{int(fee_def)} overdue / unpaid fee invoices"
-            })
-        elif fee_def == 1:
-            candidate_reasons.append({
-                "importance": 12,
-                "text": "1 pending fee challan overdue"
-            })
-        else:
-            candidate_reasons.append({
-                "importance": -10,
-                "text": "Fee dues clear and up-to-date"
-            })
-
-        # If SHAP values exist, blend in SHAP ranking
-        if shap_values is not None and len(shap_values) == 4:
-            # Map SHAP weights: [avg_marks_pct, fee_defaults, failing_subjects, grade_trend]
-            shap_order = np.argsort(-shap_values)
-            # Add SHAP bonus
-            pass
-
-        # Sort candidate reasons by importance descending
-        candidate_reasons.sort(key=lambda x: x["importance"], reverse=True)
-
-        selected = [r["text"] for r in candidate_reasons if r["importance"] > 0]
-        if len(selected) < 3:
-            # Add safe fallbacks
-            if avg_marks >= 75:
-                selected.append(f"Strong overall subject mastery ({avg_marks:.1f}%)")
-            if fee_def == 0:
-                selected.append("All semester dues paid on time")
-            if failing == 0:
-                selected.append("Passed all enrolled curriculum subjects")
-
-        return selected[:3]
 
 # Global AI Service instance
 ai_service = AtRiskModelService()

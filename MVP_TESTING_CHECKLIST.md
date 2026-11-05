@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M5: 384 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M6: 425 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -148,14 +148,14 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Explanations come from real SHAP values | ❌ | |
-| No invented trend statements | ❌ | |
-| Unpaid fees can't make a strong student High risk | ❌ 85% to 89 High | |
-| Missing data shows "Not enough data" | ❌ shows Low, 0 | |
-| Limitations notice visible | ❌ | |
-| Human review notice visible | ❌ | |
-| Simulator honest about what it is | ❌ | |
-| App still works if SHAP is unavailable | ⬜ fallback exists in code, not run | |
+| Explanations come from real SHAP values | ❌ | ✅ M6, a test checks they add up to the model's output |
+| No invented trend statements | ❌ | ✅ M6 |
+| Unpaid fees can't make a strong student High risk | ❌ 85% to 89 High | ✅ M6, score unchanged by 5 unpaid invoices |
+| Missing data shows "Not enough data" | ❌ shows Low, 0 | ✅ M6, also in the browser |
+| Limitations notice visible | ❌ | ✅ M6, also in the browser |
+| Human review notice visible | ❌ | ✅ M6, also in the browser |
+| Simulator honest about what it is | ❌ | ✅ M6, calls the real model, also in the browser |
+| App still works if SHAP is unavailable | ⬜ fallback exists in code, not run | ✅ M6, tested with the explainer removed |
 
 ## Chatbot
 
@@ -186,7 +186,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Backend down: Students shows error | ❌ says no records | |
 | Backend down: Fees shows error | ❌ Rs. 0 | |
 | Backend down: Results shows error | ❌ "Promoted" | |
-| Backend down: At-Risk shows error | ❌ | |
+| Backend down: At-Risk shows error | ❌ | ✅ M6 in code; not run with the server down |
 | Backend down: Chatbot shows error | ✅ | |
 | Session expiry redirects to login | ⬜ code exists, not run in browser | |
 | Forms show field-level validation | ❌ | |

@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. Next: M6.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). Next: M7.
 
 ## Principles
 
@@ -117,7 +117,7 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Limits:** counts with a condition ("how many students failed") are declined, not answered. With TF-IDF only, an unrelated question sharing a rare word with a policy can still get that policy's line. At-risk answers still use the current model until M6.
 
-#### M6. Honest AI (medium)
+#### M6. Honest AI ✅ complete in code, not deployed
 - Remove fees from the academic score. Show "fee follow-up" as a separate administrative flag.
 - Use actual SHAP values for explanations, in plain language.
 - Remove the invented trend. Compute a real trend only when midterm and final both exist.
@@ -126,7 +126,11 @@ Effort figures are rough working-session estimates, not commitments.
 - Simulator: call the real model, or relabel it as illustrative. Remove the false Ahmed Khan preset.
 - Stop computing SHAP during bulk lists, which should speed up the dashboard.
 
-**Done when:** every statement on the page can be traced to data or the model.
+**Done:** every statement on the At-Risk page comes from the student's marks, the model's output, its SHAP values, or the fee ledger. Unpaid fees no longer change a score, and tests prove it. The seeded demo's Bilal Tariq shows High from marks alone, with his fees flagged apart.
+
+**Also fixed:** the band counts changed with the filter, guardian phones were on every card (now only in the one-student view), the model's hand-written score overrides are gone, the At-Risk page shows an error instead of "no data" when the server fails, and fixed dashboard claims ("100% Active", "AI Monitored") are removed.
+
+**Limits:** the model is still trained on made-up students, so its bands and thresholds are not evidence about real ones. The suggested steps are simple rules. Seed data has one exam each, so no real trend shows until both a midterm and final are entered.
 
 ### Stage 2: Make it look and feel professional
 

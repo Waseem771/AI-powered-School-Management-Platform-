@@ -24,7 +24,7 @@ They have separate dependencies and are deployed separately. See `DEPLOYMENT_GUI
 | Student CRUD, search, grade filter | `routers/students.py` | `pages/Students.jsx` |
 | Fee invoices, payments, 2-part challan PDF | `routers/fees.py`, `services/pdf_service.py` | `pages/Fees.jsx` |
 | Marks entry, grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx` |
-| AI at-risk prediction with SHAP reasons, interventions, risk simulator | `routers/ai.py`, `services/ai_service.py` | `pages/AtRisk.jsx` |
+| Academic early warning: estimate with SHAP reasons, suggested steps, separate fee follow-up flag, model trial | `routers/ai.py`, `services/ai_service.py`, `risk_features.py`, `risk_assessment.py` | `pages/AtRisk.jsx`, `components/RiskDetailDialog.jsx`, `RiskSimulator.jsx` |
 | Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `student_lookup.py`, `chat_intent.py`, `school_reports.py`, `assistant_tools.py`, `rag_service.py` | `pages/Chatbot.jsx`, `components/ChatCards.jsx`, `ChatTables.jsx` |
 | AI admissions (optional, CrewAI) | `routers/admissions_crew.py`, `school_crew/` | `pages/Admissions.jsx` |
 
@@ -139,7 +139,7 @@ All routes require auth except `/auth/login`, `/auth/logout`, and the root statu
 | `/fees` | `GET` (status, grade, student_id), `GET /summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf` |
 | `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /{student_id}/report-card/pdf` (same filters) |
 | `/dashboard` | `GET /stats` |
-| `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}` |
+| `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}`, `POST /simulate` |
 | `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics`, `GET /status` |
 
 ### Auth
@@ -168,9 +168,17 @@ Conversation memory is an in-process dict in `routers/chatbot.py`, stored per us
 
 ### At-risk model
 
-`AtRiskModelService` (`services/ai_service.py`) trains a Random Forest on synthetic data when the module is imported, which happens at server start because `main.py` imports it. There is no saved model file, and real school records are not training data. Features are `avg_marks_pct`, `fee_defaults`, `failing_subjects`, `grade_trend`. Categories: High above 70%, Medium 40-70%, Low below 40%.
+`AtRiskModelService` (`services/ai_service.py`) trains Random Forests on synthetic data when the module is imported, which happens at server start because `main.py` imports it. Training is seeded, so a restart gives the same scores. There is no saved model file, and real school records are not training data. Every place that shows an estimate must also say so, using `MODEL_NOTE` (backend) or the same text in `lib/risk.js` (frontend).
 
-`services/risk_features.py:compute_student_features` builds the features from live records (used by `routers/ai.py` and `routers/dashboard.py`), but `grade_trend` is a heuristic derived from current marks, not historical data. SHAP explains predictions when it can be loaded, with a feature-importance fallback otherwise.
+**Marks only.** Features are `avg_marks_pct`, `failing_subjects`, and, when real, `grade_trend`. Nothing about fees may enter the model or its reasons. Overdue invoices are a separate flag from `fee_ledger.fee_follow_ups`, for the accounts office.
+
+**Nothing invented.** `grade_trend` comes from `academics.exam_trend`: the midterm and final of the same year, on shared subjects only. There are two forests, with and without a trend, so no neutral value is filled in. Fewer than `MIN_SUBJECTS_FOR_ESTIMATE` subjects gives "Not enough data" and no score.
+
+**Scores** are the model's output with no hand-written overrides, limited to 5-95 because a model trained on made-up students has no grounds for certainty. Show them as "Score 85 of 100", never as a percentage. Bands: High above 70, Medium 40-70, Low below 40.
+
+**Reasons** are real SHAP values, in plain language, with `explanation_method: "shap"`. Without SHAP, they state facts from the record with `"record"` and must not be described as what moved the estimate. SHAP runs only for one student at a time: `predict_many` and `assess_students` give lists without it.
+
+`services/risk_assessment.py` is the one source for real students, used by `routers/ai.py`, `routers/dashboard.py`, and the chatbot. `POST /ai/simulate` runs the real model on made-up numbers, and refuses any fee input.
 
 ### PDFs
 
@@ -182,13 +190,13 @@ ReportLab reads text as markup, so all stored text must go through `_field`, `_h
 
 All API calls go through the `api` object in `src/api/client.js`, which also handles the 401 redirect to `/login`. The base URL is `VITE_API_URL`, falling back to `localhost:8000` in dev and a hardcoded Modal URL in production builds. Pages live in `src/pages/` and are routed in `src/App.jsx` under the shared `Layout`. `ProtectedRoute` only checks that `educore_user` exists in `localStorage`; the backend enforces real access.
 
-The chatbot page keeps its history, session id, and memory toggle in `localStorage` (`educore_chat_history`, `educore_chat_session_id`, `educore_chat_memory_enabled`). The Risk Simulator in `AtRisk.jsx` is a client-side formula, not a call to the real model.
+The chatbot page keeps its history, session id, and memory toggle in `localStorage` (`educore_chat_history`, `educore_chat_session_id`, `educore_chat_memory_enabled`). "Try the model" (`components/RiskSimulator.jsx`) calls the real model through `POST /ai/simulate`.
 
 CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173 and 5174 in development. In production, `/docs` and `/openapi.json` are off and security headers are added.
 
 ## Known gotchas
 
-- Risk features for both the dashboard and the At-Risk page come from `services/risk_features.py:compute_student_features`. Change feature logic there only, so the two never drift apart.
+- Risk estimates for the dashboard, At-Risk page, and chatbot come from `services/risk_assessment.py`, with features from `services/risk_features.py:compute_student_features`. Change them there only, so they never drift apart.
 - All fee money comes from `services/fee_ledger.py`, which the dashboard, Fees page, and chatbot share. Add fee calculations there only.
 - Challan numbers are `CHN-` plus a random number, checked against existing invoices (`_unique_challan_number` in `routers/fees.py`).
 - The challan PDF splits the invoice amount into tuition (capped at `TUITION_FEE_MONTHLY` from `config.py`) and the remainder as exam fee.

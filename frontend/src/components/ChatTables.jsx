@@ -120,7 +120,7 @@ export function AtRiskCard({ data }) {
         { label: 'Roll #', value: (row) => row.roll_number },
         { label: 'Class', value: (row) => `${row.grade}-${row.section}` },
         { label: 'Level', value: (row) => row.risk_category },
-        { label: 'Estimate', right: true, value: (row) => percent(row.risk_score) },
+        { label: 'Score', right: true, value: (row) => `${row.risk_score} of 100` },
       ]}
       rows={data.students ?? []}
     />
@@ -137,7 +137,7 @@ export function StudentRiskCard({ data }) {
       note={data.note}
       columns={[
         { label: 'Level', value: () => data.estimate.risk_category },
-        { label: 'Estimate', value: () => percent(data.estimate.risk_score) },
+        { label: 'Score', value: () => `${data.estimate.risk_score} of 100` },
         { label: 'Main reasons', value: () => reasons.join('; ') || 'None given' },
       ]}
       rows={[data.estimate]}

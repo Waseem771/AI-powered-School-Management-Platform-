@@ -10,6 +10,7 @@ from models.result import Result, calculate_grade
 from models.student import Student
 from services import chat_intent, school_reports
 from services.academics import exam_summary, select_exam
+from services.ai_service import MODEL_NOTE
 from services.assistant_tools import TOOL_DEFINITIONS
 from services.fee_ledger import STATUS_PAID, monthly_totals, outstanding_balance, paid_by_invoice, school_totals
 from services.student_lookup import find_matching_students, student_brief
@@ -227,8 +228,8 @@ class SchoolDataAssistant:
             return {"found": True, "student": brief, "estimate": None, "message": "Archived students are not estimated."}
         estimate = school_reports.student_risk_estimate(self.session, student)
         if estimate is None:
-            return {"found": True, "student": brief, "estimate": None, "message": "No marks are recorded, so there is no estimate."}
-        return {"found": True, "student": brief, "estimate": estimate, "note": school_reports.RISK_NOTE}
+            return {"found": True, "student": brief, "estimate": None, "message": "Not enough marks are recorded, so there is no estimate."}
+        return {"found": True, "student": brief, "estimate": estimate, "note": MODEL_NOTE}
 
     # ── School-wide figures ───────────────────────────────────────────────────
 

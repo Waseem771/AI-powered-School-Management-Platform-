@@ -9,18 +9,14 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, col, select
 
 from config import GRADES, SUBJECTS
-from models.fee import Invoice
 from models.result import Result
 from models.student import Student
 from services.academics import academic_year_labels, exam_summary, percentage, select_exam
-from services.risk_features import compute_student_features
+from services.ai_service import MODEL_NOTE
+from services.risk_assessment import assess_student, assess_students
 from services.student_lookup import student_brief
 
 _LISTED_RISK_LEVELS = ("High", "Medium")
-RISK_NOTE = (
-    "An estimate from a model trained on made-up data, not on this school's history. "
-    "It is a prompt for staff review, not a judgement about any student."
-)
 
 
 def _current_students(session: Session, grade: Optional[str] = None, section: Optional[str] = None) -> List[Student]:
@@ -132,38 +128,38 @@ def subject_averages(session: Session, grade: Optional[str] = None, exam_type: O
 
 
 def student_risk_estimate(session: Session, student: Student) -> Optional[Dict[str, Any]]:
-    """None when the student has no marks: a score built on a default would be invented."""
-    from services.ai_service import ai_service
-
-    marks = session.exec(select(Result).where(Result.student_id == student.id)).all()
-    if not marks:
+    """None when there are not enough marks: a score built on a default would be invented."""
+    assessment = assess_student(session, student)
+    if assessment["risk_score"] is None:
         return None
-    invoices = session.exec(select(Invoice).where(Invoice.student_id == student.id)).all()
-    prediction = ai_service.predict_student_risk(compute_student_features(marks, invoices))
     return {
-        "risk_score": prediction["risk_score"],
-        "risk_category": prediction["risk_category"],
-        "top_reasons": prediction["top_reasons"],
+        "risk_score": assessment["risk_score"],
+        "risk_category": assessment["risk_category"],
+        "top_reasons": assessment["top_reasons"],
     }
 
 
 def at_risk_students(
     session: Session, grade: Optional[str] = None, risk_level: Optional[str] = None
 ) -> Dict[str, Any]:
-    levels = (risk_level,) if risk_level else _LISTED_RISK_LEVELS
-    rows, not_scored = [], 0
-    for student in _current_students(session, grade):
-        estimate = student_risk_estimate(session, student)
-        if estimate is None:
-            not_scored += 1
-        elif estimate["risk_category"] in levels:
-            rows.append({**student_brief(student), **estimate})
+    levels = (risk_level.strip().capitalize(),) if risk_level else _LISTED_RISK_LEVELS
+    students = _current_students(session, grade)
+    assessments = assess_students(session, students)
+    rows = [
+        {
+            **student_brief(student),
+            "risk_score": assessments[student.id]["risk_score"],
+            "risk_category": assessments[student.id]["risk_category"],
+        }
+        for student in students
+        if assessments[student.id]["risk_category"] in levels
+    ]
     rows.sort(key=lambda row: row["risk_score"], reverse=True)
     return {
         "count": len(rows),
         "grade": grade,
         "levels": list(levels),
-        "not_scored": not_scored,
-        "note": RISK_NOTE,
+        "not_scored": sum(row["risk_score"] is None for row in assessments.values()),
+        "note": MODEL_NOTE,
         "students": rows,
     }

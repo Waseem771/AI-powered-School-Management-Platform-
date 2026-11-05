@@ -1,15 +1,16 @@
+from collections import Counter
+
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, col, select
 from typing import Dict
 from database import get_session
 from models.student import Student
-from models.fee import Invoice
 from models.result import Result
 from services.academics import latest_exam_marks, percentage
-from services.ai_service import ai_service
+from services.ai_service import CATEGORY_HIGH, CATEGORY_LOW, CATEGORY_MEDIUM, NOT_ENOUGH_DATA
 from routers.auth import get_current_user
 from services.fee_ledger import school_totals
-from services.risk_features import compute_student_features
+from services.risk_assessment import assess_students
 from config import GRADES, SUBJECTS
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -25,7 +26,6 @@ def get_dashboard_stats(
     active_ids = {s.id for s in students}
 
     # Invoices & Fees
-    invoices = session.exec(select(Invoice)).all()
     fee_totals = school_totals(session)
     total_paid = fee_totals["collected"]
     total_pending = fee_totals["outstanding"]
@@ -62,28 +62,13 @@ def get_dashboard_stats(
         if marks
     ]
 
-    # At-risk students count calculation
-    high_risk_count = 0
-    medium_risk_count = 0
-    low_risk_count = 0
-
-    student_invoices_map = {}
-    for inv in invoices:
-        student_invoices_map.setdefault(inv.student_id, []).append(inv)
-
-    for s in students:
-        s_res = student_results_map.get(s.id, [])
-        s_inv = student_invoices_map.get(s.id, [])
-
-        risk_data = ai_service.predict_student_risk(compute_student_features(s_res, s_inv))
-
-        cat = risk_data.get("risk_category")
-        if cat == "High":
-            high_risk_count += 1
-        elif cat == "Medium":
-            medium_risk_count += 1
-        else:
-            low_risk_count += 1
+    # Academic estimates, from the same source as the At-Risk page. Fee follow-up is counted apart.
+    assessments = assess_students(session, students).values()
+    bands = Counter(row["risk_category"] for row in assessments)
+    high_risk_count = bands[CATEGORY_HIGH]
+    medium_risk_count = bands[CATEGORY_MEDIUM]
+    low_risk_count = bands[CATEGORY_LOW]
+    not_enough_data_count = bands[NOT_ENOUGH_DATA]
 
     return {
         "kpis": {
@@ -93,6 +78,8 @@ def get_dashboard_stats(
             "at_risk_students": high_risk_count,
             "medium_risk_students": medium_risk_count,
             "low_risk_students": low_risk_count,
+            "not_enough_data_students": not_enough_data_count,
+            "fee_follow_up_students": sum(row["fee_follow_up"]["needed"] for row in assessments),
             "total_overdue": fee_totals["overdue"],
             "collection_rate": fee_totals["collection_rate"]
         },
@@ -102,9 +89,10 @@ def get_dashboard_stats(
             {"name": "Pending Dues", "value": total_pending, "color": "#EF4444"}
         ],
         "risk_breakdown": [
-            {"category": "High Risk (>70%)", "count": high_risk_count, "fill": "#EF4444"},
-            {"category": "Medium Risk (40-70%)", "count": medium_risk_count, "fill": "#F59E0B"},
-            {"category": "Low Risk (<40%)", "count": low_risk_count, "fill": "#10B981"}
+            {"category": CATEGORY_HIGH, "count": high_risk_count, "fill": "#EF4444"},
+            {"category": CATEGORY_MEDIUM, "count": medium_risk_count, "fill": "#F59E0B"},
+            {"category": CATEGORY_LOW, "count": low_risk_count, "fill": "#10B981"},
+            {"category": NOT_ENOUGH_DATA, "count": not_enough_data_count, "fill": "#94A3B8"}
         ],
         "subject_performance": subject_performance
     }

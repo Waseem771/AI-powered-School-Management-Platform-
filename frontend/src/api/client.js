@@ -75,6 +75,7 @@ export const api = {
   // AI At-Risk
   getAtRiskStudents: (params) => client.get('/ai/at-risk', { params }),
   getStudentRiskDetail: (studentId) => client.get(`/ai/at-risk/${studentId}`),
+  simulateRisk: (payload, options) => client.post('/ai/simulate', payload, options),
 
   // Chatbot
   askChatbot: (payload, options) => {

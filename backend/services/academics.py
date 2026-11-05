@@ -10,13 +10,14 @@ from sqlmodel import Session, select
 
 from config import SUBJECTS
 from models.fee import AcademicYear
-from models.result import FINAL_TERM, Result, calculate_grade
+from models.result import FINAL_TERM, MIDTERM, Result, calculate_grade
 
 SUBJECT_PASS_PERCENT = 40.0  # knowledge_base/exam_policy.txt, section 3
 PROMOTION_AGGREGATE_PERCENT = 50.0
 PROMOTION_MIN_SUBJECTS_PASSED = 5
 RETAKE_MAX_FAILED_SUBJECTS = 2
 DEFAULT_ACADEMIC_YEAR_ID = 1
+MIN_SHARED_SUBJECTS_FOR_TREND = 3
 
 ExamKey = Tuple[int, str]
 
@@ -59,6 +60,29 @@ def select_exam(
         if (exam_type is None or mark.exam_type == exam_type)
         and (academic_year_id is None or mark.academic_year_id == academic_year_id)
     )
+
+
+def exam_trend(marks: Iterable[Result]) -> Optional[float]:
+    """Points gained or lost from the midterm to the final of the same year, or None.
+
+    Compares only subjects in both exams, so a subject missing from one cannot look like a change.
+    """
+    marks = list(marks)
+    exams = exams_recorded(marks)
+    if not exams or exams[0][1] != FINAL_TERM:
+        return None
+    year = exams[0][0]
+    final = {mark.subject: mark for mark in marks if _exam_key(mark) == (year, FINAL_TERM)}
+    midterm = {mark.subject: mark for mark in marks if _exam_key(mark) == (year, MIDTERM)}
+    shared = set(final) & set(midterm)
+    if len(shared) < MIN_SHARED_SUBJECTS_FOR_TREND:
+        return None
+
+    def shared_percentage(exam: Dict[str, Result]) -> float:
+        rows = [exam[subject] for subject in shared]
+        return percentage(sum(row.marks_obtained for row in rows), sum(row.total_marks for row in rows))
+
+    return round(shared_percentage(final) - shared_percentage(midterm), 1)
 
 
 def exam_summary(marks: Sequence[Result]) -> Dict[str, Any]:

@@ -27,6 +27,7 @@ import {
   Legend
 } from 'recharts';
 import { api } from '../api/client';
+import { MODEL_NOTE } from '../lib/risk';
 import StatCard from '../components/StatCard';
 
 export default function Dashboard() {
@@ -122,7 +123,6 @@ export default function Dashboard() {
           subtitle="Grades 6 to 10 active"
           icon={Users}
           color="blue"
-          trend="100% Active"
         />
         <StatCard
           title="Fees Collected"
@@ -139,12 +139,11 @@ export default function Dashboard() {
           color="amber"
         />
         <StatCard
-          title="At-Risk Students"
-          value={`${kpis.at_risk_students || 0} Flagged`}
-          subtitle="Requires academic intervention"
+          title="High Academic Estimate"
+          value={`${kpis.at_risk_students || 0} Students`}
+          subtitle="For teacher review"
           icon={AlertOctagon}
           color="red"
-          trend="AI Monitored"
         />
       </div>
 
@@ -261,26 +260,34 @@ export default function Dashboard() {
                 <Sparkles className="w-4 h-4" />
               </span>
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
-                Machine Learning Early Warning
+                Estimate for teacher review
               </span>
             </div>
-            <h3 className="text-xl font-black text-white">Student At-Risk Radar</h3>
+            <h3 className="text-xl font-black text-white">Academic Early Warning</h3>
             <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Powered by <b>scikit-learn</b> Random Forest and <b>SHAP</b> explainability. Predicts dropout and academic failure probability with plain-English root causes.
+              From exam marks only. {MODEL_NOTE}
             </p>
 
             <div className="mt-5 space-y-2">
               <div className="flex items-center justify-between text-xs bg-white/10 px-3 py-2 rounded-xl">
-                <span className="text-rose-300 font-semibold">&bull; High Risk (&gt;70%):</span>
+                <span className="text-rose-300 font-semibold">&bull; High:</span>
                 <span className="font-bold text-white">{kpis.at_risk_students || 0} Students</span>
               </div>
               <div className="flex items-center justify-between text-xs bg-white/10 px-3 py-2 rounded-xl">
-                <span className="text-amber-300 font-semibold">&bull; Medium Risk (40-70%):</span>
+                <span className="text-amber-300 font-semibold">&bull; Medium:</span>
                 <span className="font-bold text-white">{kpis.medium_risk_students || 0} Students</span>
               </div>
               <div className="flex items-center justify-between text-xs bg-white/10 px-3 py-2 rounded-xl">
-                <span className="text-emerald-300 font-semibold">&bull; Low Risk (&lt;40%):</span>
+                <span className="text-emerald-300 font-semibold">&bull; Low:</span>
                 <span className="font-bold text-white">{kpis.low_risk_students || 0} Students</span>
+              </div>
+              <div className="flex items-center justify-between text-xs bg-white/10 px-3 py-2 rounded-xl">
+                <span className="text-slate-300 font-semibold">&bull; Not enough data:</span>
+                <span className="font-bold text-white">{kpis.not_enough_data_students || 0} Students</span>
+              </div>
+              <div className="flex items-center justify-between text-xs border border-white/20 px-3 py-2 rounded-xl">
+                <span className="text-slate-300 font-semibold">Fee follow-up (separate):</span>
+                <span className="font-bold text-white">{kpis.fee_follow_up_students || 0} Students</span>
               </div>
             </div>
           </div>
@@ -289,7 +296,7 @@ export default function Dashboard() {
             to="/at-risk"
             className="mt-6 w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
           >
-            <span>Inspect AI Explanations</span>
+            <span>See students and reasons</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>

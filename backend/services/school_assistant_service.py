@@ -452,7 +452,7 @@ class SchoolAssistantService:
             return self._response(f"{name}: {data['message']}", "get_student_risk", None)
         estimate = data["estimate"]
         return self._response(
-            f"{name} has a {estimate['risk_category']} estimated risk ({estimate['risk_score']}%). {data['note']}",
+            f"{name} has a {estimate['risk_category']} estimated risk (score {estimate['risk_score']} of 100). {data['note']}",
             "get_student_risk",
             {"student_risk": data},
         )

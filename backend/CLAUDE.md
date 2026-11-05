@@ -36,6 +36,6 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 
 ## Gotchas
 
-- `ai_service` trains on synthetic data at import time; its output differs by process, not by school data.
-- Risk features live only in `services/risk_features.py`; `dashboard.py` and `ai.py` both call it.
+- `ai_service` trains on synthetic data at import time, seeded so that every process gives the same scores. It takes marks only: never add a fee input.
+- Risk estimates for real students go through `services/risk_assessment.py`; `dashboard.py`, `ai.py`, and the chatbot all call it.
 - `delete_student` refuses a student with any invoice or result; everyone else is archived. If you add a table that references students, add it to that check. A query listing current students must filter on `archived_at`.

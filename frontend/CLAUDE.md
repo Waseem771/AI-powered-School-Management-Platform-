@@ -42,6 +42,6 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 ## Gotchas
 
 - `ProtectedRoute` only checks `educore_user`; the backend does the real authorization.
-- The Risk Simulator in `AtRisk.jsx` is a local formula, not the real model.
+- Risk scores are written with `scoreText` from `lib/risk.js`, as "Score 85 of 100", never as a percentage. Any page showing an estimate shows `MODEL_NOTE`.
 - Production builds need `VITE_API_URL`; update `.env.production` and Vercel when the backend URL changes. The backend must list this site in `FRONTEND_URL`.
 - In development, the backend CORS allows ports 5173 and 5174, plus `FRONTEND_URL`. Production allows `FRONTEND_URL` only.

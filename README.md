@@ -1,7 +1,7 @@
 # EduCore AI — AI-Powered Education Management Platform
 ### Al-Noor Academy &bull; Hackathon Edition
 
-A full-stack, demo-ready School Management System designed to replace manual Excel-based school administration with a centralized digital platform featuring live analytics, official PDF generation, explainable ML-based at-risk student predictions, and a grounded RAG policy chatbot.
+A full-stack, demo-ready School Management System designed to replace manual Excel-based school administration with a centralized digital platform featuring live analytics, official PDF generation, an explained academic early-warning estimate (trained on synthetic data, for teacher review), and a grounded RAG policy chatbot.
 
 ---
 
@@ -20,8 +20,8 @@ A full-stack, demo-ready School Management System designed to replace manual Exc
    - Auto-computed total marks, percentages, letter grades (A+, A, B, C, D, F), and **Official Report Card PDF download**.
 5. **AI At-Risk Student Early Warning (scikit-learn + SHAP)**:
    - Random Forest Classifier evaluates `avg_marks_pct`, `fee_defaults`, `failing_subjects`, and `grade_trend`.
-   - Generates 0–100% Risk Probability and classifies into **High Risk (>70%)**, **Medium Risk (40–70%)**, and **Low Risk (<40%)**.
-   - **SHAP Explainability**: Plain-English root causes per student (e.g., *"Avg marks dropped significantly from 65% to 44%"*, *"Failing 3 core subjects"*, *"2 unpaid fee invoices"*).
+   - Gives a score out of 100 and a band: **High** (above 70), **Medium** (40–70), **Low** (below 40), or **Not enough data**. Marks only: fees never affect it, and are shown as a separate follow-up flag.
+   - **SHAP explanations**: the model's real reasons per student, in plain language (e.g., *"Failed 3 subjects: raises concern"*). Trained on synthetic data and not validated on real students, so a teacher should review before acting.
    - Actionable remediation roadmap and teacher intervention guidelines.
 6. **RAG Policy Chatbot (FAISS + sentence-transformers + Groq LLaMA 3)**:
    - Ingests 5 official school policy documents (`fee_policy.txt`, `exam_policy.txt`, `admission_policy.txt`, `conduct_rules.txt`, `academic_calendar.txt`).
@@ -72,7 +72,7 @@ start_all.bat
 | 3 | **Register Student** | `/students` | Filter by Grade 8, click *"Register New Student"*, fill details, and show live update. |
 | 4 | **Download Challan PDF** | `/fees` | Click *"Challan PDF"* on Ahmed Khan (#045, CHN-1045) to open the official ReportLab two-part bank & parent slip. |
 | 5 | **Download Report Card PDF** | `/results` | Select Ahmed Khan (#045), view subject marks table, and click *"Download Report Card PDF"*. |
-| 6 | **AI At-Risk & SHAP Explanations** | `/at-risk` | Filter by *"High Risk (>70%)"*, click on Bilal Tariq (#012, 100% risk), and highlight the 3 SHAP plain-English reasons and intervention roadmap. |
+| 6 | **AI At-Risk & SHAP Explanations** | `/at-risk` | Filter by *High*, open a student with *Why and what next*, and show the model's reasons, the steps to consider, and the separate fee follow-up flag. |
 | 7 | **RAG Policy Chatbot** | `/chatbot` | Ask: *"What is the fee refund policy?"* or click one of the quick inquiry pills to see grounded answers with document citations. |
 | 8 | **Intelligent Admissions Crew** | `/admissions` | Submit a student roll number and desired program to watch the 3 AI Agents (Analyst, Evaluator, Advisor) autonomously evaluate the application and draft a response. |
 

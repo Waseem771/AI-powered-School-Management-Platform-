@@ -77,9 +77,8 @@ export default function Layout() {
     { to: '/results', label: 'Exam Results', icon: GraduationCap },
     {
       to: '/at-risk',
-      label: 'AI At-Risk Prediction',
+      label: 'Academic Early Warning',
       icon: AlertTriangle,
-      badge: 'SHAP AI',
       badgeColor: 'bg-rose-100 text-rose-700 border-rose-200'
     },
     {

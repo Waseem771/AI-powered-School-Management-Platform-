@@ -69,13 +69,13 @@
 |---|---|---|
 | Risk score from live records | 🟡 | Runs on real records, using a synthetic-only model |
 | Risk overview and filters | ✅ | Works |
-| Recommended interventions | 🟡 | Simple rules; reasonable text |
-| SHAP explanations | ❌ | Calculated then discarded; labelled SHAP anyway |
-| Grade trend | ❌ | Invented; no history exists |
-| Risk simulator | 🖥️ | Browser formula presented as the live model |
-| Model limitations notice | ⬜ | None |
-| Handling of missing data | ❌ | No data reads as "Low risk" and "dues paid" |
-| Fees separated from academic risk | ❌ | Unpaid fees alone can produce High risk |
+| Recommended interventions | 🟡 | M6: fees removed, and worded as steps to consider. Still simple rules |
+| SHAP explanations | ✅ | M6: real values, in plain language, one student at a time |
+| Grade trend | ✅ | M6: only from a midterm and final of the same year, or none |
+| Risk simulator | ✅ | M6: "Try the model" calls the real model, with no fee input |
+| Model limitations notice | ✅ | M6: on every view of an estimate |
+| Handling of missing data | ✅ | M6: "Not enough data", with no score |
+| Fees separated from academic risk | ✅ | M6: no fee input; separate follow-up flag |
 
 ## AI admissions (arrived with the GitHub merge, not in the original brief)
 
@@ -106,12 +106,12 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 30 |
+| ✅ Fully functional | 36 |
 | 🟡 Partially functional | 10 |
-| 🖥️ Frontend only | 1 |
+| 🖥️ Frontend only | 0 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 7 |
-| ⬜ Missing | 12 |
+| ❌ Broken | 3 |
+| ⬜ Missing | 11 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |
 

@@ -395,7 +395,7 @@ def test_risk_features_do_not_double_count_two_exams():
     midterm = _rows(30, 30, 30, 30, 30, 30, exam="Midterm")
     final = _rows(90, 90, 90, 90, 90, 90, exam="Final Term")
 
-    features = compute_student_features(midterm + final, [])
+    features = compute_student_features(midterm + final)
 
     assert features["failing_subjects"] == 0
     assert features["avg_marks_pct"] == 90

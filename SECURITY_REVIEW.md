@@ -29,7 +29,8 @@
 | S14 | Fixed in M5: sessions belong to one user. Page-sent history is limited, and used only when the server has none |
 | S15 | Partly, in M5: guardian names, phones, and birth dates no longer go to Groq. **Student names, roll numbers, marks, and fees still do when a key is set, so schools must be told.** There is no switch yet beyond leaving the key blank |
 | S16, S21 | Fixed in M4 |
-| S9, S12 | Still open; planned in P1 and M8 |
+| S12 | Partly, in M6: At-Risk cards no longer show guardian phones, only the one-student view does. The chatbot and other pages still show them, and roles are not enforced |
+| S9 | Still open; planned in P1 |
 
 **Added in M1:** `POST /auth/change-password`, which ends all older sessions, and a Change Password dialog. No request limit applies to anything except login and password changes; general limits are not built.
 
