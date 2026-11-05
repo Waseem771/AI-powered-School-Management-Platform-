@@ -8,7 +8,7 @@ Always run from `backend/` (imports are top-level: `from config import ...`).
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python seed_data.py
+python seed_data.py                     # development data; seed_demo.py builds the demo school
 python -m uvicorn main:app --reload     # :8000, docs at /docs
 python check_imports.py
 ```

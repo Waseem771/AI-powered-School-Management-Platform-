@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). Next: M9.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). M9 is complete on branch `mvp/m9-demo`, built on M8 (not pushed), except removing old files, which waits for approval. Next: M10.
 
 ## Principles
 
@@ -160,11 +160,15 @@ Effort figures are rough working-session estimates, not commitments.
 
 ### Stage 3: Demo
 
-#### M9. Demo data and docs (small to medium)
+#### M9. Demo data and docs ✅ complete in code, not deployed
 - New seed: fictional Khairpur school, 100+ synthetic students, 2 exam terms, 3 months of fees, partial payments, and a realistic spread of High, Medium, and Low risk. Current-year dates.
 - `DEMO_MODE` banner.
 - Write `DEMO_GUIDE.md`, `SAMPLE_DEMO_SCENARIO.md`, `MVP_RELEASE_CHECKLIST.md`.
 - Update README, CLAUDE.md, and the deployment guide. Remove clutter (with approval).
+
+**Done:** `seed_demo.py` builds the fictional Roshan Demo Academy, Khairpur, in its own `demo.db`: 120 students, midterm and final, 3 months of fees, and on a 5 November 2026 build 92 Low, 12 Medium, 14 High, and 1 Not enough data. Policies no longer carry one school's name. The scenario was run in a browser, and `test_demo_seed.py` keeps it true.
+
+**Not done:** old files stay until the owner approves removing them (`MVP_RELEASE_CHECKLIST.md`, section 7). The demo has only been run locally. The Final Term marks carry no date, and sit in the current session so that real trends show, though December's exams would not have happened yet on some build dates. The calendar's dates are made up.
 
 #### M10. Full QA and release (medium)
 - Run all of [MVP_TESTING_CHECKLIST.md](MVP_TESTING_CHECKLIST.md). Add Playwright for the 10-minute demo flow.

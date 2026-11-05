@@ -6,7 +6,7 @@ Area-specific detail lives in [backend/CLAUDE.md](backend/CLAUDE.md) and [fronte
 
 ## Project
 
-EduCore AI is an AI-powered school management platform for one seeded demo school, Al-Noor Academy (Islamabad, Pakistan; Grades 6-10, sections A/B). It replaces Excel and paper administration with one system for enrollment, fees, exam results, analytics, and AI features. It began as a 2-day hackathon build (`implementation-plan .txt`, `EduCore_AI_Implementation_Plan.pdf`).
+EduCore AI is an AI-powered school management platform (Grades 6-10, sections A/B). It serves one school per deployment: Al-Noor Academy in the development seed, and the fictional Roshan Demo Academy, Khairpur, in the demo. It replaces Excel and paper administration with one system for enrollment, fees, exam results, analytics, and AI features. It began as a 2-day hackathon build (`implementation-plan .txt`, `EduCore_AI_Implementation_Plan.pdf`).
 
 | Part | Stack | Deployed to |
 |------|-------|-------------|
@@ -36,7 +36,8 @@ backend/            FastAPI app (run commands from here)
   main.py           app, CORS, router registration, lifespan (creates tables + admin user)
   config.py         .env loading, SCHOOL_*, auth settings, GRADES/SECTIONS/SUBJECTS, fee amounts
   database.py       engine, get_session, create_db_and_tables
-  seed_data.py      seeds 50 students, invoices, results (skips if 50+ students exist)
+  seed_data.py      development and test data: 50 students, invoices, results (skips if 50+ students exist). Not for showing to anyone: some names belong to public figures
+  seed_demo.py      builds demo.db, the fictional Khairpur school, in its own file. Never touches school.db
   modal_app.py      Modal deployment (installs from the requirements files)
   requirements*.txt exact versions: runtime, optional admissions, dev/test
   conftest.py       test isolation: temporary database, no real keys
@@ -79,7 +80,7 @@ npm run dev      # http://localhost:5173
 npm run build
 ```
 
-`start_all.bat` in the repo root opens both servers on Windows. No linter or formatter is configured for either side. Local runs need `APP_ENV=development` in `backend/.env` (see `.env.example`). With no admin account and no `ADMIN_PASSWORD`, development prints a one-time password to the console.
+`start_all.bat` in the repo root opens both servers on Windows, and `start_demo.bat` does the same on `backend/demo.db` (see `DEMO_GUIDE.md`). No linter or formatter is configured for either side. Local runs need `APP_ENV=development` in `backend/.env` (see `.env.example`). With no admin account and no `ADMIN_PASSWORD`, development prints a one-time password to the console.
 
 ### Tests
 
@@ -213,7 +214,8 @@ CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173
 - Promotion is decided on Final Term marks alone: 5 of 6 subjects passed and 50% aggregate. The policy's 20/30/50 weightage is not implemented.
 - Chatbot memory and the at-risk model are per process, so they behave differently across Modal containers.
 - `GROQ_MODEL` differs between `.env.example` and the README; trust `.env.example` and `config.py`.
-- Seed data is demo data (for example Ahmed Khan #045 and Bilal Tariq #012 are used in demos and tests). Don't change names the tests depend on. The random seed can repeat a name, so "Fees of Ahmed Khan" correctly asks which one. Demo with a roll number until the demo seed in M9.
+- `seed_data.py` is test data (Ahmed Khan #045 and Bilal Tariq #012 are used in tests). Don't change names the tests depend on. Demos use `seed_demo.py`. `test_demo_seed.py` holds it to what `SAMPLE_DEMO_SCENARIO.md` promises, so change them together.
+- `knowledge_base/` holds sample policies with no school's name in them, and a made-up 2026-2027 calendar.
 
 ## Deployment
 

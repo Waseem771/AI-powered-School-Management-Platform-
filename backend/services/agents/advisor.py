@@ -1,3 +1,4 @@
+from config import SCHOOL_NAME
 from crewai import Agent
 
 def create_advisor_agent(llm):
@@ -7,7 +8,7 @@ def create_advisor_agent(llm):
         backstory=(
             "You are a visionary student success advisor. You use the Academic Evaluator's notes to match "
             "students with the perfect academic tracks, clubs, or remedial support programs to ensure they thrive "
-            "at Al-Noor Academy."
+            f"at {SCHOOL_NAME}."
         ),
         verbose=True,
         allow_delegation=False,

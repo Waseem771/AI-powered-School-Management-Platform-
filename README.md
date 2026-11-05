@@ -1,88 +1,88 @@
-# EduCore AI — AI-Powered Education Management Platform
-### Al-Noor Academy &bull; Hackathon Edition
+# EduCore AI
 
-A full-stack, demo-ready School Management System designed to replace manual Excel-based school administration with a centralized digital platform featuring live analytics, official PDF generation, an explained academic early-warning estimate (trained on synthetic data, for teacher review), and a grounded RAG policy chatbot.
+**Simple School Management, Smarter Decisions.**
 
----
+A school management system for private schools in Pakistan, replacing Excel and paper for enrollment, fees, exam results, and reports, with AI help where it can be trusted.
 
-## 🌟 Key Features
+> **Status:** an MVP for demonstrations, not yet ready for real school records. See [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md). It serves one school. It does not separate several schools.
 
-1. **JWT Secure Admin Authentication**:
-   - Bearer token login with bcrypt password hashing, login throttling, and server-side sign-out. Set the admin password with `ADMIN_PASSWORD`.
-2. **Student Enrollment & Management**:
-   - Full CRUD support with search, filtering by grade, sections, and parent contact details.
-   - Seeded with **50 realistic student profiles** across Grades 6 through 10.
-3. **Fee Management & ReportLab Challan PDF**:
-   - Invoice generation, fee recovery tracking, cash/bank/online payment recording.
-   - **One-click official 2-part Fee Challan PDF** ([Bank Copy] and [Student Copy]) with barcodes, line items, and signature lines.
-4. **Exam Results & ReportLab Report Card PDF**:
-   - Subject-wise marks entry across English, Urdu, Mathematics, Science, Islamiat, and Pakistan Studies.
-   - Auto-computed total marks, percentages, letter grades (A+, A, B, C, D, F), and **Official Report Card PDF download**.
-5. **AI At-Risk Student Early Warning (scikit-learn + SHAP)**:
-   - Random Forest Classifier evaluates `avg_marks_pct`, `fee_defaults`, `failing_subjects`, and `grade_trend`.
-   - Gives a score out of 100 and a band: **High** (above 70), **Medium** (40–70), **Low** (below 40), or **Not enough data**. Marks only: fees never affect it, and are shown as a separate follow-up flag.
-   - **SHAP explanations**: the model's real reasons per student, in plain language (e.g., *"Failed 3 subjects: raises concern"*). Trained on synthetic data and not validated on real students, so a teacher should review before acting.
-   - Actionable remediation roadmap and teacher intervention guidelines.
-6. **RAG Policy Chatbot (FAISS + sentence-transformers + Groq LLaMA 3)**:
-   - Ingests 5 official school policy documents (`fee_policy.txt`, `exam_policy.txt`, `admission_policy.txt`, `conduct_rules.txt`, `academic_calendar.txt`).
-   - Dense vector similarity search with FAISS and grounded answer generation.
-   - Includes automatic local grounded fallback so it **never crashes** if an external API key is absent.
-7. **Intelligent Admissions Crew (CrewAI Multi-Agent System)**:
-   - A fully autonomous 3-agent pipeline simulating a real admissions committee.
-   - **Requirements Analyst Agent:** Dynamically reads plain-text policies to extract program prerequisites.
-   - **Eligibility Evaluator Agent:** Objectively assesses applicant profiles against extracted criteria, eliminating human bias.
-   - **Final Program Advisor Agent:** Drafts personalized acceptance/rejection emails, intelligently suggesting alternative programs for rejected students to improve retention.
+## What it does
 
----
+| Area | Features |
+|---|---|
+| **Dashboard** | Students, fees, and academic estimates from live records, a billing-month filter, and recent activity |
+| **Students** | Add, edit, archive, restore, search, and filter by grade and section. A profile page for each student |
+| **Fees** | Monthly challans, part payments, balances, payment history, and overdue tracking. A4 challans and receipts, with Urdu names |
+| **Results** | Marks for one student or a whole class, midterm and final, grades, promotion by policy, and A4 report cards |
+| **Academic Early Warning** | An estimate from marks only, with the model's reasons. Fees are a separate flag. **Trained on synthetic data and not validated on real students, so a teacher should review before acting** |
+| **School Assistant** | Answers from school records and policy documents, says which, and says when it cannot answer. Read-only. Works with no AI key |
+| **Admissions** | Optional AI suggestion. A real answer is not yet tested |
 
-## 🚀 Quick Start Instructions
+## Try it
 
-### 1. Backend Setup
+The fastest way to see it is the fictional demo school. Follow [DEMO_GUIDE.md](DEMO_GUIDE.md), then [SAMPLE_DEMO_SCENARIO.md](SAMPLE_DEMO_SCENARIO.md).
+
+## Run it for development
+
+You need Python 3.13 and Node.js. Backend, from `backend/`:
+
 ```bash
-cd backend
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
+
+Copy `.env.example` to `.env`. It contains the settings for local work.
+
+```bash
 python seed_data.py
+```
+
+```bash
 python -m uvicorn main:app --reload
 ```
-- **Backend Server**: [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-### 2. Frontend Setup
+With no admin password set, a one-time password is printed in that window. The API runs at <http://localhost:8000>, with its documentation at `/docs`.
+
+Frontend, from `frontend/`:
+
 ```bash
-cd frontend
 npm install
+```
+
+```bash
 npm run dev
 ```
-- **Frontend App**: [http://localhost:5173](http://localhost:5173)
 
-### 3. One-Click Launch (Windows)
-Double-click `start_all.bat` or run:
-```bat
-start_all.bat
+Open <http://localhost:5173>. On Windows, `start_all.bat` starts both.
+
+## Tests
+
+From `backend/`:
+
+```bash
+python -m pytest
 ```
 
----
+From `frontend/`:
 
-## 🎯 5-Minute Demo Script for Judges
-
-| # | Action | Screen | Impact |
-|---|--------|--------|--------|
-| 1 | **Login** | `/login` | Sign in with the admin password you configured. |
-| 2 | **Dashboard** | `/dashboard` | View enrollment (50 students), fees collected vs pending, grade bar charts, and AI radar. |
-| 3 | **Register Student** | `/students` | Filter by Grade 8, click *"Register New Student"*, fill details, and show live update. |
-| 4 | **Download Challan PDF** | `/fees` | Click *"Challan PDF"* on Ahmed Khan (#045, CHN-1045) to open the official ReportLab two-part bank & parent slip. |
-| 5 | **Download Report Card PDF** | `/results` | Select Ahmed Khan (#045), view subject marks table, and click *"Download Report Card PDF"*. |
-| 6 | **AI At-Risk & SHAP Explanations** | `/at-risk` | Filter by *High*, open a student with *Why and what next*, and show the model's reasons, the steps to consider, and the separate fee follow-up flag. |
-| 7 | **RAG Policy Chatbot** | `/chatbot` | Ask: *"What is the fee refund policy?"* or click one of the quick inquiry pills to see grounded answers with document citations. |
-| 8 | **Intelligent Admissions Crew** | `/admissions` | Submit a student roll number and desired program to watch the 3 AI Agents (Analyst, Evaluator, Advisor) autonomously evaluate the application and draft a response. |
-
----
-
-## ⚙️ Configuration
-
-Set in `backend/.env`:
-```ini
-SCHOOL_NAME=Al-Noor Academy
-GROQ_API_KEY=your_groq_api_key_here  # Optional: falls back to local grounded extractor if left blank
-GROQ_MODEL=llama-3.3-70b-versatile
+```bash
+npm test
 ```
+
+Tests use a temporary database and blank keys, so they cannot touch `school.db` or call an AI service.
+
+## Technology
+
+| Part | Stack | Deployed to |
+|---|---|---|
+| `backend/` | FastAPI, SQLModel, SQLite, ReportLab, scikit-learn, SHAP, FAISS, sentence-transformers, optional Groq | Modal |
+| `frontend/` | React 18, Vite, Tailwind, React Router, Axios, Recharts | Vercel |
+
+## Documents
+
+| Document | For |
+|---|---|
+| [DEMO_GUIDE.md](DEMO_GUIDE.md), [SAMPLE_DEMO_SCENARIO.md](SAMPLE_DEMO_SCENARIO.md) | Running and presenting the demo |
+| [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md) | What remains before going online, or using real records |
+| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Modal and Vercel |
+| [CLAUDE.md](CLAUDE.md) | How the code is organised |
+| [SECURITY_REVIEW.md](SECURITY_REVIEW.md), [MVP_TESTING_CHECKLIST.md](MVP_TESTING_CHECKLIST.md) | Security findings and test results |

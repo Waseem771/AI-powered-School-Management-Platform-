@@ -7,6 +7,8 @@ This guide deploys the platform:
 
 The backend refuses to start without safe settings. That is deliberate, and the error message in the Modal logs says which setting is missing.
 
+To run the fictional demo school on your own computer, with nothing online, use [DEMO_GUIDE.md](DEMO_GUIDE.md) instead. What remains before going online is in [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md).
+
 ---
 
 ## Part 1: Backend on Modal
@@ -113,6 +115,12 @@ https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
 5. If the Vercel address differs from `FRONTEND_URL`, update the Modal secret and deploy the backend again. Until they match, browsers cannot reach the API and sign-in shows a connection error.
 
 **Vercel preview deployments** use different addresses, so they are blocked unless you add them to `FRONTEND_URL`.
+
+---
+
+## Showing the demo school online
+
+`modal_app.py` uses a database called `school.db` on its Volume. Do not put `demo.db` in its place on a Modal app that holds other records. To show the demo online, use a separate Modal app and Volume, with `DEMO_MODE=true` and the `SCHOOL_*` values from `start_demo.bat`. This has not been done or tested yet, and costs and changes should be reviewed first.
 
 ---
 

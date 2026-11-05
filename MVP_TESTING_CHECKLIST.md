@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M8: 453 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M9: 487 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |

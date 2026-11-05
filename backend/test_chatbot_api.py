@@ -351,7 +351,7 @@ LABELLED_POLICY_QUESTIONS = [
     ("What is the sibling concession?", "fee_policy.txt", "25%"),
     ("What is the minimum passing mark?", "exam_policy.txt", "40%"),
     ("How much is the retake examination fee?", "exam_policy.txt", "1,000"),
-    ("When is winter vacation?", "academic_calendar.txt", "December 22"),
+    ("When is winter vacation?", "academic_calendar.txt", "December 21"),
     ("What is the required uniform for boys?", "conduct_rules.txt", "Sky-blue"),
 ]
 UNRELATED_QUESTIONS = ["What is the capital of France?", "Who won the football world cup?", "How do I bake a cake?"]

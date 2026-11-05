@@ -60,7 +60,7 @@
 | **Loading states** | ✅ | M7: one shared style |
 | **Empty states** | ✅ | M7: separate from failures, with a next step where one exists |
 | **Error states** | ✅ | M7: a message and working Try again on data pages |
-| **Demo data** | 🟡 | Consistent, but stale, thin, and uses public figures' names |
+| **Demo data** | ✅ | M9: fictional Khairpur school, in its own database, with current dates |
 | **DEMO MODE label** | ✅ | M8: only when `DEMO_MODE=true` |
 
 ## AI insights (requested in section 4F)
@@ -106,8 +106,8 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 48 |
-| 🟡 Partially functional | 5 |
+| ✅ Fully functional | 49 |
+| 🟡 Partially functional | 4 |
 | 🖥️ Frontend only | 0 |
 | ⚙️ Backend only | 2 |
 | ❌ Broken | 2 |

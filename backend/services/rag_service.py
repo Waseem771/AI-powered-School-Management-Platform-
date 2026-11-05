@@ -70,6 +70,9 @@ class PolicyRAGService:
             # Split by double newlines or sections
             paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
             for p in paragraphs:
+                # A document's title line holds no rule, so it must never be returned as an answer.
+                if "\n" not in p and p.isupper():
+                    continue
                 # If paragraph is long, split roughly into 200 words
                 words = p.split()
                 if len(words) > 220:
