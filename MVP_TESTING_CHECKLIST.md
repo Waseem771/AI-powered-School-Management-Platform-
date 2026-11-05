@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M4: 256 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M5: 384 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -161,22 +161,22 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Works with no Groq key | ✅ | |
-| Invalid Groq key falls back | ✅ | |
-| **Valid Groq key: all paths** | ⬜ no key | |
-| Policy questions answered with citations | ✅ 7 of 7 | |
-| Name lookup returns the **right** student | ❌ | |
-| Roll lookup returns the **right** student | ❌ | |
-| Duplicate names prompt for clarification | ❌ | |
-| Grade list returns the grade list | ❌ | |
-| Count, top student, at-risk, and subject questions | ❌ | |
-| Follow-up pronouns | ✅ | |
-| Policy follow-up not hijacked by "the" | ❌ | |
-| Unknown questions declined honestly | 🟡 some are | |
+| Works with no Groq key | ✅ | ✅ M5 |
+| Invalid Groq key falls back | ✅ | ✅ M5, failure simulated with a stand-in |
+| **Valid Groq key: all paths** | ⬜ no key | ⬜ Logic tested on a stand-in only. Still needs a real key |
+| Policy questions answered with citations | ✅ 7 of 7 | ✅ M5, on FAISS and TF-IDF |
+| Name lookup returns the **right** student | ❌ | ✅ M5, also in the browser |
+| Roll lookup returns the **right** student | ❌ | ✅ M5, also in the browser |
+| Duplicate names prompt for clarification | ❌ | ✅ M5, also in the browser |
+| Grade list returns the grade list | ❌ | ✅ M5, also in the browser |
+| Count, top student, at-risk, and subject questions | ❌ | ✅ M5, also in the browser. Counts with a condition are declined |
+| Follow-up pronouns | ✅ | ✅ M5, also in the browser |
+| Policy follow-up not hijacked by "the" | ❌ | ✅ M5 |
+| Unknown questions declined honestly | 🟡 some are | ✅ M5. TF-IDF alone can still match on a shared rare word |
 | Write requests cause no writes | ✅ read-only tools | |
-| Oversized input rejected | ❌ | |
-| Blank input rejected | ✅ | |
-| AI status reflects reality | ❌ | |
+| Oversized input rejected | ❌ | ✅ M5 |
+| Blank input rejected | ✅ | ✅ M5 |
+| AI status reflects reality | ❌ | ✅ M5, chatbot page and header |
 
 ## Frontend states
 

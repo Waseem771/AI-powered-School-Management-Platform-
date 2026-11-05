@@ -11,7 +11,6 @@ import {
   School,
   Menu,
   X,
-  Sparkles,
   ShieldCheck,
   ClipboardCheck,
   KeyRound
@@ -240,12 +239,6 @@ export default function Layout() {
             </span>
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-600">
-            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="font-semibold text-slate-700">AI Stack Active:</span>
-              <span>scikit-learn &bull; SHAP &bull; FAISS &bull; Groq</span>
-            </div>
-            <span className="text-slate-400">|</span>
             <span className="font-medium text-slate-700">Logged in as: <b>{user.username}</b></span>
           </div>
         </header>

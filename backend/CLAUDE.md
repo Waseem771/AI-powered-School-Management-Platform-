@@ -31,7 +31,7 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 - Model change: new tables are created automatically. Changes to existing tables go in `migrate_db.py`, additive and tested on a copy. Never delete a database to apply a change.
 - New dependency: add an exact version to `requirements.txt` (or `requirements-admissions.txt`). `modal_app.py` installs from these files. It must also resolve for Python 3.11.
 - Heavy imports (sentence-transformers, FAISS) must stay lazy so startup stays fast; the RAG model initializes on first use.
-- Chatbot data tools stay read-only and allowlisted. A new tool needs: definition, `execute_tool` branch, local keyword fallback, structured-data mapping, and a test in `test_data_assistant.py` / `test_school_assistant.py`. It must work with no `GROQ_API_KEY`.
+- Chatbot data tools stay read-only and allowlisted. A new tool needs: definition in `services/assistant_tools.py`, `execute_tool` branch, local path in `school_assistant_service.py`, `_STRUCTURED_DATA_KEYS` entry, a card in the frontend, and a question in `test_chatbot_questions.py`. It must work with no `GROQ_API_KEY`. New contact fields must be added to `_NOT_SENT_TO_MODEL`.
 - Keep secrets in `.env` only. Never log or echo `GROQ_API_KEY` or `SECRET_KEY`.
 
 ## Gotchas

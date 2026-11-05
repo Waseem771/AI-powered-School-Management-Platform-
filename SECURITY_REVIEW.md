@@ -24,7 +24,12 @@
 | S11 | Partly: token lifetime cut to 8 hours and auth cookies removed. A browser CSP is still open, and needs testing with the PDF viewer (M10) |
 | S17, S20 | Fixed on the API. Frontend gets basic headers through `vercel.json` |
 | S19 | Python pinned, `follow-redirects` fixed. **Accepted for now:** 2 moderate `react-router` advisories need a major upgrade to v7. They concern open redirects from dynamic navigation and server rendering; this app navigates only to fixed paths and has no server rendering. Revisit in M10 |
-| S9, S10, S12 to S16, S21 | Still open; planned in M2 to M5 and P1 |
+| S10 | Fixed in M3: students are archived, and delete is refused if they have invoices or results |
+| S13 | Fixed in M5: question, history, and session id are limited. Rate limiting per user is not built |
+| S14 | Fixed in M5: sessions belong to one user. Page-sent history is limited, and used only when the server has none |
+| S15 | Partly, in M5: guardian names, phones, and birth dates no longer go to Groq. **Student names, roll numbers, marks, and fees still do when a key is set, so schools must be told.** There is no switch yet beyond leaving the key blank |
+| S16, S21 | Fixed in M4 |
+| S9, S12 | Still open; planned in P1 and M8 |
 
 **Added in M1:** `POST /auth/change-password`, which ends all older sessions, and a Change Password dialog. No request limit applies to anything except login and password changes; general limits are not built.
 

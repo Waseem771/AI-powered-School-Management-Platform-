@@ -25,7 +25,7 @@ They have separate dependencies and are deployed separately. See `DEPLOYMENT_GUI
 | Fee invoices, payments, 2-part challan PDF | `routers/fees.py`, `services/pdf_service.py` | `pages/Fees.jsx` |
 | Marks entry, grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx` |
 | AI at-risk prediction with SHAP reasons, interventions, risk simulator | `routers/ai.py`, `services/ai_service.py` | `pages/AtRisk.jsx` |
-| Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `rag_service.py` | `pages/Chatbot.jsx` |
+| Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `student_lookup.py`, `chat_intent.py`, `school_reports.py`, `assistant_tools.py`, `rag_service.py` | `pages/Chatbot.jsx`, `components/ChatCards.jsx`, `ChatTables.jsx` |
 | AI admissions (optional, CrewAI) | `routers/admissions_crew.py`, `school_crew/` | `pages/Admissions.jsx` |
 
 ## Repo map
@@ -44,7 +44,8 @@ backend/            FastAPI app (run commands from here)
   school_crew/      CrewAI agents for admissions (imported only when used)
   services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service,
                     fee_ledger (all fee calculations), academics (all exam and promotion calculations),
-                    admin_setup, login_throttle, risk_features
+                    admin_setup, login_throttle, risk_features,
+                    chat_intent, student_lookup, school_reports, assistant_tools (chatbot)
   migrate_db.py     reports on and upgrades an existing database, with a backup
   knowledge_base/   5 policy .txt files used by the RAG chatbot
   assets/fonts/     Noto Nastaliq Urdu and its licence, used to print Urdu in PDFs
@@ -52,7 +53,7 @@ backend/            FastAPI app (run commands from here)
 frontend/           React app (run commands from here)
   src/api/client.js axios instance + the `api` object (every endpoint)
   src/pages/        one file per route
-  src/components/   Layout, DataTable, StatCard, ErrorBoundary
+  src/components/   Layout, DataTable, StatCard, ErrorBoundary, ChatCards, ChatTables
   src/lib/session.js, session.test.js
 start_all.bat, run_backend*.bat, run_frontend*.bat   Windows launchers
 ```
@@ -139,7 +140,7 @@ All routes require auth except `/auth/login`, `/auth/logout`, and the root statu
 | `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /{student_id}/report-card/pdf` (same filters) |
 | `/dashboard` | `GET /stats` |
 | `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}` |
-| `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics` |
+| `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics`, `GET /status` |
 
 ### Auth
 
@@ -151,17 +152,19 @@ The PDF routes use the same dependency. The frontend fetches them as blobs throu
 
 ### Chatbot routing
 
-`POST /chatbot/ask` goes through `SchoolAssistantService.answer` (`services/school_assistant_service.py`), which uses keyword heuristics (`_is_data_question`) to choose one of three paths. The path is returned in the response's `mode` field.
+`POST /chatbot/ask` goes through `SchoolAssistantService.answer` (`services/school_assistant_service.py`). `services/chat_intent.py` reads the question, matching whole words only. One of three paths answers it, returned in the response's `mode` field.
 
-1. **`groq_tool_calling`:** record questions when a Groq key is set. The LLM may only call the read-only tools defined in `SchoolDataAssistant` (`services/data_assistant_service.py`: `tool_definitions` and `execute_tool`). `_build_structured_data` passes tool results to the UI as tables.
-2. **`school_data`:** the local fallback when there is no key or Groq fails. `_answer_with_local_tools` calls the same data methods based on keyword matching.
-3. **`policy_rag`:** everything else goes to `PolicyRAGService` (`services/rag_service.py`), which searches `knowledge_base/*.txt`. Retrieval falls back from FAISS + sentence-transformers to TF-IDF, and answers can be generated locally without Groq.
+1. **`groq_tool_calling`:** record questions when a Groq key is set. The LLM may only call the read-only tools in `services/assistant_tools.py`, run by `SchoolDataAssistant.execute_tool`. A reply with no tool behind it, or an empty one, is discarded and the local path answers instead, so it can never be presented as school data.
+2. **`school_data`:** the local path when there is no key or Groq fails. `_answer_with_local_tools` calls the same data methods.
+3. **`policy_rag`:** everything else goes to `PolicyRAGService` (`services/rag_service.py`), which searches `knowledge_base/*.txt`. Retrieval falls back from FAISS + sentence-transformers to TF-IDF, and answers can be generated locally without Groq. A weak match returns "I cannot answer that", ungrounded and with no sources. The thresholds in `rag_service.py` came from measuring real questions; re-measure if the documents or embedding model change.
 
-Adding a data capability means changing the tool definition, `execute_tool`, the local fallback, and the structured-data mapping. All of this must work without a `GROQ_API_KEY`. The tools are read-only by design; do not add write tools or raw SQL access.
+**Which student** is settled in code before any LLM is called (`services/student_lookup.py`). A bare number is a roll number, never a database id; an id needs "student id 12" or `id:12`. Several matches, or a name only partly on file, always produce a question back, never a guess. A reply to that question ("045", "the one in Grade 8") answers the original question. Earlier messages are used only for real follow-ups ("his fees"), and assistant text counts only through its roll numbers, so "Iqbal Day" in a policy answer is not a student.
 
-Conversation memory is an in-process dict in `routers/chatbot.py`, capped at 40 messages per session. It is lost on restart and isn't shared between Modal containers.
+Adding a data capability means changing the tool definition, `execute_tool`, the local path, `_STRUCTURED_DATA_KEYS`, and the page's card. All of this must work without a `GROQ_API_KEY`. The tools are read-only by design; do not add write tools or raw SQL access.
 
-Single-student questions ("fee dues for Ahmed Khan") must not hit the bulk pending-list path; `_is_pending_list_question` is guarded by `_student_identifier`.
+Guardian names, phone numbers, and birth dates are removed from tool results before they go to Groq, and the page's cards still show them. Student names, roll numbers, marks, and fee amounts do go to Groq when a key is set.
+
+Conversation memory is an in-process dict in `routers/chatbot.py`, stored per user and session, with limits on messages per session and sessions held. It is lost on restart, when the page's own copy is used instead, and isn't shared between Modal containers. `GET /chatbot/status` reports what this process is really using, and the page shows that instead of fixed claims.
 
 ### At-risk model
 
@@ -194,7 +197,7 @@ CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173
 - Promotion is decided on Final Term marks alone: 5 of 6 subjects passed and 50% aggregate. The policy's 20/30/50 weightage is not implemented.
 - Chatbot memory and the at-risk model are per process, so they behave differently across Modal containers.
 - `GROQ_MODEL` differs between `.env.example` and the README; trust `.env.example` and `config.py`.
-- Seed data is demo data (for example Ahmed Khan #045 and Bilal Tariq #012 are used in demos and tests). Don't change names the tests depend on.
+- Seed data is demo data (for example Ahmed Khan #045 and Bilal Tariq #012 are used in demos and tests). Don't change names the tests depend on. The random seed can repeat a name, so "Fees of Ahmed Khan" correctly asks which one. Demo with a roll number until the demo seed in M9.
 
 ## Deployment
 

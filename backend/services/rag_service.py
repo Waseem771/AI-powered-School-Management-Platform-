@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import numpy as np
@@ -14,6 +15,32 @@ from groq import Groq
 from config import BASE_DIR, GROQ_API_KEY, GROQ_MODEL, SCHOOL_NAME
 
 KB_DIR = BASE_DIR / "knowledge_base"
+
+# How close a policy passage must be before it is treated as the answer. Set by measuring real
+# questions: school questions score at least 0.39 (FAISS) or 0.12 (TF-IDF); unrelated ones at
+# most 0.28 (FAISS). TF-IDF only sees shared words, so "moon" still finds "moon sighting".
+MIN_SCORE_FAISS = 0.35
+MIN_SCORE_TFIDF = 0.10
+GROQ_TIMEOUT_SECONDS = 20
+_MODEL_FOUND_NOTHING = "i don't know based on"
+_LOCAL_ANSWER_MAX_LINES = 4
+_COMMON_WORDS = frozenset(
+    "a about all and are at be by can do does for from how i in is it me my of on or our school student students "
+    "tell the their there to we what when where which who why will with you your".split()
+)
+
+
+def _cannot_answer() -> str:
+    return (
+        f"I cannot answer that from the school's records or the official policies of {SCHOOL_NAME}. "
+        "Please ask the school administration office."
+    )
+
+
+def _key_terms(text: str) -> set:
+    """Lower-case word starts, so "refunds" finds "refund" and "examinations" finds "examination"."""
+    return {word[:6] for word in re.findall(r"\w+", text.lower()) if word not in _COMMON_WORDS and len(word) > 2}
+
 
 class PolicyRAGService:
     def __init__(self):
@@ -89,7 +116,7 @@ class PolicyRAGService:
         api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY)
         if api_key and api_key.strip():
             try:
-                self.groq_client = Groq(api_key=api_key.strip())
+                self.groq_client = Groq(api_key=api_key.strip(), timeout=GROQ_TIMEOUT_SECONDS, max_retries=1)
                 print("[RAG] Groq client initialized successfully.")
             except Exception as e:
                 print(f"[RAG] Groq init warning: {e}")
@@ -144,20 +171,11 @@ class PolicyRAGService:
 
         matched_chunks = self.retrieve_relevant_chunks(query, top_k=3)
         if not matched_chunks:
-            return {
-                "answer": f"I don't know. The requested information is not documented in the official school policies of {SCHOOL_NAME}.",
-                "sources": [],
-                "grounded": False
-            }
+            return {"answer": _cannot_answer(), "sources": [], "grounded": False}
 
-        # Check relevance score (cosine similarity threshold)
-        top_score = matched_chunks[0]["score"]
-        if top_score < 0.25:
-            return {
-                "answer": f"I do not find information regarding this in the official policies of {SCHOOL_NAME}. Please refer to the school administration office for assistance.",
-                "sources": [c["source"] for c in matched_chunks],
-                "grounded": False
-            }
+        # A weak match is an unrelated passage, not an answer.
+        if matched_chunks[0]["score"] < self._minimum_score():
+            return {"answer": _cannot_answer(), "sources": [], "grounded": False}
 
         context_text = "\n\n---\n\n".join([f"[Source: {c['source']}]\n{c['text']}" for c in matched_chunks])
         sources = list(dict.fromkeys([c["source"] for c in matched_chunks]))
@@ -165,7 +183,7 @@ class PolicyRAGService:
         api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY)
         if self.groq_client is None and api_key and api_key.strip():
             try:
-                self.groq_client = Groq(api_key=api_key.strip())
+                self.groq_client = Groq(api_key=api_key.strip(), timeout=GROQ_TIMEOUT_SECONDS, max_retries=1)
             except Exception:
                 pass
 
@@ -211,6 +229,8 @@ Answer:"""
                         max_tokens=400,
                     )
                     answer = chat_completion.choices[0].message.content.strip()
+                    if _MODEL_FOUND_NOTHING in answer.lower():
+                        return {"answer": _cannot_answer(), "sources": [], "grounded": False}
                     return {
                         "answer": answer,
                         "sources": sources,
@@ -220,16 +240,43 @@ Answer:"""
                 except Exception as e:
                     print(f"[RAG] Groq model '{model_name}' attempt error: {e}")
 
-        # Local Grounded Fallback Answer Generator
-        # Highlights key sentences directly from retrieved chunks
-        best_chunk = matched_chunks[0]["text"]
-        lines = [line.strip() for line in best_chunk.split("\n") if line.strip()]
-        summary = " ".join(lines[:4])
+        source, summary = self._local_answer(query, matched_chunks)
         return {
-            "answer": f"According to {sources[0]}: {summary}",
-            "sources": sources,
+            "answer": f"According to {source}: {summary}",
+            "sources": [source],
             "grounded": True
         }
+
+    def _minimum_score(self) -> float:
+        return MIN_SCORE_FAISS if self.index is not None else MIN_SCORE_TFIDF
+
+    @staticmethod
+    def _local_answer(query: str, chunks: List[Dict[str, Any]]) -> tuple:
+        """With no language model: the section heading and the lines that share the question's words.
+
+        Looks through all retrieved passages, because the closest one overall can miss the one
+        line that holds the answer.
+        """
+        terms = _key_terms(query)
+        best_source, best_lines, best_overlap = chunks[0]["source"], [], 0
+        for chunk in chunks:
+            lines = [line.strip() for line in chunk["text"].split("\n") if line.strip()]
+            scored = [(len(terms & _key_terms(line)), line) for line in lines[1:]]
+            overlap = max((score for score, _ in scored), default=0)
+            if overlap > best_overlap:
+                matching = [line for score, line in scored if score == overlap or score >= 2]
+                best_source, best_lines, best_overlap = chunk["source"], [lines[0], *matching], overlap
+        if not best_lines:
+            best_lines = [line.strip() for line in chunks[0]["text"].split("\n") if line.strip()]
+        return best_source, " ".join(best_lines[:_LOCAL_ANSWER_MAX_LINES + 1])
+
+    def status(self) -> Dict[str, Any]:
+        """What this process is really using. Nothing is loaded until the first policy question."""
+        if not self.is_initialized:
+            engine = "not_loaded"
+        else:
+            engine = "faiss" if self.index is not None else "tfidf"
+        return {"engine": engine, "documents": len({chunk["source"] for chunk in self.chunks})}
 
     def get_known_topics(self) -> List[Dict[str, str]]:
         return [

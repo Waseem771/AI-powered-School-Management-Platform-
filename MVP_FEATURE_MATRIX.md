@@ -47,15 +47,15 @@
 | **Subject-wise results view** | ✅ | M3: Pass/Fail by percentage, with an exam picker |
 | **Result summaries** | ✅ | M3: one exam at a time. Promotion follows the written policy, with reasons |
 | **Report card PDF** | ✅ | M3: truthful, one exam, policy-based. M4: A4, special characters safe, Urdu printed in Nastaliq |
-| **Chatbot UI** | 🟡 | Good layout. Status ticks are hardcoded; prompts hidden on mobile |
+| **Chatbot UI** | 🟡 | M5: status comes from the server. Prompts are still hidden on mobile |
 | **Chatbot: policy questions** | ✅ | All 7 tested correct, with citations |
 | **Chatbot: collection and pending summaries** | ✅ | Correct |
-| **Chatbot: single-student lookups** | ❌ | **Returns the wrong student** |
-| **Chatbot: grade list** | ❌ | Returns the pending-fee list |
-| **Chatbot: memory follow-ups** | 🟡 | Pronouns work, but `"the"` triggers false follow-ups |
-| **Chatbot: live vs policy distinction** | 🟡 | Badges exist, but data questions get policy answers marked grounded |
-| **Chatbot with Groq tool calling** | ❓ Not tested | No valid key available |
-| **Chatbot without Groq** | 🟡 | Stays up and falls back, with the routing bugs above |
+| **Chatbot: single-student lookups** | ✅ | M5: right student by roll or name; asks when several match |
+| **Chatbot: grade list** | ✅ | M5, with counts, top students, subject averages, at-risk, and monthly collection |
+| **Chatbot: memory follow-ups** | ✅ | M5: only real follow-ups use memory |
+| **Chatbot: live vs policy distinction** | ✅ | M5: unrelated questions are declined, with no sources |
+| **Chatbot with Groq tool calling** | ❓ Not tested | M5: logic tested against a stand-in only. No valid key available |
+| **Chatbot without Groq** | ✅ | M5: every path works with no key |
 | **Responsive layout** | 🟡 | No page overflow. Tiny tap targets; wide tables |
 | **Loading states** | 🟡 | Present on all main pages |
 | **Empty states** | 🟡 | Present, but also shown wrongly on backend failure |
@@ -106,11 +106,11 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 25 |
-| 🟡 Partially functional | 13 |
+| ✅ Fully functional | 30 |
+| 🟡 Partially functional | 10 |
 | 🖥️ Frontend only | 1 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 9 |
+| ❌ Broken | 7 |
 | ⬜ Missing | 12 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |

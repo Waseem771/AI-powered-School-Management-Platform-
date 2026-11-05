@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. Next: M5.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. Next: M6.
 
 ## Principles
 
@@ -102,7 +102,7 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Wording:** an invoice stores only a total, so anything above tuition now prints as "Other Charges", not "Examination & Lab". The challan says its amount excludes late charges, because the policy's surcharges are not calculated. The fee policy text now matches the 2-part challan and the actual challan number format.
 
-#### M5. Chatbot correctness (medium)
+#### M5. Chatbot correctness ✅ complete in code, not deployed, not tested on real Groq
 - **Fix wrong-student bug:** match roll number first, then ID only when explicitly requested.
 - Ask which student when names are ambiguous.
 - Fix `"he"`/`"the"` routing and the Grade-list mix-up, using word boundaries.
@@ -111,7 +111,11 @@ Effort figures are rough working-session estimates, not commitments.
 - Bound inputs. Bind sessions to users. Show real AI status from the backend.
 - Test against a valid Groq key (**I need one from you for this**).
 
-**Done when:** a labelled question set, including multiple students with duplicate names, all answer correctly.
+**Done:** a labelled question set, including students with duplicate names, answers correctly on the local path, and policy questions were checked on both FAISS and TF-IDF. The Groq path's logic is tested against a stand-in, not the real service. **Not done: a test with a valid Groq key, because `backend/.env` has none.**
+
+**Also found and fixed:** results for a named student came from the wrong person, a school-wide or policy question after a student conversation answered about that student, a `%` matched every name, a model reply with no tool behind it was marked as school data, and the page's greeting was being read as the latest message. The header's fixed "AI Stack Active" claim is removed.
+
+**Limits:** counts with a condition ("how many students failed") are declined, not answered. With TF-IDF only, an unrelated question sharing a rare word with a policy can still get that policy's line. At-risk answers still use the current model until M6.
 
 #### M6. Honest AI (medium)
 - Remove fees from the academic score. Show "fee follow-up" as a separate administrative flag.

@@ -84,6 +84,7 @@ export const api = {
   getChatHistory: (sessionId) => client.get(`/chatbot/history/${sessionId}`),
   clearChatHistory: (sessionId) => client.delete(`/chatbot/history/${sessionId}`),
   getChatbotTopics: () => client.get('/chatbot/topics'),
+  getChatbotStatus: () => client.get('/chatbot/status'),
 };
 
 export default client;

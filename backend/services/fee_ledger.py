@@ -1,6 +1,6 @@
 """The one place fee money is calculated. Payment rows are the source of truth for money received."""
 from datetime import date, datetime, timedelta, timezone
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, List, Optional
 
 from sqlmodel import Session, col, func, select
 
@@ -62,6 +62,45 @@ def invoice_money(invoice: Invoice, paid: float, today: date) -> dict:
         "due_on": due_on.isoformat() if due_on else None,
         "is_overdue": is_overdue(invoice.status, invoice.due_date, today),
     }
+
+
+def _month_order(month: str) -> tuple:
+    try:
+        return (0, datetime.strptime(month.strip(), "%B %Y"))
+    except ValueError:
+        return (1, month)
+
+
+def monthly_totals(session: Session, month: Optional[str] = None) -> List[dict]:
+    """Money for each billing month, oldest first. "October" alone finds October of every year.
+
+    A payment counts towards the month of its invoice, not the day it was received.
+    """
+    wanted = (month or "").strip().casefold()
+    invoices = [
+        invoice for invoice in session.exec(select(Invoice)).all()
+        if not wanted or invoice.month.casefold() == wanted or invoice.month.casefold().split(" ")[0] == wanted
+    ]
+    paid = paid_by_invoice(session, [invoice.id for invoice in invoices])
+
+    by_month: Dict[str, List[Invoice]] = {}
+    for invoice in invoices:
+        by_month.setdefault(invoice.month, []).append(invoice)
+
+    rows = []
+    for name in sorted(by_month, key=_month_order):
+        group = by_month[name]
+        invoiced = round(sum(invoice.amount for invoice in group), 2)
+        outstanding = round(sum(outstanding_balance(invoice.amount, paid.get(invoice.id, 0.0)) for invoice in group), 2)
+        rows.append({
+            "month": name,
+            "invoice_count": len(group),
+            "invoiced": invoiced,
+            "collected": round(sum(paid.get(invoice.id, 0.0) for invoice in group), 2),
+            "outstanding": outstanding,
+            "collection_rate": round((invoiced - outstanding) / invoiced * 100, 1) if invoiced > 0 else 0.0,
+        })
+    return rows
 
 
 def school_totals(session: Session, today: Optional[date] = None) -> dict:
