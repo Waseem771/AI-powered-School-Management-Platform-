@@ -291,7 +291,10 @@ def main() -> None:
     parser.add_argument("--replace", action="store_true", help="Replace an existing demo database.")
     args = parser.parse_args()
 
-    summary = build_demo_database(args.output, admin_password=os.getenv("DEMO_ADMIN_PASSWORD", ""), replace=args.replace)
+    try:
+        summary = build_demo_database(args.output, admin_password=os.getenv("DEMO_ADMIN_PASSWORD", ""), replace=args.replace)
+    except (ValueError, FileExistsError) as problem:
+        raise SystemExit(str(problem))
     print(f"Built {args.output}: {summary['students']} students, {summary['invoices']} challans. Username: {DEMO_ADMIN_USERNAME}")
 
 
