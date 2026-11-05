@@ -96,6 +96,9 @@ def upgrade_database(apply: bool = False):
     import sys
     sys.path.insert(0, "/root/backend")
     os.chdir("/root/backend")
+    # This job has no access to the app's secrets, and needs none: it signs nothing and serves
+    # nobody. Without this, loading the settings stops it for lacking a signing key.
+    os.environ["APP_ENV"] = "development"
 
     from migrate_db import main as migrate
 

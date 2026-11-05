@@ -267,5 +267,33 @@ def test_runs_with_no_application_secrets(tmp_path):
     assert finished.returncode == 0, finished.stderr
 
 
+def _load_tool_with(tmp_path, **settings):
+    """Loads the upgrade tool as Modal's job does: from the code folder, with no secrets at all."""
+    blocked = {"SECRET_KEY", "ADMIN_PASSWORD", "APP_ENV", "DATABASE_URL", "FRONTEND_URL"}
+    env = {key: value for key, value in os.environ.items() if key not in blocked}
+    return subprocess.run(
+        [sys.executable, "-c", "import migrate_db; print('loaded')"],
+        cwd=Path(__file__).parent, env={**env, **settings}, capture_output=True, text=True,
+    )
+
+
+def test_the_upgrade_tool_needs_its_setting_on_modal_where_it_has_no_secrets(tmp_path):
+    # Set blank rather than left out, so a developer's own .env cannot fill them in.
+    stopped = _load_tool_with(tmp_path, APP_ENV="production", SECRET_KEY="")
+    loaded = _load_tool_with(tmp_path, APP_ENV="development", SECRET_KEY="")
+
+    assert stopped.returncode != 0 and "SECRET_KEY" in stopped.stderr
+    assert loaded.returncode == 0, loaded.stderr
+
+
+def test_the_modal_job_sets_it_before_loading_the_tool_and_is_given_no_secrets():
+    source = (Path(__file__).parent / "modal_app.py").read_text(encoding="utf-8")
+    job = source[source.index("def upgrade_database"):]
+    decorator = source[:source.index("def upgrade_database")].rstrip().splitlines()[-1]
+
+    assert job.index('os.environ["APP_ENV"] = "development"') < job.index("from migrate_db import")
+    assert "secrets" not in decorator
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
