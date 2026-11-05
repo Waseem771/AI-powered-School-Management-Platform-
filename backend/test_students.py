@@ -14,6 +14,9 @@ from models.student import Student
 from services.data_assistant_service import SchoolDataAssistant
 
 
+SEEDED_STUDENT_COUNT = 50
+
+
 @pytest.fixture(scope="module")
 def client():
     with TestClient(app) as test_client:
@@ -171,7 +174,8 @@ def test_update_can_clear_date_of_birth(client, headers):
 def test_every_seeded_student_passes_the_new_rules(client, headers):
     """Editing an existing record must not fail because of an untouched field."""
     with Session(engine) as session:
-        students = session.exec(select(Student)).all()
+        # Other test files add awkward old-style records on purpose, so only the seeded ones count.
+        students = session.exec(select(Student).where(Student.id <= SEEDED_STUDENT_COUNT)).all()
 
     for student in students:
         response = client.put(

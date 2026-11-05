@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M3: 222 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M4: 256 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -119,17 +119,17 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Challan generates for normal name | ✅ | |
-| Report card generates for normal name | ✅ | |
-| Name with `&` | ✅ | |
-| Name with `<` | ❌ 500 | |
-| Urdu name, report card | ❌ 500 | |
-| Urdu name displays correctly on challan | ❌ not extractable; check by eye | |
+| Challan generates for normal name | ✅ | ✅ M4 |
+| Report card generates for normal name | ✅ | ✅ M4 |
+| Name with `&` | ✅ | ✅ M4 |
+| Name with `<` | ❌ 500 | ✅ M4, prints as text |
+| Urdu name, report card | ❌ 500 | ✅ M4, checked on screen |
+| Urdu name displays correctly on challan | ❌ not extractable; check by eye | ✅ M4, checked on screen. Paper print and a native Urdu reader's review still needed |
 | No invented date of birth | ❌ | ✅ M3 |
 | No canned teacher remark | ❌ | ✅ M3 |
 | Exam type shown | ❌ | ✅ M3, in the PDF text; layout not yet checked by eye |
 | Session is current | ❌ | ✅ M3, from the academic year of the marks |
-| A4 page | ❌ Letter | |
+| A4 page | ❌ Letter | ✅ M4 |
 | Print preview checked by a person | ⬜ | |
 
 ## Dashboard

@@ -47,6 +47,7 @@ backend/            FastAPI app (run commands from here)
                     admin_setup, login_throttle, risk_features
   migrate_db.py     reports on and upgrades an existing database, with a backup
   knowledge_base/   5 policy .txt files used by the RAG chatbot
+  assets/fonts/     Noto Nastaliq Urdu and its licence, used to print Urdu in PDFs
   test_*.py         pytest tests; test_modal.py is a manual script, not collected
 frontend/           React app (run commands from here)
   src/api/client.js axios instance + the `api` object (every endpoint)
@@ -170,7 +171,9 @@ Single-student questions ("fee dues for Ahmed Khan") must not hit the bulk pendi
 
 ### PDFs
 
-`services/pdf_service.py` (ReportLab) builds a 2-part fee challan (Bank Copy and Student Copy) and an official report card (marks table, colored grades, summary, promotion status, remarks, signature lines).
+`services/pdf_service.py` (ReportLab) builds a 2-part fee challan (Bank Copy and Student Copy) and an official report card (marks table, colored grades, summary, promotion status, remarks, signature lines), both A4.
+
+ReportLab reads text as markup, so all stored text must go through `_field`, `_heading`, or `escape`. `services/pdf_text.py` prints Urdu in Noto Nastaliq and everything else in Helvetica, because neither font has the other's letters. Urdu needs `uharfbuzz`; if it cannot load, a note is printed in place of the Urdu rather than garbled letters. `uharfbuzz` is pinned to 0.50.2 because Windows Application Control on the development machine blocked 0.57.0. `pdf_text.py` also patches a ReportLab 5.1.0 crash in `setRise`, so recheck that when upgrading ReportLab. Right-to-left order within a mixed line is limited: Urdu runs read correctly, but they sit in left-to-right order among Latin words. Scripts other than Latin and Urdu are not supported.
 
 ### Frontend
 

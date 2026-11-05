@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). Next: M4.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. Next: M5.
 
 ## Principles
 
@@ -92,11 +92,15 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Left for later:** a page to review a whole class's promotions, and starting a new academic year.
 
-#### M4. PDFs (small to medium)
+#### M4. PDFs ✅ complete in code, not deployed
 - Escape user text. Handle Urdu names, which needs an embedded Nastaliq-capable font and correct shaping, so this needs a separate test.
 - A4 size. Show exam type, dynamic session, and school address. Align challan policy text with reality.
 
-**Done when:** special-character and Urdu-name tests pass, and you've reviewed printed samples.
+**Done:** special-character and Urdu-name tests pass, including about 1,500 name combinations through the challan. Samples were rendered and checked on screen. **Not done: a review on real printed paper by the owner.**
+
+**Added:** Noto Nastaliq Urdu fonts (SIL Open Font License) and the `uharfbuzz` package, with the owner's approval. Fixes found along the way: a ReportLab crash on some Urdu letter combinations, and a report card table header that was dark on dark.
+
+**Wording:** an invoice stores only a total, so anything above tuition now prints as "Other Charges", not "Examination & Lab". The challan says its amount excludes late charges, because the policy's surcharges are not calculated. The fee policy text now matches the 2-part challan and the actual challan number format.
 
 #### M5. Chatbot correctness (medium)
 - **Fix wrong-student bug:** match roll number first, then ID only when explicitly requested.

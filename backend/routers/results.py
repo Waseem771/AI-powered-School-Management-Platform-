@@ -20,7 +20,7 @@ from services.academics import (
     select_exam,
     subject_passed,
 )
-from services.pdf_service import generate_report_card_pdf
+from services.pdf_service import generate_report_card_pdf, pdf_content_disposition
 
 router = APIRouter(prefix="/results", tags=["Results"])
 
@@ -205,10 +205,8 @@ def download_report_card(
     pdf_content = generate_report_card_pdf(
         student_data, _mark_rows(report["marks"]), report["summary"], report["exam"], report["promotion"]
     )
-    filename = f"ReportCard_{student.roll_number}_{student.name.replace(' ', '_')}.pdf"
-
     return Response(
         content=pdf_content,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"},
+        headers={"Content-Disposition": pdf_content_disposition("ReportCard", student.roll_number)},
     )

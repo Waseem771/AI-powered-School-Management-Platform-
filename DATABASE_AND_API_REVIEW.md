@@ -4,6 +4,8 @@
 
 > **Update, M3:** student and results findings in sections 2, 4, 5, and 6 are fixed on branch `mvp/m3-records`. An `archived_at` column replaces the planned `status` column. Student averages now use one calculation, total over total. Foreign keys remain unenforced, and the delete rule keeps orphans from arising through the app.
 
+> **Update, M4:** the PDF crashes listed in sections 4 and the challan wording in section 6 are fixed on branch `mvp/m4-pdfs`.
+
 **Audit date:** 2026-11-04. Inspected on read-only copies. `backend/school.db` was not changed.
 
 ## 1. Database as found

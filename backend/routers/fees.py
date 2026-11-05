@@ -21,7 +21,7 @@ from services.fee_ledger import (
     school_today,
     school_totals,
 )
-from services.pdf_service import generate_fee_challan_pdf
+from services.pdf_service import generate_fee_challan_pdf, pdf_content_disposition
 
 router = APIRouter(prefix="/fees", tags=["Fees"])
 
@@ -270,10 +270,8 @@ def download_challan_pdf(
     }
 
     pdf_content = generate_fee_challan_pdf(invoice_data, student_data)
-    filename = f"Challan_{invoice.challan_number}_{student.roll_number}.pdf"
-
     return Response(
         content=pdf_content,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"},
+        headers={"Content-Disposition": pdf_content_disposition("Challan", invoice.challan_number)},
     )

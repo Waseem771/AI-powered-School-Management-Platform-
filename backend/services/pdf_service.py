@@ -1,11 +1,44 @@
 import io
-from reportlab.lib.pagesizes import letter, A4
+import re
+from xml.sax.saxutils import escape
+
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen import canvas
 from config import SCHOOL_NAME, SCHOOL_TAGLINE, SCHOOL_ADDRESS, SCHOOL_PHONE
+from services.pdf_text import (
+    LATIN_FONT_BOLD,
+    has_urdu,
+    printable,
+    urdu_markup,
+    urdu_style,
+)
+
+LATE_CHARGES_NOTE = "This amount does not include any late-payment charges under the school fee policy."
+
+
+def pdf_content_disposition(*name_parts: str) -> str:
+    """A plain download name. It holds no student name, and nothing that could break the header."""
+    name = "_".join(re.sub(r"[^A-Za-z0-9-]+", "-", part).strip("-") or "record" for part in name_parts)
+    return f'inline; filename="{name}.pdf"'
+
+
+def _field(label: str, value: object, style: ParagraphStyle) -> Paragraph:
+    """A "Label: value" cell for any stored text, safe for markup characters and Urdu."""
+    shown = printable(str(value))
+    if has_urdu(shown):
+        return Paragraph(f'<font name="{LATIN_FONT_BOLD}">{label}:</font> {urdu_markup(shown)}', urdu_style(style))
+    return Paragraph(f"<b>{label}:</b> {escape(shown)}", style)
+
+
+def _heading(text: str, style: ParagraphStyle) -> Paragraph:
+    """A line of configured text, such as the school name, which may be in either script."""
+    shown = printable(text)
+    if has_urdu(shown):
+        return Paragraph(urdu_markup(shown, LATIN_FONT_BOLD), urdu_style(style, bold=True))
+    return Paragraph(f"<b>{escape(shown)}</b>", style)
+
 
 def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
     """
@@ -15,7 +48,7 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=letter,
+        pagesize=A4,
         leftMargin=36,
         rightMargin=36,
         topMargin=36,
@@ -56,21 +89,21 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
 
     elements = []
 
-    tuition = invoice_data.get("tuition_amount", 3500)
-    exam = invoice_data.get("exam_amount", 500)
-    total = invoice_data.get("amount", tuition + exam)
-    month = invoice_data.get("month", "October 2025")
-    due_date = invoice_data.get("due_date", "10-Oct-2025")
-    challan_no = invoice_data.get("challan_number", "CHN-1045")
-    status = invoice_data.get("status", "Pending").upper()
+    tuition = invoice_data["tuition_amount"]
+    other_charges = invoice_data["exam_amount"]
+    total = invoice_data["amount"]
+    month = invoice_data["month"]
+    due_date = escape(str(invoice_data["due_date"]))
+    challan_no = invoice_data["challan_number"]
+    status = escape(str(invoice_data["status"]).upper())
     amount_paid = invoice_data.get("amount_paid", 0)
     balance = invoice_data.get("balance", total)
 
     def build_copy_block(copy_title: str):
         block = []
         # Header
-        block.append(Paragraph(f"<b>{SCHOOL_NAME.upper()}</b>", title_style))
-        block.append(Paragraph(f"{SCHOOL_TAGLINE} &bull; Ph: {SCHOOL_PHONE}", sub_title_style))
+        block.append(_heading(SCHOOL_NAME.upper(), title_style))
+        block.append(Paragraph(f"{escape(SCHOOL_ADDRESS)} &bull; Ph: {escape(SCHOOL_PHONE)}", sub_title_style))
         block.append(Spacer(1, 4))
         block.append(Paragraph(f"<b>[ {copy_title.upper()} ]</b> &nbsp;&nbsp;|&nbsp;&nbsp; Status: <b>{status}</b>", copy_badge_style))
         block.append(Spacer(1, 6))
@@ -78,20 +111,21 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
         # Student & Challan Meta Table
         student_meta = [
             [
-                Paragraph(f"<b>Student:</b> {student_data.get('name', 'N/A')}", normal_style),
-                Paragraph(f"<b>Roll No:</b> {student_data.get('roll_number', 'N/A')}", normal_style)
+                _field("Student", student_data["name"], normal_style),
+                _field("Roll No", student_data["roll_number"], normal_style)
             ],
             [
-                Paragraph(f"<b>Class:</b> {student_data.get('grade', 'Grade 8')}-{student_data.get('section', 'A')}", normal_style),
-                Paragraph(f"<b>Month:</b> {month}", normal_style)
+                _field("Class", f"{student_data['grade']}-{student_data['section']}", normal_style),
+                _field("Month", month, normal_style)
             ],
             [
-                Paragraph(f"<b>Challan No:</b> {challan_no}", normal_style),
+                _field("Challan No", challan_no, normal_style),
                 Paragraph(f"<b>Due Date:</b> <font color='red'><b>{due_date}</b></font>", normal_style)
             ]
         ]
-        meta_table = Table(student_meta, colWidths=[260, 260])
+        meta_table = Table(student_meta, colWidths=[260, 263])
         meta_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F8FAFC")),
             ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#CBD5E1")),
             ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8F0")),
@@ -107,15 +141,21 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
         fee_items = [
             [Paragraph("<b>Fee Particulars</b>", bold_style), Paragraph("<b>Amount (PKR)</b>", bold_style)],
             [Paragraph("Monthly Tuition Fee", normal_style), Paragraph(f"Rs. {tuition:,.0f}", normal_style)],
-            [Paragraph("Examination & Lab Charges", normal_style), Paragraph(f"Rs. {exam:,.0f}", normal_style)],
-            [Paragraph("<b>TOTAL PAYABLE AMOUNT</b>", total_style), Paragraph(f"<b>Rs. {total:,.0f}</b>", total_style)],
         ]
+        # An invoice stores one total, so anything above tuition cannot be named more exactly.
+        if other_charges > 0:
+            fee_items.append(
+                [Paragraph("Other Charges", normal_style), Paragraph(f"Rs. {other_charges:,.0f}", normal_style)]
+            )
+        fee_items.append(
+            [Paragraph("<b>TOTAL PAYABLE AMOUNT</b>", total_style), Paragraph(f"<b>Rs. {total:,.0f}</b>", total_style)]
+        )
         if amount_paid > 0:
             fee_items.extend([
                 [Paragraph("Paid to date", normal_style), Paragraph(f"Rs. {amount_paid:,.0f}", normal_style)],
                 [Paragraph("<b>BALANCE DUE</b>", total_style), Paragraph(f"<b>Rs. {balance:,.0f}</b>", total_style)],
             ])
-        fee_table = Table(fee_items, colWidths=[360, 160])
+        fee_table = Table(fee_items, colWidths=[363, 160])
         fee_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E0E7FF")),
             ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#93C5FD")),
@@ -128,13 +168,15 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
             ('ALIGN', (1,0), (1,-1), 'RIGHT'),
         ]))
         block.append(fee_table)
-        block.append(Spacer(1, 8))
+        block.append(Spacer(1, 4))
+        block.append(Paragraph(LATE_CHARGES_NOTE, sub_title_style))
+        block.append(Spacer(1, 26))
 
         # Signatures line
         sig_data = [
             [Paragraph("Authorized Bank Officer / Cashier", normal_style), Paragraph("Parent / Guardian Signature", normal_style)]
         ]
-        sig_table = Table(sig_data, colWidths=[260, 260])
+        sig_table = Table(sig_data, colWidths=[260, 263])
         sig_table.setStyle(TableStyle([
             ('LINEABOVE', (0,0), (0,0), 0.75, colors.HexColor("#94A3B8")),
             ('LINEABOVE', (1,0), (1,0), 0.75, colors.HexColor("#94A3B8")),
@@ -170,7 +212,7 @@ def _promotion_paragraph_text(promotion: dict) -> str:
         if promotion.get("retake_eligible"):
             lines.append("Eligible for the retake examination.")
         return "<br/>".join(lines)
-    return promotion.get("label", "")
+    return escape(promotion.get("label", ""))
 
 
 def generate_report_card_pdf(
@@ -182,7 +224,7 @@ def generate_report_card_pdf(
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=letter,
+        pagesize=A4,
         leftMargin=40,
         rightMargin=40,
         topMargin=40,
@@ -225,31 +267,32 @@ def generate_report_card_pdf(
     elements = []
 
     # Header
-    elements.append(Paragraph(f"<b>{SCHOOL_NAME.upper()}</b>", title_style))
-    elements.append(Paragraph(f"{SCHOOL_TAGLINE} &bull; {SCHOOL_ADDRESS}", sub_style))
+    elements.append(_heading(SCHOOL_NAME.upper(), title_style))
+    elements.append(Paragraph(f"{escape(SCHOOL_TAGLINE)} &bull; {escape(SCHOOL_ADDRESS)}", sub_style))
     elements.append(Spacer(1, 6))
-    session_text = f" &bull; ACADEMIC SESSION {exam['session']}" if exam.get("session") else ""
+    session_text = f" &bull; ACADEMIC SESSION {escape(exam['session'])}" if exam.get("session") else ""
     elements.append(Paragraph(f"<b>OFFICIAL STUDENT REPORT CARD{session_text}</b>", badge_style))
-    elements.append(Paragraph(f"{exam['exam_type']} Examination", sub_style))
+    elements.append(Paragraph(f"{escape(exam['exam_type'])} Examination", sub_style))
     elements.append(Spacer(1, 10))
 
     # Student Info Table
     info_data = [
         [
-            Paragraph(f"<b>Student Name:</b> {student_data.get('name', 'N/A')}", normal_style),
-            Paragraph(f"<b>Roll Number:</b> {student_data.get('roll_number', 'N/A')}", normal_style)
+            _field("Student Name", student_data.get("name", "N/A"), normal_style),
+            _field("Roll Number", student_data.get("roll_number", "N/A"), normal_style)
         ],
         [
-            Paragraph(f"<b>Grade & Section:</b> {student_data.get('grade', 'N/A')}-{student_data.get('section', 'A')}", normal_style),
-            Paragraph(f"<b>Guardian:</b> {student_data.get('guardian_name', 'N/A')}", normal_style)
+            _field("Grade &amp; Section", f"{student_data.get('grade', 'N/A')}-{student_data.get('section', 'N/A')}", normal_style),
+            _field("Guardian", student_data.get("guardian_name", "N/A"), normal_style)
         ],
         [
-            Paragraph(f"<b>Contact:</b> {student_data.get('phone', 'N/A')}", normal_style),
-            Paragraph(f"<b>Date of Birth:</b> {student_data.get('dob', 'N/A')}", normal_style)
+            _field("Contact", student_data.get("phone", "N/A"), normal_style),
+            _field("Date of Birth", student_data.get("dob", "N/A"), normal_style)
         ]
     ]
-    info_table = Table(info_data, colWidths=[266, 266])
+    info_table = Table(info_data, colWidths=[257, 258])
     info_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F1F5F9")),
         ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#CBD5E1")),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8F0")),
@@ -262,12 +305,14 @@ def generate_report_card_pdf(
     elements.append(Spacer(1, 12))
 
     # Subjects Table
+    table_header = ParagraphStyle('TableHeader', parent=center_bold, textColor=colors.white)
+    table_header_left = ParagraphStyle('TableHeaderLeft', parent=bold_style, textColor=colors.white)
     headers = [
-        Paragraph("<b>Subject</b>", bold_style),
-        Paragraph("<b>Marks Obtained</b>", center_bold),
-        Paragraph("<b>Total Marks</b>", center_bold),
-        Paragraph("<b>Percentage</b>", center_bold),
-        Paragraph("<b>Grade</b>", center_bold)
+        Paragraph("<b>Subject</b>", table_header_left),
+        Paragraph("<b>Marks Obtained</b>", table_header),
+        Paragraph("<b>Total Marks</b>", table_header),
+        Paragraph("<b>Percentage</b>", table_header),
+        Paragraph("<b>Grade</b>", table_header)
     ]
     table_rows = [headers]
 
@@ -275,11 +320,11 @@ def generate_report_card_pdf(
         obtained = float(item.get("marks_obtained", 0))
         total = float(item.get("total_marks", 100))
         pct = (obtained / total * 100) if total > 0 else 0
-        grade = item.get("grade", "F")
+        grade = escape(item.get("grade", "N/A"))
         grade_color = "#DC2626" if grade == "F" else ("#16A34A" if grade in ["A+", "A"] else "#2563EB")
 
         row = [
-            Paragraph(item.get("subject", ""), normal_style),
+            Paragraph(escape(item.get("subject", "")), normal_style),
             Paragraph(f"{obtained:.1f}", center_text),
             Paragraph(f"{total:.0f}", center_text),
             Paragraph(f"{pct:.1f}%", center_text),
@@ -287,8 +332,9 @@ def generate_report_card_pdf(
         ]
         table_rows.append(row)
 
-    results_table = Table(table_rows, colWidths=[182, 90, 85, 90, 85])
+    results_table = Table(table_rows, colWidths=[175, 90, 80, 90, 80])
     results_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1E3A8A")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#1E3A8A")),
@@ -299,15 +345,14 @@ def generate_report_card_pdf(
         ('LEFTPADDING', (0,0), (-1,-1), 8),
         ('RIGHTPADDING', (0,0), (-1,-1), 8),
     ]))
-    # Change header font color to white in paragraph styles
     elements.append(results_table)
     elements.append(Spacer(1, 12))
 
     # Summary Box
     total_obtained = summary_stats.get("total_obtained", 0)
-    total_max = summary_stats.get("total_max", 600)
+    total_max = summary_stats.get("total_max", 0)
     overall_pct = summary_stats.get("percentage", 0.0)
-    overall_grade = summary_stats.get("grade", "N/A")
+    overall_grade = escape(summary_stats.get("grade", "N/A"))
 
     summary_data = [
         [
@@ -316,7 +361,7 @@ def generate_report_card_pdf(
             Paragraph(f"<b>Overall Grade:</b> <font size='12' color='#1E3A8A'><b>{overall_grade}</b></font>", normal_style)
         ]
     ]
-    summary_table = Table(summary_data, colWidths=[176, 176, 180])
+    summary_table = Table(summary_data, colWidths=[170, 170, 175])
     summary_table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#E0E7FF")),
         ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor("#4F46E5")),
@@ -336,8 +381,9 @@ def generate_report_card_pdf(
             Paragraph(f"<b>Promotion Status:</b><br/>{_promotion_paragraph_text(promotion)}", normal_style)
         ]
     ]
-    remarks_table = Table(remarks_data, colWidths=[310, 222])
+    remarks_table = Table(remarks_data, colWidths=[295, 220])
     remarks_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#CBD5E1")),
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
@@ -354,7 +400,7 @@ def generate_report_card_pdf(
             Paragraph("Principal / Headmaster", center_bold)
         ]
     ]
-    sig_table = Table(sig_data, colWidths=[176, 176, 180])
+    sig_table = Table(sig_data, colWidths=[170, 170, 175])
     sig_table.setStyle(TableStyle([
         ('LINEABOVE', (0,0), (0,0), 1, colors.HexColor("#64748B")),
         ('LINEABOVE', (1,0), (1,0), 1, colors.HexColor("#64748B")),
