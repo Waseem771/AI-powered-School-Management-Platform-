@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). Next: M3.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). Next: M4.
 
 ## Principles
 
@@ -77,17 +77,22 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Left for later:** receipts and a per-student fee history page (M8). Late fees and sibling concessions remain unbuilt.
 
-#### M3. Student and results integrity (medium)
+#### M3. Student and results integrity ✅ complete in code, not deployed
 - Validation on all student fields and marks. Friendly 409 on duplicate rolls.
 - Archive instead of delete (migration, D8).
 - Results separated by exam type and academic year.
 - Promotion based on the actual policy: 5 of 6 subjects and 50% aggregate.
-- Decide the grade label conflict: a 40-49% subject is a "pass" but Grade F. I suggest keeping the scale and labelling promotion separately, with your confirmation.
+- Grade label conflict: a 40-49% subject is a "pass" but Grade F, because the policy says both. Kept as the policy states it, with promotion labelled separately. **Waiting for the owner's confirmation.**
 
-**Done when:** a report card can't state something the data doesn't support.
+**Done:** the report card covers one exam, and its promotion statement comes from the marks under the written policy. With no marks there is no report card. Also moved here from M4, because they were statements the data did not support: the invented date of birth and the canned teacher remark.
+
+**Schema:** one empty column, `students.archived_at`, and one unique index on `results`, applied with `migrate_db.py`. Tested on a copy of `school.db`: backup made, all rows identical, safe to re-run. **It has not been run on the real `school.db` or on Modal, and the app refuses to start on a database without it.**
+
+**Assumption to confirm:** promotion uses Final Term marks alone. The policy also gives a 20/30/50 weightage across quizzes, midterms, and finals, which the system does not record or apply. `academic_years` holds only 2025-2026, and there is no screen to start a new year; M9's demo data sets the right current year.
+
+**Left for later:** a page to review a whole class's promotions, and starting a new academic year.
 
 #### M4. PDFs (small to medium)
-- Remove invented date of birth and canned remark. No "PROMOTED" without results.
 - Escape user text. Handle Urdu names, which needs an embedded Nastaliq-capable font and correct shaping, so this needs a separate test.
 - A4 size. Show exam type, dynamic session, and school address. Align challan policy text with reality.
 

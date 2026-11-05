@@ -18,8 +18,9 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M2: 116 passed |
-| Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M2 |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M3: 222 passed |
+| Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
+| App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
 | App starts without CrewAI | ⬜ | ✅ M0 |
 | Pinned stack reads and writes a copy of existing `school.db` | ⬜ | ✅ M0 |
@@ -29,7 +30,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Admissions: failure message shown on the page | ⬜ | ✅ M0, in browser |
 | Admissions: real AI answer | ⬜ | ⬜ needs token |
 | No known credential patterns in project files | ❌ | ✅ M0 |
-| `npm test` | ✅ 2 of 2 | ✅ M2: 15 of 15 |
+| `npm test` | ✅ 2 of 2 | ✅ M3: 24 of 24 |
 | `vite build` | ✅ (chunk-size warning) | ✅ M1 |
 | `npm audit --omit=dev` clean | ❌ 3 issues | 🟡 M1: 2 moderate, accepted (see SECURITY_REVIEW) |
 | Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | ✅ M0, checksum matched |
@@ -63,18 +64,19 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Create valid student and see it after reload | ✅ API | |
-| Duplicate roll on create gives clear error | ✅ | |
-| Duplicate roll on edit gives clear error | ❌ 500 | |
-| Null field on edit rejected | ❌ 500 | |
-| Empty name, guardian, phone rejected | ❌ | |
-| Whitespace roll rejected | ❌ | |
-| Invalid grade, section rejected | ❌ | |
-| Invalid phone, date of birth rejected | ❌ | |
-| Future date of birth rejected | ❌ | |
-| Unknown ID gives 404 | ✅ | |
+| Create valid student and see it after reload | ✅ API | ✅ M3, in browser |
+| Duplicate roll on create gives clear error | ✅ | ✅ M3, in browser |
+| Duplicate roll on edit gives clear error | ❌ 500 | ✅ M3 |
+| Null field on edit rejected | ❌ 500 | ✅ M3 |
+| Empty name, guardian, phone rejected | ❌ | ✅ M3 |
+| Whitespace roll rejected | ❌ | ✅ M3 |
+| Invalid grade, section rejected | ❌ | ✅ M3 |
+| Invalid phone, date of birth rejected | ❌ | ✅ M3, in browser |
+| Future date of birth rejected | ❌ | ✅ M3, in browser |
+| Unknown ID gives 404 | ✅ | ✅ M3 |
 | Search handles SQL characters safely | ✅ | |
-| Delete preserves fee and exam history | ❌ | |
+| Delete preserves fee and exam history | ❌ | ✅ M3, in browser: refused with history; archive and restore keep it |
+| Archived students leave counts, while fee totals stay the same | ⬜ | ✅ M3 |
 | Section filter | ⬜ not built | |
 | Profile page | ⬜ not built | |
 
@@ -103,15 +105,15 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Enter and update marks; upsert, no duplicates | ✅ | |
-| Marks above total rejected | ❌ | |
-| Negative marks rejected | ❌ | |
-| Total of 0 rejected | ❌ | |
-| Unknown subject or exam type rejected | ❌ | |
-| Pass/Fail uses percentage | ❌ | |
-| Midterm and final shown separately | ❌ | |
-| Promotion follows the 5-of-6 and 50% policy | ❌ | |
-| No "Promoted" without results | ❌ | |
+| Enter and update marks; upsert, no duplicates | ✅ | ✅ M3, in browser |
+| Marks above total rejected | ❌ | ✅ M3, in browser |
+| Negative marks rejected | ❌ | ✅ M3 |
+| Total of 0 rejected | ❌ | ✅ M3 |
+| Unknown subject or exam type rejected | ❌ | ✅ M3 |
+| Pass/Fail uses percentage | ❌ | ✅ M3 |
+| Midterm and final shown separately | ❌ | ✅ M3, in browser |
+| Promotion follows the 5-of-6 and 50% policy | ❌ | ✅ M3 |
+| No "Promoted" without results | ❌ | ✅ M3 |
 
 ## PDFs
 
@@ -123,10 +125,10 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Name with `<` | ❌ 500 | |
 | Urdu name, report card | ❌ 500 | |
 | Urdu name displays correctly on challan | ❌ not extractable; check by eye | |
-| No invented date of birth | ❌ | |
-| No canned teacher remark | ❌ | |
-| Exam type shown | ❌ | |
-| Session is current | ❌ | |
+| No invented date of birth | ❌ | ✅ M3 |
+| No canned teacher remark | ❌ | ✅ M3 |
+| Exam type shown | ❌ | ✅ M3, in the PDF text; layout not yet checked by eye |
+| Session is current | ❌ | ✅ M3, from the academic year of the marks |
 | A4 page | ❌ Letter | |
 | Print preview checked by a person | ⬜ | |
 

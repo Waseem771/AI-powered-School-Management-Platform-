@@ -1,4 +1,15 @@
 const OBJECT_URL_LIFETIME_MS = 60_000;
+const PDF_ERROR_MESSAGE = 'Could not open the PDF. Please try again.';
+
+/** PDF requests ask for a blob, so an error's JSON body also arrives as a blob. */
+export async function pdfErrorMessage(error) {
+  try {
+    const { detail } = JSON.parse(await error.response.data.text());
+    return typeof detail === 'string' ? detail : PDF_ERROR_MESSAGE;
+  } catch {
+    return PDF_ERROR_MESSAGE;
+  }
+}
 
 function saveAsDownload(url) {
   const link = document.createElement('a');

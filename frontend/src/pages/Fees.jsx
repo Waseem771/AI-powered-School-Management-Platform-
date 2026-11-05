@@ -298,7 +298,14 @@ export default function Fees() {
                       {inv.challan_number}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">{inv.student_name}</div>
+                      <div className="font-bold text-slate-900">
+                        {inv.student_name}
+                        {inv.student_archived && (
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-600">
+                            Archived
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-slate-500">
                         Roll: #{inv.roll_number} &bull; {inv.grade}-{inv.section}
                       </div>

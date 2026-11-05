@@ -49,6 +49,8 @@ export const api = {
   createStudent: (data) => client.post('/students', data),
   updateStudent: (id, data) => client.put(`/students/${id}`, data),
   deleteStudent: (id) => client.delete(`/students/${id}`),
+  archiveStudent: (id) => client.post(`/students/${id}/archive`),
+  restoreStudent: (id) => client.post(`/students/${id}/restore`),
 
   // Fees
   getFees: (params) => client.get('/fees', { params }),
@@ -60,10 +62,12 @@ export const api = {
     client.get(`/fees/${invoiceId}/pdf`, { responseType: 'blob' }).then((response) => response.data),
 
   // Results
-  getStudentResults: (studentId) => client.get(`/results/${studentId}`),
+  getStudentResults: (studentId, params) => client.get(`/results/${studentId}`, { params }),
   enterMarks: (data) => client.post('/results', data),
-  getReportCardPdf: (studentId) =>
-    client.get(`/results/${studentId}/report-card/pdf`, { responseType: 'blob' }).then((response) => response.data),
+  getReportCardPdf: (studentId, params) =>
+    client
+      .get(`/results/${studentId}/report-card/pdf`, { params, responseType: 'blob' })
+      .then((response) => response.data),
 
   // Dashboard
   getDashboardStats: (options) => client.get('/dashboard/stats', options),

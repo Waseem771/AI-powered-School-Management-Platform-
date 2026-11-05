@@ -44,7 +44,7 @@ def test_all_endpoints(admin_password):
         "phone": "0300-1112233",
         "dob": "2011-01-01"
     })
-    assert new_s.status_code == 200
+    assert new_s.status_code == 201
     created_id = new_s.json()["id"]
     print("Created test student ID:", created_id)
 

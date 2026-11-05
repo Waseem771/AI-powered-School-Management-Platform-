@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
-from sqlmodel import Session, select, func
-from typing import Dict, Any
+from sqlmodel import Session, col, select
+from typing import Dict
 from database import get_session
 from models.student import Student
-from models.fee import Invoice, Payment
+from models.fee import Invoice
 from models.result import Result
+from services.academics import latest_exam_marks, percentage
 from services.ai_service import ai_service
 from routers.auth import get_current_user
 from services.fee_ledger import school_totals
@@ -18,9 +19,10 @@ def get_dashboard_stats(
     session: Session = Depends(get_session),
     _user = Depends(get_current_user)
 ):
-    # Total students
-    students = session.exec(select(Student)).all()
+    # Total students. Archived students leave these counts, but their fee money still counts below.
+    students = session.exec(select(Student).where(col(Student.archived_at).is_(None))).all()
     total_students = len(students)
+    active_ids = {s.id for s in students}
 
     # Invoices & Fees
     invoices = session.exec(select(Invoice)).all()
@@ -40,29 +42,30 @@ def get_dashboard_stats(
 
     grade_distribution = [{"grade": k, "count": v} for k, v in grade_counts.items()]
 
-    # Subject performance averages
-    results = session.exec(select(Result)).all()
-    subject_marks: Dict[str, list] = {subj: [] for subj in SUBJECTS}
-    for r in results:
-        if r.subject in subject_marks:
-            subject_marks[r.subject].append((r.marks_obtained / r.total_marks) * 100 if r.total_marks > 0 else 0)
+    # Each active student's marks, from which their latest exam is taken.
+    student_results_map = {}
+    for r in session.exec(select(Result)).all():
+        if r.student_id in active_ids:
+            student_results_map.setdefault(r.student_id, []).append(r)
 
-    subject_performance = []
-    for subj, marks in subject_marks.items():
-        avg_score = round(sum(marks) / len(marks), 1) if marks else 70.0
-        subject_performance.append({
-            "subject": subj,
-            "average": avg_score
-        })
+    # Subject performance averages, over each student's latest exam
+    subject_marks: Dict[str, list] = {subj: [] for subj in SUBJECTS}
+    for student_marks in student_results_map.values():
+        for r in latest_exam_marks(student_marks):
+            if r.subject in subject_marks:
+                subject_marks[r.subject].append(percentage(r.marks_obtained, r.total_marks))
+
+    # A subject with no marks is left out rather than given an invented average.
+    subject_performance = [
+        {"subject": subj, "average": round(sum(marks) / len(marks), 1)}
+        for subj, marks in subject_marks.items()
+        if marks
+    ]
 
     # At-risk students count calculation
     high_risk_count = 0
     medium_risk_count = 0
     low_risk_count = 0
-
-    student_results_map = {}
-    for r in results:
-        student_results_map.setdefault(r.student_id, []).append(r)
 
     student_invoices_map = {}
     for inv in invoices:

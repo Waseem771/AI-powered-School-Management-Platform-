@@ -157,9 +157,27 @@ def generate_fee_challan_pdf(invoice_data: dict, student_data: dict) -> bytes:
     buffer.close()
     return pdf_bytes
 
-def generate_report_card_pdf(student_data: dict, results_list: list, summary_stats: dict) -> bytes:
+def _promotion_paragraph_text(promotion: dict) -> str:
+    """States only what the recorded marks support. See services/academics.py."""
+    status = promotion.get("status")
+    if status == "promoted":
+        return (
+            "<font color='green'><b>PROMOTED TO NEXT HIGHER CLASS</b></font><br/>"
+            "Based on Final Term marks under the school exam policy."
+        )
+    if status == "not_promoted":
+        lines = ["<font color='red'><b>NOT PROMOTED</b></font>", *promotion.get("reasons", [])]
+        if promotion.get("retake_eligible"):
+            lines.append("Eligible for the retake examination.")
+        return "<br/>".join(lines)
+    return promotion.get("label", "")
+
+
+def generate_report_card_pdf(
+    student_data: dict, results_list: list, summary_stats: dict, exam: dict, promotion: dict
+) -> bytes:
     """
-    Generates an official Student Report Card PDF matching Section 9.
+    Generates an official Student Report Card PDF for one exam.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -210,7 +228,9 @@ def generate_report_card_pdf(student_data: dict, results_list: list, summary_sta
     elements.append(Paragraph(f"<b>{SCHOOL_NAME.upper()}</b>", title_style))
     elements.append(Paragraph(f"{SCHOOL_TAGLINE} &bull; {SCHOOL_ADDRESS}", sub_style))
     elements.append(Spacer(1, 6))
-    elements.append(Paragraph("<b>OFFICIAL STUDENT REPORT CARD &bull; ACADEMIC SESSION 2025-2026</b>", badge_style))
+    session_text = f" &bull; ACADEMIC SESSION {exam['session']}" if exam.get("session") else ""
+    elements.append(Paragraph(f"<b>OFFICIAL STUDENT REPORT CARD{session_text}</b>", badge_style))
+    elements.append(Paragraph(f"{exam['exam_type']} Examination", sub_style))
     elements.append(Spacer(1, 10))
 
     # Student Info Table
@@ -293,7 +313,7 @@ def generate_report_card_pdf(student_data: dict, results_list: list, summary_sta
         [
             Paragraph(f"<b>Aggregate Marks:</b> {total_obtained:.1f} / {total_max:.0f}", normal_style),
             Paragraph(f"<b>Overall Percentage:</b> {overall_pct:.1f}%", normal_style),
-            Paragraph(f"<b>Final Grade:</b> <font size='12' color='#1E3A8A'><b>{overall_grade}</b></font>", normal_style)
+            Paragraph(f"<b>Overall Grade:</b> <font size='12' color='#1E3A8A'><b>{overall_grade}</b></font>", normal_style)
         ]
     ]
     summary_table = Table(summary_data, colWidths=[176, 176, 180])
@@ -311,8 +331,9 @@ def generate_report_card_pdf(student_data: dict, results_list: list, summary_sta
     # Remarks & Signatures
     remarks_data = [
         [
-            Paragraph("<b>Class Teacher's Remarks:</b><br/>Consistent effort noted. Keep up the dedication towards academic excellence.", normal_style),
-            Paragraph("<b>Promotion Status:</b><br/><font color='green'><b>PROMOTED TO NEXT HIGHER CLASS</b></font>" if overall_grade != "F" else "<font color='red'><b>ACADEMIC PROBATION / RETAKE REQUIRED</b></font>", normal_style)
+            # Left blank for the teacher to write by hand.
+            Paragraph("<b>Class Teacher's Remarks:</b><br/><br/><br/>", normal_style),
+            Paragraph(f"<b>Promotion Status:</b><br/>{_promotion_paragraph_text(promotion)}", normal_style)
         ]
     ]
     remarks_table = Table(remarks_data, colWidths=[310, 222])

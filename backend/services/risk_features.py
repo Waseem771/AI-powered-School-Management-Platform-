@@ -2,16 +2,19 @@ from typing import Any, Dict, Iterable
 
 from models.fee import Invoice
 from models.result import Result
+from services.academics import latest_exam_marks, subject_passed
 
 DEFAULT_AVG_PCT = 70.0
-FAILING_THRESHOLD = 0.40
 
 
 def compute_student_features(
     marks: Iterable[Result], invoices: Iterable[Invoice]
 ) -> Dict[str, Any]:
-    """Single source of truth for the at-risk model's four input features."""
-    marks = list(marks)
+    """Single source of truth for the at-risk model's four input features.
+
+    Uses the student's latest exam only, so a subject is never counted twice.
+    """
+    marks = latest_exam_marks(marks)
     invoices = list(invoices)
 
     if marks:
@@ -22,11 +25,7 @@ def compute_student_features(
             if total_possible > 0
             else DEFAULT_AVG_PCT
         )
-        failing = sum(
-            1
-            for m in marks
-            if m.total_marks > 0 and (m.marks_obtained / m.total_marks) < FAILING_THRESHOLD
-        )
+        failing = sum(1 for m in marks if not subject_passed(m))
     else:
         avg_pct = DEFAULT_AVG_PCT
         failing = 0

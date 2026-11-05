@@ -97,6 +97,7 @@ def get_invoices(
             "roll_number": student.roll_number,
             "grade": student.grade,
             "section": student.section,
+            "student_archived": student.archived_at is not None,
             "amount": invoice.amount,
             "month": invoice.month,
             "due_date": invoice.due_date,
@@ -123,6 +124,11 @@ def generate_challan(
     student = session.get(Student, req.student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    if student.archived_at:
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="This student is archived. Restore the student before issuing a challan.",
+        )
 
     existing = session.exec(
         select(Invoice).where(Invoice.student_id == student.id, Invoice.month == req.month)

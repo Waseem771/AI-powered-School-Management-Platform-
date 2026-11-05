@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 from typing import List, Dict, Any, Optional
 from functools import lru_cache
 from database import get_session
@@ -28,7 +28,7 @@ def get_all_at_risk_students(
     session: Session = Depends(get_session),
     _user = Depends(get_current_user)
 ):
-    query = select(Student)
+    query = select(Student).where(col(Student.archived_at).is_(None))
     if grade:
         query = query.where(Student.grade == grade)
 

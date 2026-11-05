@@ -3,12 +3,22 @@
     python migrate_db.py                   # report on the database DATABASE_URL points to
     python migrate_db.py path/to/school.db --apply
 
-What --apply does: backs up the file next to itself, then adds a unique index so a student
-cannot have two challans for one month. No rows and no columns change. It stops, changing
-nothing, if duplicates already exist, because deciding which challan is right takes a person.
+What --apply does: backs up the file next to itself, then makes these additive changes, all or
+nothing. No existing rows change.
+  - students.archived_at: a new empty column. Empty means the student is active.
+  - One challan per student per month, enforced by a unique index.
+  - One mark per student, subject, exam, and year, enforced by a unique index.
 
-Rollback: restore the backup file, or run  DROP INDEX uq_invoices_student_month;
-Older code ignores the index.
+It stops, changing nothing, if duplicates already exist, because deciding which record is right
+takes a person.
+
+Run this BEFORE deploying code that needs it. The app refuses to start on a database without the
+new column. Older code ignores all three changes, so upgrading first is safe.
+
+Rollback: restore the backup file. Or run:
+    DROP INDEX uq_invoices_student_month;
+    DROP INDEX uq_results_student_subject_exam_year;
+    (The empty column can stay. Older code ignores it.)
 
 This reads no application secrets, so it can run without the app's settings.
 """
@@ -20,10 +30,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from models.fee import INVOICE_STUDENT_MONTH_INDEX as INDEX_NAME
+from models.fee import INVOICE_STUDENT_MONTH_INDEX
+from models.result import ExamType, RESULT_UNIQUE_INDEX
 from services.fee_ledger import parse_due_date
 
 ROW_LIMIT = 50
+ARCHIVE_COLUMN = "archived_at"
+VALID_EXAM_TYPES = ExamType.__args__
 
 
 def _default_database() -> Path:
@@ -41,7 +54,7 @@ def _print_section(title: str, rows: List[Tuple]) -> None:
         print(f"    ...and {len(rows) - ROW_LIMIT} more")
 
 
-def _duplicates(connection: sqlite3.Connection) -> List[Tuple]:
+def _duplicate_challans(connection: sqlite3.Connection) -> List[Tuple]:
     return connection.execute(
         """
         SELECT student_id, month, count(*), group_concat(challan_number, ', ')
@@ -50,11 +63,21 @@ def _duplicates(connection: sqlite3.Connection) -> List[Tuple]:
     ).fetchall()
 
 
-def _report(connection: sqlite3.Connection) -> List[Tuple]:
-    """Prints what a person should know about. Only duplicates block the upgrade."""
+def _duplicate_marks(connection: sqlite3.Connection) -> List[Tuple]:
+    return connection.execute(
+        """
+        SELECT student_id, subject, exam_type, academic_year_id, count(*)
+        FROM results GROUP BY student_id, subject, exam_type, academic_year_id HAVING count(*) > 1
+        """
+    ).fetchall()
+
+
+def _report_fees(connection: sqlite3.Connection) -> None:
     paid_sums = "SELECT invoice_id, sum(amount_paid) AS paid FROM payments GROUP BY invoice_id"
-    duplicates = _duplicates(connection)
-    _print_section("Students with two challans for one month (student, month, count, challans)", duplicates)
+    _print_section(
+        "Students with two challans for one month (student, month, count, challans)",
+        _duplicate_challans(connection),
+    )
     _print_section(
         "Invoices marked paid with no payment recorded (challan, amount)",
         connection.execute(
@@ -91,21 +114,60 @@ def _report(connection: sqlite3.Connection) -> List[Tuple]:
             if parse_due_date(due_date) is None
         ],
     )
-    return duplicates
 
 
-def _index_exists(connection: sqlite3.Connection) -> bool:
+def _report_marks(connection: sqlite3.Connection) -> None:
+    _print_section(
+        "Marks entered twice for one exam (student, subject, exam, year, count)",
+        _duplicate_marks(connection),
+    )
+    _print_section(
+        "Marks that cannot be right (student, subject, obtained, total)",
+        connection.execute(
+            """
+            SELECT student_id, subject, marks_obtained, total_marks FROM results
+            WHERE total_marks <= 0 OR marks_obtained < 0 OR marks_obtained > total_marks
+            """
+        ).fetchall(),
+    )
+    _print_section(
+        "Marks with an unknown exam type, shown only under that name (student, subject, exam)",
+        [row for row in connection.execute("SELECT student_id, subject, exam_type FROM results")
+         if row[2] not in VALID_EXAM_TYPES],
+    )
+
+
+def _index_exists(connection: sqlite3.Connection, name: str) -> bool:
     return (
-        connection.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name=?", (INDEX_NAME,)).fetchone()
+        connection.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name=?", (name,)).fetchone()
         is not None
     )
+
+
+def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> bool:
+    return any(row[1] == column for row in connection.execute(f"PRAGMA table_info({table})"))
+
+
+def _pending_changes(connection: sqlite3.Connection) -> List[str]:
+    """The SQL still needed, in the order to run it."""
+    changes = []
+    if not _column_exists(connection, "students", ARCHIVE_COLUMN):
+        changes.append(f"ALTER TABLE students ADD COLUMN {ARCHIVE_COLUMN} DATETIME")
+    if not _index_exists(connection, INVOICE_STUDENT_MONTH_INDEX):
+        changes.append(f"CREATE UNIQUE INDEX {INVOICE_STUDENT_MONTH_INDEX} ON invoices (student_id, month)")
+    if not _index_exists(connection, RESULT_UNIQUE_INDEX):
+        changes.append(
+            f"CREATE UNIQUE INDEX {RESULT_UNIQUE_INDEX} ON results (student_id, subject, exam_type, academic_year_id)"
+        )
+    return changes
 
 
 def _totals(connection: sqlite3.Connection) -> Tuple:
     return connection.execute(
         """
-        SELECT (SELECT count(*) FROM invoices), (SELECT count(*) FROM payments),
-               (SELECT sum(amount) FROM invoices), (SELECT sum(amount_paid) FROM payments)
+        SELECT (SELECT count(*) FROM students), (SELECT count(*) FROM invoices), (SELECT count(*) FROM payments),
+               (SELECT count(*) FROM results), (SELECT sum(amount) FROM invoices),
+               (SELECT sum(amount_paid) FROM payments), (SELECT sum(marks_obtained) FROM results)
         """
     ).fetchone()
 
@@ -119,26 +181,34 @@ def _backup(connection: sqlite3.Connection, database: Path) -> Path:
 
 
 def _apply(database: Path) -> int:
-    connection = sqlite3.connect(database)
+    connection = sqlite3.connect(database, isolation_level=None)
     try:
-        if _index_exists(connection):
+        changes = _pending_changes(connection)
+        if not changes:
             print("\nAlready upgraded. Nothing to do.")
             return 0
-        if _duplicates(connection):
-            print("\nStopped: resolve the duplicate challans listed above. Nothing was changed.")
+        if _duplicate_challans(connection) or _duplicate_marks(connection):
+            print("\nStopped: resolve the duplicates listed above. Nothing was changed.")
             return 1
 
         before = _totals(connection)
         backup_path = _backup(connection, database)
         print(f"\nBackup written: {backup_path}")
 
-        connection.execute(f"CREATE UNIQUE INDEX {INDEX_NAME} ON invoices (student_id, month)")
-        connection.commit()
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            for change in changes:
+                connection.execute(change)
+            connection.execute("COMMIT")
+        except sqlite3.Error as error:
+            connection.execute("ROLLBACK")
+            print(f"\nERROR: {error}. Nothing was changed.")
+            return 1
 
         if _totals(connection) != before:
             print(f"\nERROR: totals changed. Restore {backup_path}.")
             return 1
-        print(f"Upgrade complete. Invoices, payments and money totals are unchanged: {before}")
+        print(f"Upgrade complete. Record counts and totals are unchanged: {before}")
         return 0
     finally:
         connection.close()
@@ -147,7 +217,7 @@ def _apply(database: Path) -> int:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Report on and upgrade an EduCore database.")
     parser.add_argument("database", nargs="?", type=Path, default=None)
-    parser.add_argument("--apply", action="store_true", help="back up, then add the index")
+    parser.add_argument("--apply", action="store_true", help="back up, then make the additive changes")
     arguments = parser.parse_args(argv)
 
     database = arguments.database or _default_database()
@@ -158,13 +228,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"Database: {database}")
     read_only = sqlite3.connect(f"{database.resolve().as_uri()}?mode=ro", uri=True)
     try:
-        _report(read_only)
+        _report_fees(read_only)
+        _report_marks(read_only)
+        pending = _pending_changes(read_only)
     finally:
         read_only.close()
 
     if arguments.apply:
         return _apply(database)
-    print("\nReport only. Nothing was changed. Add --apply to upgrade.")
+    if pending:
+        print(f"\nReport only. Nothing was changed. {len(pending)} change(s) waiting. Add --apply to upgrade.")
+    else:
+        print("\nReport only. Nothing was changed. This database is already upgraded.")
     return 0
 
 

@@ -122,7 +122,7 @@ def test_same_month_is_fine_for_a_different_student(client, student_id):
     other = client.post(
         "/students",
         json={"name": "Other", "roll_number": f"FEE-{next(_rolls)}", "grade": "Grade 8", "section": "A",
-              "guardian_name": "G", "phone": "0300-1234567"},
+              "guardian_name": "Guardian", "phone": "0300-1234567"},
     ).json()["id"]
     month = _next_month()
 

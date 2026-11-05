@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { openPdf } from '../lib/pdf';
-
-const PDF_ERROR_MESSAGE = 'Could not open the PDF. Please try again.';
+import { openPdf, pdfErrorMessage } from '../lib/pdf';
 
 export default function PdfButton({ fetchPdf, className, title, children }) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
     setLoading(true);
-    const opened = await openPdf(fetchPdf);
+    let failure = null;
+    const opened = await openPdf(() =>
+      fetchPdf().catch((error) => {
+        failure = error;
+        throw error;
+      })
+    );
     setLoading(false);
-    if (!opened) window.alert(PDF_ERROR_MESSAGE);
+    if (!opened) window.alert(await pdfErrorMessage(failure));
   };
 
   return (

@@ -2,6 +2,8 @@
 
 > **Update, M2:** fee findings in sections 2, 4, 5, 6, and 8 are fixed on branch `mvp/m2-fees`, as designed in section 8. A unique index replaces the planned billing-period and due-date columns; see the roadmap.
 
+> **Update, M3:** student and results findings in sections 2, 4, 5, and 6 are fixed on branch `mvp/m3-records`. An `archived_at` column replaces the planned `status` column. Student averages now use one calculation, total over total. Foreign keys remain unenforced, and the delete rule keeps orphans from arising through the app.
+
 **Audit date:** 2026-11-04. Inspected on read-only copies. `backend/school.db` was not changed.
 
 ## 1. Database as found

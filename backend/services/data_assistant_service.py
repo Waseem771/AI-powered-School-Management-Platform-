@@ -6,6 +6,7 @@ from sqlmodel import Session, col, or_, select
 
 from models.fee import Invoice
 from models.result import Result, calculate_grade
+from services.academics import exam_summary, latest_exam_marks
 from models.student import Student
 from services.fee_ledger import STATUS_PAID, outstanding_balance, paid_by_invoice, school_totals
 
@@ -215,7 +216,9 @@ class SchoolDataAssistant:
             return {"count": 0, "students": [], "grade": grade}
 
         students = self.session.exec(
-            select(Student).where(Student.grade == grade).order_by(Student.section, Student.name)
+            select(Student)
+            .where(Student.grade == grade, col(Student.archived_at).is_(None))
+            .order_by(Student.section, Student.name)
         ).all()
 
         rows = [
@@ -271,18 +274,16 @@ class SchoolDataAssistant:
         student = self._find_student(student_identifier)
         if not student:
             return self._not_found(student_identifier)
-        results = self.session.exec(
-            select(Result).where(Result.student_id == student.id).order_by(Result.subject)
-        ).all()
-        percentage = (
-            round(sum((r.marks_obtained / r.total_marks) * 100 for r in results) / len(results), 1)
-            if results
-            else None
+        results = latest_exam_marks(
+            self.session.exec(
+                select(Result).where(Result.student_id == student.id).order_by(Result.subject)
+            ).all()
         )
         return {
             "found": True,
             "student": self._student_brief(student),
-            "average_percentage": percentage,
+            "exam_type": results[0].exam_type if results else None,
+            "average_percentage": exam_summary(results)["percentage"] if results else None,
             "results": [
                 {
                     "subject": r.subject,
@@ -366,6 +367,7 @@ class SchoolDataAssistant:
             "roll_number": student.roll_number,
             "grade": student.grade,
             "section": student.section,
+            "archived": student.archived_at is not None,
         }
 
     @staticmethod

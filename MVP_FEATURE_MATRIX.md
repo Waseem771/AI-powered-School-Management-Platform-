@@ -21,16 +21,16 @@
 | **Protected PDFs in production** | ❌ | Fixed in code (M1). Live deployment still returns 200 anonymously until deployed |
 | **Dashboard: total students** | ✅ | Real count |
 | **Dashboard: fees collected / pending** | ✅ | M2: from payment rows, with an overdue figure |
-| **Dashboard: exam performance** | 🟡 | Real averages, but a subject with no marks shows a fake 70.0 |
+| **Dashboard: exam performance** | ✅ | M3: each student's latest exam only; a subject with no marks is left out |
 | **Dashboard: grade distribution** | ✅ | Real |
 | **Dashboard: date ranges** | ⬜ | None; all data is all-time |
 | **Dashboard: recent activity** | ⬜ | No activity data exists |
 | **Dashboard: retry on error** | ❌ | "Try again" can never succeed |
 | **Student list, search, grade filter** | ✅ | Works; no section filter |
 | **Section filter** | ⬜ | API and UI both lack it |
-| **Add student** | 🟡 | Saves. Empty names, invalid grade, section, phone, and date of birth accepted by API |
-| **Edit student** | 🟡 | Duplicate roll or null field gives a 500 |
-| **Delete student** | 🟡 | Works, but permanently destroys fee and exam history |
+| **Add student** | ✅ | M3: all fields validated, with clear messages. Urdu names accepted |
+| **Edit student** | ✅ | M3: duplicate roll and null fields rejected clearly |
+| **Delete student** | ✅ | M3: archive and restore keep all history. Permanent delete refused if any records exist |
 | **Student profile page** | ⬜ | No page; data exists only in table rows |
 | **Fee invoice list and status filter** | ✅ | M2: shows balance and overdue; summary cards are independent of filters |
 | **Issue challan** | ✅ | M2: validated, one per student per month, current-month defaults |
@@ -42,11 +42,11 @@
 | **Late fees, sibling concession** | ⬜ | In policy text only |
 | **Challan PDF** | 🟡 | Normal names work. `<` crashes it. Urdu not extractable. Letter size rather than A4 |
 | **Challan PDF in deployed setup (cross-site)** | ✅ | M1: fetched with the login token. Confirmed in Chrome across two origins, not yet on Vercel and Modal |
-| **Marks entry** | 🟡 | Saves and upserts correctly. No range or subject validation in the API |
+| **Marks entry** | ✅ | M3: range, subject, and exam type validated. Stored against the current year |
 | **Grade calculation** | 🟡 | Consistent with policy table, but F below 50 conflicts with pass at 40 |
-| **Subject-wise results view** | 🟡 | Works. Pass/Fail is wrong when total is not 100. Midterm and final are mixed |
-| **Result summaries** | 🟡 | Aggregates mix exam types. "Promoted" shown with no data |
-| **Report card PDF** | ❌ | "PROMOTED" with no marks, invented date of birth, canned remark, mixed exams, Urdu name crash |
+| **Subject-wise results view** | ✅ | M3: Pass/Fail by percentage, with an exam picker |
+| **Result summaries** | ✅ | M3: one exam at a time. Promotion follows the written policy, with reasons |
+| **Report card PDF** | 🟡 | M3: truthful, one exam, policy-based. Urdu name crash and `<` handling remain for M4 |
 | **Chatbot UI** | 🟡 | Good layout. Status ticks are hardcoded; prompts hidden on mobile |
 | **Chatbot: policy questions** | ✅ | All 7 tested correct, with citations |
 | **Chatbot: collection and pending summaries** | ✅ | Correct |
@@ -106,11 +106,11 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 16 |
-| 🟡 Partially functional | 21 |
+| ✅ Fully functional | 23 |
+| 🟡 Partially functional | 15 |
 | 🖥️ Frontend only | 1 |
 | ⚙️ Backend only | 3 |
-| ❌ Broken | 10 |
+| ❌ Broken | 9 |
 | ⬜ Missing | 12 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |

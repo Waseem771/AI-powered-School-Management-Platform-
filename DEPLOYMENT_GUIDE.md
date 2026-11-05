@@ -62,27 +62,11 @@ cd backend
 modal run modal_app.py::seed_database_volume
 ```
 
-### Step 5: Deploy
+### Step 5: Upgrade an existing database, before deploying
 
-```bash
-modal deploy modal_app.py
-```
+Skip this for a brand-new database. **For any other database, do this first:** the new code refuses to start until it is done, and leaves the database untouched. The upgrade adds a field for archiving students, and stops duplicate challans and duplicate marks at database level. No existing records change, and the old code keeps working on an upgraded database.
 
-The app runs in **one container at a time**, because SQLite on a Modal Volume is safe with a single writer only. The first request after an idle period can take 10 seconds or more. Before a live demo, open the app a few minutes early, or keep a container warm with `min_containers=1` in `modal_app.py`, which costs money while it runs.
-
-### Step 6: Copy the backend URL
-
-Modal prints it after deploying:
-
-```
-https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
-```
-
-### Step 7: Upgrade an existing database
-
-This stops a student getting two challans for one month at database level. The app already checks this itself, so it is safe to do at a quiet time after deploying. Skip it for a brand-new database.
-
-First, see the report. It changes nothing, and lists any fee records that need a person to review:
+First, see the report. It changes nothing, and lists any records that need a person to review:
 
 ```bash
 modal run modal_app.py::upgrade_database
@@ -98,13 +82,25 @@ modal app stop educore-ai-school-platform
 modal run modal_app.py::upgrade_database --apply
 ```
 
+If the report lists duplicate challans or marks, the upgrade stops and changes nothing. Decide which record is right before trying again.
+
+To undo: restore the backup file, named `school.db.backup-<date>`, on the volume.
+
+### Step 6: Deploy
+
 ```bash
 modal deploy modal_app.py
 ```
 
-If the report lists duplicate challans, the upgrade stops and changes nothing. Decide which challan is right before trying again.
+The app runs in **one container at a time**, because SQLite on a Modal Volume is safe with a single writer only. The first request after an idle period can take 10 seconds or more. Before a live demo, open the app a few minutes early, or keep a container warm with `min_containers=1` in `modal_app.py`, which costs money while it runs.
 
-To undo: run `DROP INDEX uq_invoices_student_month;` or restore the backup file, named `school.db.backup-<date>`, on the volume.
+### Step 7: Copy the backend URL
+
+Modal prints it after deploying:
+
+```
+https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
+```
 
 ---
 

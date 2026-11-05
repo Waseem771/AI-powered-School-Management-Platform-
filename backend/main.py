@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
 from config import ADMIN_PASSWORD, ADMIN_PASSWORD_RESET, CORS_ORIGINS, IS_PRODUCTION, SCHOOL_NAME
@@ -63,6 +65,24 @@ async def add_security_headers(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     return response
+
+
+@app.exception_handler(RequestValidationError)
+async def readable_validation_error(_request: Request, error: RequestValidationError):
+    """Plain messages only. Repeating the input back would also crash on values like NaN."""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {
+                    "loc": [str(part) for part in item["loc"]],
+                    "msg": item["msg"].removeprefix("Value error, "),
+                    "type": item["type"],
+                }
+                for item in error.errors()
+            ]
+        },
+    )
 
 
 # Sign-in uses a bearer token, not cookies, so credentials stay off.

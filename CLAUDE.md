@@ -43,7 +43,8 @@ backend/            FastAPI app (run commands from here)
   routers/          auth, students, fees, results, dashboard, ai, chatbot, admissions_crew
   school_crew/      CrewAI agents for admissions (imported only when used)
   services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service,
-                    fee_ledger (all fee calculations), admin_setup, login_throttle, risk_features
+                    fee_ledger (all fee calculations), academics (all exam and promotion calculations),
+                    admin_setup, login_throttle, risk_features
   migrate_db.py     reports on and upgrades an existing database, with a backup
   knowledge_base/   5 policy .txt files used by the RAG chatbot
   test_*.py         pytest tests; test_modal.py is a manual script, not collected
@@ -112,16 +113,16 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 
 `main.py` wires up the routers in `routers/`, which call `services/` and use the SQLModel tables in `models/`. Startup creates missing tables and runs `services/admin_setup.py:ensure_admin_account`, which also refuses to run production on a known default password.
 
-- **Schema changes.** `SQLModel.metadata.create_all` adds new tables but never alters existing ones. Changes to existing tables go through `migrate_db.py`, which backs up first, reports problems, and only changes anything with `--apply`. Keep changes additive, and never delete a database to apply one.
+- **Schema changes.** `SQLModel.metadata.create_all` adds new tables but never alters existing ones. Changes to existing tables go through `migrate_db.py`, which backs up first, reports problems, and only changes anything with `--apply`. Keep changes additive, and never delete a database to apply one. The app refuses to start, leaving the database untouched, if a column it needs is missing, so run the upgrade before deploying the code that needs it.
 - **Config:** `config.py` loads `.env` and also holds the fixed school structure (`GRADES`, `SECTIONS`, `SUBJECTS`) and fee amounts.
 - **Dependencies:** every package is pinned to an exact version that works on Python 3.13 (local) and resolves for 3.11 (Modal). `modal_app.py` installs from the requirements files, so there is one list. Check any change with a clean install and `python -m pytest`.
 - **Optional AI admissions:** CrewAI is imported inside the request handler. The app must start and work without it, returning 503 for that feature only.
 
 ### Data model
 
-- `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (string).
+- `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (`YYYY-MM-DD`, or empty if unknown), `archived_at` (empty means active). Validation lives in `models/student.py`.
 - `invoices`: student_id, amount, month (`November 2026`), due_date (`10-Nov-2026`), unique `challan_number`, `status` (`pending`, `partial`, or `paid`), one per student per month. `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). Payment rows are the source of truth for money received. `fee_structures` and `academic_years` exist but are barely used.
-- `results`: student_id, subject, marks_obtained, total_marks, exam_type. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F.
+- `results`: student_id, subject, marks_obtained, total_marks, exam_type (`Final Term` or `Midterm`), academic_year_id, one per student, subject, exam, and year. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F. A subject is passed at 40%, and promotion follows `services/academics.py`, so a 40-49% subject reads as Grade F and Pass.
 - `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role.
 - `revoked_tokens`: tokens ended by logout, kept until they expire.
 
@@ -132,9 +133,9 @@ All routes require auth except `/auth/login`, `/auth/logout`, and the root statu
 | Prefix | Routes |
 |--------|--------|
 | `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
-| `/students` | `GET` (search, grade), `POST`, `GET/PUT/DELETE /{id}` |
+| `/students` | `GET` (search, grade, status), `POST`, `GET/PUT/DELETE /{id}`, `POST /{id}/archive`, `POST /{id}/restore` |
 | `/fees` | `GET` (status, grade, student_id), `GET /summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf` |
-| `/results` | `GET /{student_id}`, `POST` (upsert marks), `GET /{student_id}/report-card/pdf` |
+| `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /{student_id}/report-card/pdf` (same filters) |
 | `/dashboard` | `GET /stats` |
 | `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}` |
 | `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics` |
@@ -185,7 +186,9 @@ CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173
 - All fee money comes from `services/fee_ledger.py`, which the dashboard, Fees page, and chatbot share. Add fee calculations there only.
 - Challan numbers are `CHN-` plus a random number, checked against existing invoices (`_unique_challan_number` in `routers/fees.py`).
 - The challan PDF splits the invoice amount into tuition (capped at `TUITION_FEE_MONTHLY` from `config.py`) and the remainder as exam fee.
-- Deleting a student also removes their results, invoices, and the invoices' payments.
+- Students are archived, not deleted. `DELETE /students/{id}` is refused if they have any invoice or result. Archived students leave daily lists, counts, and at-risk, but their fee money stays in all totals, and they can still pay. They cannot get new challans or marks.
+- Marks from different exams or years are never added together. Anything reading marks uses `services/academics.py`; without a filter it means the latest exam (`latest_exam_marks`).
+- Promotion is decided on Final Term marks alone: 5 of 6 subjects passed and 50% aggregate. The policy's 20/30/50 weightage is not implemented.
 - Chatbot memory and the at-risk model are per process, so they behave differently across Modal containers.
 - `GROQ_MODEL` differs between `.env.example` and the README; trust `.env.example` and `config.py`.
 - Seed data is demo data (for example Ahmed Khan #045 and Bilal Tariq #012 are used in demos and tests). Don't change names the tests depend on.

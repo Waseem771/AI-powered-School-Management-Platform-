@@ -10,50 +10,66 @@ import {
   Phone,
   Calendar,
   AlertCircle,
-  GraduationCap
+  GraduationCap,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 import { api } from '../api/client';
 import PdfButton from '../components/PdfButton';
+import { apiErrorMessage } from '../lib/errors';
 
 const GRADES = ["All Grades", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 const SECTIONS = ["A", "B"];
+const VIEWS = [
+  { id: 'active', label: 'Current Students' },
+  { id: 'archived', label: 'Archived' }
+];
+const EMPTY_FORM = {
+  name: '',
+  roll_number: '',
+  grade: 'Grade 8',
+  section: 'A',
+  guardian_name: '',
+  phone: '',
+  dob: ''
+};
 
 export default function Students() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('All Grades');
+  const [view, setView] = useState('active');
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [formError, setFormError] = useState('');
+  // { type: 'archive' | 'restore' | 'delete', student } while a confirmation is open.
+  const [pendingAction, setPendingAction] = useState(null);
+  const [actionError, setActionError] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    roll_number: '',
-    grade: 'Grade 8',
-    section: 'A',
-    guardian_name: '',
-    phone: '',
-    dob: '2011-05-15'
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   useEffect(() => {
     fetchStudents();
-  }, [selectedGrade]);
+  }, [selectedGrade, view]);
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const params = {};
+      setLoadError('');
+      const params = { status: view };
       if (selectedGrade !== 'All Grades') params.grade = selectedGrade;
       if (search) params.search = search;
       const res = await api.getStudents(params);
       setStudents(res.data);
     } catch (err) {
-      console.error('Error fetching students:', err);
+      setStudents([]);
+      setLoadError(apiErrorMessage(err, 'Could not load students. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +89,7 @@ export default function Students() {
       resetForm();
       fetchStudents();
     } catch (err) {
-      setFormError(err.response?.data?.detail || 'Failed to create student.');
+      setFormError(apiErrorMessage(err, 'Failed to create student.'));
     }
   };
 
@@ -87,18 +103,28 @@ export default function Students() {
       resetForm();
       fetchStudents();
     } catch (err) {
-      setFormError(err.response?.data?.detail || 'Failed to update student.');
+      setFormError(apiErrorMessage(err, 'Failed to update student.'));
     }
   };
 
-  const handleDeleteStudent = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete student ${name}? This will remove all associated marks and invoices.`)) {
-      try {
-        await api.deleteStudent(id);
-        fetchStudents();
-      } catch (err) {
-        alert('Failed to delete student.');
-      }
+  const askToConfirm = (type, student) => {
+    setActionError('');
+    setPendingAction({ type, student });
+  };
+
+  const handleConfirmedAction = async () => {
+    const { type, student } = pendingAction;
+    const calls = { archive: api.archiveStudent, restore: api.restoreStudent, delete: api.deleteStudent };
+    setActionBusy(true);
+    setActionError('');
+    try {
+      await calls[type](student.id);
+      setPendingAction(null);
+      fetchStudents();
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'That did not work. Please try again.'));
+    } finally {
+      setActionBusy(false);
     }
   };
 
@@ -111,21 +137,14 @@ export default function Students() {
       section: s.section,
       guardian_name: s.guardian_name,
       phone: s.phone,
-      dob: s.dob || '2011-05-15'
+      dob: s.dob || ''
     });
+    setFormError('');
     setIsEditOpen(true);
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      roll_number: '',
-      grade: 'Grade 8',
-      section: 'A',
-      guardian_name: '',
-      phone: '',
-      dob: '2011-05-15'
-    });
+    setFormData(EMPTY_FORM);
     setFormError('');
   };
 
@@ -158,6 +177,33 @@ export default function Students() {
           <span>Register New Student</span>
         </button>
       </div>
+
+      {/* Current or archived students */}
+      <div className="flex items-center gap-2" role="tablist" aria-label="Which students to show">
+        {VIEWS.map((option) => (
+          <button
+            key={option.id}
+            role="tab"
+            aria-selected={view === option.id}
+            onClick={() => setView(option.id)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+              view === option.id
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {loadError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{loadError}</span>
+          <button onClick={fetchStudents} className="ml-auto font-bold underline">Try again</button>
+        </div>
+      )}
 
       {/* Filter & Search Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
@@ -213,7 +259,7 @@ export default function Students() {
               ) : filteredStudents.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="text-center py-10 text-slate-400">
-                    No matching student records found.
+                    {view === 'archived' ? 'No archived students.' : 'No matching student records found.'}
                   </td>
                 </tr>
               ) : (
@@ -253,17 +299,40 @@ export default function Students() {
                       <button
                         onClick={() => openEditModal(s)}
                         title="Edit Student"
+                        aria-label={`Edit ${s.name}`}
                         className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDeleteStudent(s.id, s.name)}
-                        title="Delete Student"
-                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {view === 'active' ? (
+                        <button
+                          onClick={() => askToConfirm('archive', s)}
+                          title="Archive Student"
+                          aria-label={`Archive ${s.name}`}
+                          className="p-1 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => askToConfirm('restore', s)}
+                            title="Restore Student"
+                            aria-label={`Restore ${s.name}`}
+                            className="p-1 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                          >
+                            <ArchiveRestore className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => askToConfirm('delete', s)}
+                            title="Delete Permanently"
+                            aria-label={`Delete ${s.name} permanently`}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -272,10 +341,59 @@ export default function Students() {
           </table>
         </div>
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-          <span>Showing {filteredStudents.length} registered students</span>
-          <span className="font-medium">Total Capacity: 500 Pupils</span>
+          <span>Showing {filteredStudents.length} {view === 'archived' ? 'archived' : 'current'} students</span>
         </div>
       </div>
+
+      {/* Archive / Restore / Delete confirmation */}
+      {pendingAction && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="student-action-title" className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 id="student-action-title" className="text-base font-bold text-slate-900">
+              {pendingAction.type === 'archive' && `Archive ${pendingAction.student.name}?`}
+              {pendingAction.type === 'restore' && `Restore ${pendingAction.student.name}?`}
+              {pendingAction.type === 'delete' && `Permanently delete ${pendingAction.student.name}?`}
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              {pendingAction.type === 'archive' &&
+                'For a student who has left. They leave the current lists and counts. Their fee records, payments, and exam marks are kept, and you can restore them at any time.'}
+              {pendingAction.type === 'restore' &&
+                'They return to the current lists and counts, with all their records.'}
+              {pendingAction.type === 'delete' &&
+                'Only for a record entered by mistake. This cannot be undone, and it is refused if the student has any fee or exam records.'}
+            </p>
+
+            {actionError && (
+              <div role="alert" className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-4 mt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPendingAction(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmedAction}
+                disabled={actionBusy}
+                className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-sm transition-colors disabled:opacity-60 ${
+                  pendingAction.type === 'delete' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {pendingAction.type === 'archive' && 'Archive Student'}
+                {pendingAction.type === 'restore' && 'Restore Student'}
+                {pendingAction.type === 'delete' && 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add / Edit Student Modal */}
       {(isAddOpen || isEditOpen) && (
@@ -379,7 +497,7 @@ export default function Students() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Date of Birth</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Date of Birth (optional)</label>
                 <input
                   type="date"
                   value={formData.dob}

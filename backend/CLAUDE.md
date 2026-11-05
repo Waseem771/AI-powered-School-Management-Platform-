@@ -38,4 +38,4 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 
 - `ai_service` trains on synthetic data at import time; its output differs by process, not by school data.
 - Risk features live only in `services/risk_features.py`; `dashboard.py` and `ai.py` both call it.
-- Student delete cascades manually (results, invoices, payments) because there are no DB-level cascades; extend `delete_student` if you add tables that reference students.
+- `delete_student` refuses a student with any invoice or result; everyone else is archived. If you add a table that references students, add it to that check. A query listing current students must filter on `archived_at`.

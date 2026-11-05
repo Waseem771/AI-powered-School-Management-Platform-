@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import PdfButton from '../components/PdfButton';
+import { apiErrorMessage } from '../lib/errors';
+import { examKey, examLabel, examParams, promotionBadge, promotionStyle } from '../lib/exams';
 
 const SUBJECTS = ["English", "Urdu", "Mathematics", "Science", "Islamiat", "Pakistan Studies"];
 
@@ -20,12 +22,15 @@ export default function Results() {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  // The exam being viewed. Null means the student's latest.
+  const [selectedExam, setSelectedExam] = useState(null);
 
   // Add / Edit Marks modal
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [entryForm, setEntryForm] = useState({
     subject: 'Mathematics',
-    marks_obtained: 85,
+    marks_obtained: '',
     total_marks: 100,
     exam_type: 'Final Term'
   });
@@ -37,9 +42,9 @@ export default function Results() {
 
   useEffect(() => {
     if (selectedStudentId) {
-      fetchStudentResults(selectedStudentId);
+      fetchStudentResults(selectedStudentId, selectedExam);
     }
-  }, [selectedStudentId]);
+  }, [selectedStudentId, selectedExam]);
 
   const fetchStudents = async () => {
     try {
@@ -52,20 +57,42 @@ export default function Results() {
         setSelectedStudentId(defaultId);
       }
     } catch (err) {
-      console.error('Error loading students:', err);
+      setLoadError(apiErrorMessage(err, 'Could not load students. Please try again.'));
     }
   };
 
-  const fetchStudentResults = async (id) => {
+  const fetchStudentResults = async (id, exam) => {
     try {
       setLoading(true);
-      const res = await api.getStudentResults(id);
+      setLoadError('');
+      const res = await api.getStudentResults(id, examParams(exam));
       setStudentData(res.data);
     } catch (err) {
-      console.error('Error fetching student results:', err);
+      setStudentData(null);
+      setLoadError(apiErrorMessage(err, 'Could not load marks. Please try again.'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectStudent = (id) => {
+    setSelectedExam(null);
+    setSelectedStudentId(id);
+  };
+
+  const handleSelectExam = (key) => {
+    const options = studentData?.available_exams || [];
+    setSelectedExam(options.find((exam) => examKey(exam) === key) || null);
+  };
+
+  const openEntryForm = () => {
+    setEntryMsg('');
+    setEntryForm({
+      ...entryForm,
+      marks_obtained: '',
+      exam_type: studentData?.exam?.exam_type || entryForm.exam_type
+    });
+    setIsEntryOpen(true);
   };
 
   const handleSaveMarks = async (e) => {
@@ -80,15 +107,22 @@ export default function Results() {
         exam_type: entryForm.exam_type
       });
       setIsEntryOpen(false);
-      fetchStudentResults(selectedStudentId);
+      // New marks always go into the current year, so show that year's copy of this exam.
+      const showing = { exam_type: entryForm.exam_type };
+      setSelectedExam(showing);
     } catch (err) {
-      setEntryMsg(err.response?.data?.detail || 'Failed to record marks.');
+      setEntryMsg(apiErrorMessage(err, 'Failed to record marks.'));
     }
   };
 
   const results = studentData?.results || [];
   const summary = studentData?.summary || {};
   const currentStudent = studentData?.student || {};
+  const promotion = studentData?.promotion;
+  const exam = studentData?.exam;
+  const availableExams = studentData?.available_exams || [];
+  const hasMarks = results.length > 0;
+  const badge = promotionBadge(promotion);
 
   const getGradeColor = (grade) => {
     switch (grade) {
@@ -120,22 +154,31 @@ export default function Results() {
         {selectedStudentId && (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsEntryOpen(true)}
+              onClick={openEntryForm}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition-colors"
             >
               <Plus className="w-4 h-4 text-blue-600" />
               <span>Update / Enter Mark</span>
             </button>
-            <PdfButton
-              fetchPdf={() => api.getReportCardPdf(selectedStudentId)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Report Card PDF</span>
-            </PdfButton>
+            {hasMarks && (
+              <PdfButton
+                fetchPdf={() => api.getReportCardPdf(selectedStudentId, examParams(exam))}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Report Card PDF</span>
+              </PdfButton>
+            )}
           </div>
         )}
       </div>
+
+      {loadError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{loadError}</span>
+        </div>
+      )}
 
       {/* Student Selector Card */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -145,7 +188,7 @@ export default function Results() {
           </label>
           <select
             value={selectedStudentId}
-            onChange={(e) => setSelectedStudentId(e.target.value)}
+            onChange={(e) => handleSelectStudent(e.target.value)}
             className="w-full sm:w-80 px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             {students.map(s => (
@@ -155,6 +198,24 @@ export default function Results() {
             ))}
           </select>
         </div>
+
+        {availableExams.length > 0 && (
+          <div className="w-full sm:w-auto">
+            <label htmlFor="exam-picker" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Exam
+            </label>
+            <select
+              id="exam-picker"
+              value={exam ? examKey(exam) : ''}
+              onChange={(e) => handleSelectExam(e.target.value)}
+              className="w-full sm:w-56 px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              {availableExams.map((option) => (
+                <option key={examKey(option)} value={examKey(option)}>{examLabel(option)}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {currentStudent.name && (
           <div className="flex items-center gap-4 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
@@ -177,13 +238,13 @@ export default function Results() {
       </div>
 
       {/* Summary Score Banner */}
-      {summary && (
+      {hasMarks && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-blue-100 uppercase">Aggregate Marks</p>
               <h3 className="text-2xl font-bold mt-1">
-                {summary.total_obtained || 0} <span className="text-sm font-normal text-blue-200">/ {summary.total_max || 600}</span>
+                {summary.total_obtained} <span className="text-sm font-normal text-blue-200">/ {summary.total_max}</span>
               </h3>
             </div>
             <Award className="w-10 h-10 text-white/40" />
@@ -192,7 +253,7 @@ export default function Results() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase">Overall Percentage</p>
-              <h3 className="text-2xl font-bold text-slate-800 mt-1">{summary.percentage || 0}%</h3>
+              <h3 className="text-2xl font-bold text-slate-800 mt-1">{summary.percentage}%</h3>
             </div>
             <Percent className="w-10 h-10 text-blue-500/20" />
           </div>
@@ -200,12 +261,24 @@ export default function Results() {
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase">Overall Grade</p>
-              <h3 className="text-2xl font-black text-indigo-700 mt-1">Grade {summary.grade || 'N/A'}</h3>
+              <h3 className="text-2xl font-black text-indigo-700 mt-1">Grade {summary.grade}</h3>
             </div>
-            <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${getGradeColor(summary.grade)}`}>
-              {summary.grade === 'F' ? 'Probation' : 'Promoted'}
-            </span>
+            {badge && (
+              <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${promotionStyle(promotion.status)}`}>
+                {badge}
+              </span>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* Why, in the policy's terms */}
+      {hasMarks && promotion && promotion.status !== 'promoted' && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 space-y-0.5">
+          {promotion.reasons.length > 0
+            ? promotion.reasons.map((reason) => <p key={reason}>{reason}</p>)
+            : <p>{promotion.label}.</p>}
+          {promotion.retake_eligible && <p className="font-semibold">Eligible for the retake examination.</p>}
         </div>
       )}
 
@@ -213,7 +286,7 @@ export default function Results() {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-800">Academic Subject Performance Breakdown</h3>
-          <span className="text-xs text-slate-500 font-medium">Session: 2025-2026 (Final Term)</span>
+          {exam && <span className="text-xs text-slate-500 font-medium">{examLabel(exam)}</span>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -249,7 +322,7 @@ export default function Results() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      {r.marks_obtained >= 40 ? (
+                      {r.passed ? (
                         <span className="text-emerald-600 font-semibold flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Pass
                         </span>
@@ -307,6 +380,7 @@ export default function Results() {
                     min="0"
                     max={entryForm.total_marks}
                     required
+                    aria-label="Marks Obtained"
                     value={entryForm.marks_obtained}
                     onChange={(e) => setEntryForm({ ...entryForm, marks_obtained: e.target.value })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -316,7 +390,11 @@ export default function Results() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Total Marks</label>
                   <input
                     type="number"
+                    step="any"
+                    min="1"
+                    max="1000"
                     required
+                    aria-label="Total Marks"
                     value={entryForm.total_marks}
                     onChange={(e) => setEntryForm({ ...entryForm, total_marks: e.target.value })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"

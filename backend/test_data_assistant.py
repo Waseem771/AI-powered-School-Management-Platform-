@@ -38,7 +38,7 @@ def test_student_lookup_and_fee_summary():
     assistant = SchoolDataAssistant(session)
 
     matches = assistant.find_students("ahmed")
-    assert matches == [{"id": 1, "name": "Ahmed Khan", "roll_number": "045", "grade": "Grade 8", "section": "A"}]
+    assert matches == [{"id": 1, "name": "Ahmed Khan", "roll_number": "045", "grade": "Grade 8", "section": "A", "archived": False}]
 
     summary = assistant.get_student_fee_summary("045")
     assert summary["student"]["name"] == "Ahmed Khan"
