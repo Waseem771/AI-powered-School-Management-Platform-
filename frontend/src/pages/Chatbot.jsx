@@ -18,20 +18,16 @@ import { answerSource, chatStatusSummary, describeChatStatus, policyName } from 
 import { apiErrorMessage } from '../lib/errors';
 
 /* ─────────── Data query quick-start prompts ─────────────────────────── */
+// School-wide on purpose: an example naming a student fails at any school without that student.
 const DATA_PROMPTS = [
-  { label: '⚠️ Pending fees list',   prompt: 'List me all students whose fees are pending'           },
-  { label: '👤 Student lookup',      prompt: 'Show me the profile of Ahmed Khan'                     },
-  { label: '🧠 Memory follow-up',    prompt: 'What are his pending fees?'                            },
-  { label: '📋 Grade 8 students',    prompt: 'List all students in Grade 8'                          },
-  { label: '💰 Student fees',        prompt: 'What are the pending dues for roll number 045?'        },
-  { label: '👥 Student count',       prompt: 'How many students are there?'                          },
-  { label: '🏆 Top students',        prompt: 'Who are the top students?'                             },
-  { label: '📚 Subject averages',    prompt: 'Show the subject averages'                             },
-  { label: '🗓️ Monthly fees',        prompt: 'Show the monthly fee collection'                       },
-  { label: '🔎 Risk estimates',      prompt: 'Which students are at risk?'                           },
-  { label: '📊 Marks & results',     prompt: 'Show results for Ahmed Khan'                           },
-  { label: '📈 Collection report',   prompt: 'What is the overall fee collection summary?'           },
-  { label: '🔍 Search student',      prompt: 'Find student Bilal Tariq'                              },
+  { label: 'Pending fees', prompt: 'List all students whose fees are pending' },
+  { label: 'Student count', prompt: 'How many students are there?' },
+  { label: 'Top students', prompt: 'Who are the top students?' },
+  { label: 'Grade 8 students', prompt: 'List all students in Grade 8' },
+  { label: 'Subject averages', prompt: 'Show the subject averages' },
+  { label: 'Monthly fees', prompt: 'Show the monthly fee collection' },
+  { label: 'Fee summary', prompt: 'What is the overall fee collection summary?' },
+  { label: 'Risk estimates', prompt: 'Which students are at risk?' },
 ];
 
 /* ─────────── Default Initial Greeting ──────────────────────────────── */
@@ -39,7 +35,7 @@ const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 const DEFAULT_GREETING = {
   id: 1,
   sender: 'bot',
-  text: "Hello! I am the school assistant. I can:\n\n• Answer policy questions (fees, exams, admissions, rules) from official school documents\n• Look up live student records, fee status, marks, and collection reports\n• Maintain conversation memory across questions (e.g. ask \"Show roll number 045\", then follow up with \"What are his pending fees?\")\n\nHow can I help you today?",
+  text: "Hello! I am the school assistant. I can:\n\n• Answer policy questions (fees, exams, admissions, rules) from official school documents\n• Look up live student records, fee status, marks, and collection reports\n• Maintain conversation memory across questions (ask about a student by roll number, then follow up with \"What are his fees?\")\n\nHow can I help you today?",
   sources: [],
   time: 'Just now',
 };

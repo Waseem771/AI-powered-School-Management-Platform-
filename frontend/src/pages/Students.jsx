@@ -137,8 +137,7 @@ export default function Students() {
   const columns = [
     { header: 'Name', mobile: 'title', render: (student) => (
       <div>
-        <Link to={`/students/${student.id}`} className="font-bold text-slate-900 underline-offset-2 hover:underline">{student.name}</Link>
-        <span className="ml-2 font-mono text-xs font-semibold text-brand-700 md:hidden">#{student.roll_number}</span>
+        <Link to={`/students/${student.id}`} className="inline-flex min-h-11 items-center font-bold text-slate-900 underline-offset-2 hover:underline">{student.name}</Link>
         <div className="text-xs text-slate-600">Born: {student.dob || 'Not recorded'}</div>
       </div>
     ) },

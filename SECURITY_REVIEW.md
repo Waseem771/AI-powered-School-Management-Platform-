@@ -21,7 +21,7 @@
 | S6 | Fixed: 10 failures per username, 30 per address, per 15 minutes |
 | S7 | Fixed: exact origins only |
 | S8 | Fixed: logout revokes the token and clears all local data, including chat history |
-| S11 | Partly: token lifetime cut to 8 hours and auth cookies removed. A browser CSP is still open, and needs testing with the PDF viewer (M10) |
+| S11 | Partly: token lifetime cut to 8 hours and auth cookies removed. M10 added a browser security policy in `frontend/vercel.json`, tested with PDFs on a local production build, not yet on Vercel. Tokens stay in browser storage |
 | S17, S20 | Fixed on the API. Frontend gets basic headers through `vercel.json` |
 | S19 | Python pinned, `follow-redirects` fixed. **Accepted for now:** 2 moderate `react-router` advisories need a major upgrade to v7. They concern open redirects from dynamic navigation and server rendering; this app navigates only to fixed paths and has no server rendering. Revisit in M10 |
 | S10 | Fixed in M3: students are archived, and delete is refused if they have invoices or results |

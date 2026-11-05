@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M9: 487 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M10: 487 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -30,9 +30,10 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Admissions: failure message shown on the page | ⬜ | ✅ M0, in browser |
 | Admissions: real AI answer | ⬜ | ⬜ needs token |
 | No known credential patterns in project files | ❌ | ✅ M0 |
-| `npm test` | ✅ 2 of 2 | ✅ M3: 24 of 24 |
-| `vite build` | ✅ (chunk-size warning) | ✅ M1 |
-| `npm audit --omit=dev` clean | ❌ 3 issues | 🟡 M1: 2 moderate, accepted (see SECURITY_REVIEW) |
+| `npm test` | ✅ 2 of 2 | ✅ M10: 52 of 52 |
+| `vite build` | ✅ (chunk-size warning) | ✅ M10 |
+| Browser tests (`npm run test:e2e`), at 1280, 768, and 375 px | ⬜ | ✅ M10: 53 passed, in Edge, on the production build with security headers |
+| `npm audit --omit=dev` clean | ❌ 3 issues | 🟡 M10: still 2 moderate, accepted (see SECURITY_REVIEW) |
 | Tests cannot touch real `school.db` | ❌ `test_backend.py` uses it by default | ✅ M0, checksum matched |
 
 ## Authentication and authorisation
@@ -77,8 +78,8 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Search handles SQL characters safely | ✅ | |
 | Delete preserves fee and exam history | ❌ | ✅ M3, in browser: refused with history; archive and restore keep it |
 | Archived students leave counts, while fee totals stay the same | ⬜ | ✅ M3 |
-| Section filter | ⬜ not built | |
-| Profile page | ⬜ not built | |
+| Section filter | ⬜ not built | ✅ M8 |
+| Profile page | ⬜ not built | ✅ M8 |
 
 ## Fees
 
@@ -139,10 +140,10 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Total students matches database | ✅ 51 | |
 | Grade distribution matches database | ✅ | |
 | Fee totals match seeded data | ✅ | |
-| No invented averages for empty subjects | ❌ 70.0 | |
-| No hardcoded claims ("100% Active" etc.) | ❌ | |
-| Retry works after failure | ❌ | |
-| Under 1.5 s at 500 students | ❌ 3.0 s | |
+| No invented averages for empty subjects | ❌ 70.0 | ✅ M3 |
+| No hardcoded claims ("100% Active" etc.) | ❌ | ✅ M7 |
+| Retry works after failure | ❌ | ✅ M10, browser test |
+| Under 1.5 s at 500 students | ❌ 3.0 s | ✅ M10: 0.45 s or less, measured locally |
 
 ## AI at-risk
 
@@ -182,15 +183,15 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 
 | Check | Baseline | Retest |
 |---|---|---|
-| Backend down: Dashboard shows error | ✅ by 5 s; zeros shown first in dev mode | ✅ M7, no false zeros |
-| Backend down: Students shows error | ❌ says no records | ✅ M7, Try again tested |
-| Backend down: Fees shows error | ❌ Rs. 0 | ✅ M7 |
-| Backend down: Results shows error | ❌ "Promoted" | 🟡 M7: uses the same shared error code, not run with the server down |
-| Backend down: At-Risk shows error | ❌ | ✅ M7 |
+| Backend down: Dashboard shows error | ✅ by 5 s; zeros shown first in dev mode | ✅ M10, browser test, no false zeros |
+| Backend down: Students shows error | ❌ says no records | ✅ M10, browser test |
+| Backend down: Fees shows error | ❌ Rs. 0 | ✅ M10, browser test |
+| Backend down: Results shows error | ❌ "Promoted" | ✅ M10, browser test, no false Promoted |
+| Backend down: At-Risk shows error | ❌ | ✅ M10, browser test |
 | Backend down: Chatbot shows error | ✅ | |
-| Session expiry redirects to login | ⬜ code exists, not run in browser | |
-| Forms show field-level validation | ❌ | |
-| No dead buttons or links | ⬜ needs a full click-through after M8 | |
+| Session expiry redirects to login | ⬜ code exists, not run in browser | ✅ M10, browser test |
+| Forms show field-level validation | ❌ | ❌ Errors show at the top of a form, except class marks. Plain and specific, but not beside each field |
+| No dead buttons or links | ⬜ needs a full click-through after M8 | 🟡 M10: all navigation and every demo step clicked by tests. Not every button on every page |
 
 ## Responsive
 
@@ -201,30 +202,30 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Tap targets at least 44 px | ❌ | ✅ M7, measured on all 7 pages |
 | Tables usable without sideways scroll | ❌ | ✅ M7, cards on phones |
 | Chatbot prompts available on mobile | ❌ | ✅ M8 |
-| Tablet (768 px) | ⬜ | |
-| Real phone | ⬜ | |
-| Screenshot review by a person | ⬜ pane was hidden | |
+| Tablet (768 px) | ⬜ | ✅ M10, browser size, not a real tablet |
+| Real phone | ⬜ | ⬜ Needs the owner |
+| Screenshot review by a person | ⬜ pane was hidden | 🟡 M10: reviewed by me, which found 3 real problems. Still needs the owner |
 
 ## Database safety
 
 | Check | Baseline | Retest |
 |---|---|---|
 | Existing data has no integrity problems | ✅ | |
-| Foreign keys enforced | ❌ | |
-| Duplicate-preventing unique indexes | ❌ | |
-| Migration tested on a copy | ⬜ none yet | |
-| Backup and restore tested | ⬜ | |
+| Foreign keys enforced | ❌ | ❌ Not enforced by SQLite here. The app's own rules prevent orphans |
+| Duplicate-preventing unique indexes | ❌ | ✅ M2, M3 |
+| Migration tested on a copy | ⬜ none yet | ✅ M2, M3 |
+| Backup and restore tested | ⬜ | ✅ M10: file backup restored exactly, locally. Not on Modal |
 | `school.db` unchanged by audit | ✅ checksum matched | |
 
 ## 10-minute demo walkthrough (run after M9)
 
 | Step | Baseline | Retest |
 |---|---|---|
-| 1. Log in with safe demo credentials | ❌ uses public default | |
-| 2. Dashboard overview | 🟡 stale data, hype labels | |
-| 3. Search and open a student | ❌ no profile page | |
-| 4. Show invoice and payment | 🟡 no payment history view | |
-| 5. Generate challan | 🟡 works locally; ❌ cross-site after deploy | |
-| 6. Enter marks | ✅ | |
-| 7. Generate report card | 🟡 same deploy problem; inaccurate statements | |
-| 8. Ask the AI about demo data | ❌ wrong student | |
+| 1. Log in with safe demo credentials | ❌ uses public default | ✅ M10, browser test |
+| 2. Dashboard overview | 🟡 stale data, hype labels | ✅ M10, browser test |
+| 3. Search and open a student | ❌ no profile page | ✅ M10, browser test |
+| 4. Show invoice and payment | 🟡 no payment history view | ✅ M10, browser test |
+| 5. Generate challan | 🟡 works locally; ❌ cross-site after deploy | ✅ M10, browser test, locally |
+| 6. Enter marks | ✅ | ✅ M10, browser test |
+| 7. Generate report card | 🟡 same deploy problem; inaccurate statements | ✅ M10, browser test, locally |
+| 8. Ask the AI about demo data | ❌ wrong student | ✅ M10, browser test, without Groq |

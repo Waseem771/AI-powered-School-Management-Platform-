@@ -68,6 +68,12 @@ From `frontend/`:
 npm test
 ```
 
+```bash
+npm run test:e2e
+```
+
+The last one runs the whole demo in Microsoft Edge, on its own ports and a throwaway database.
+
 Tests use a temporary database and blank keys, so they cannot touch `school.db` or call an AI service.
 
 ## Technology
@@ -82,6 +88,7 @@ Tests use a temporary database and blank keys, so they cannot touch `school.db` 
 | Document | For |
 |---|---|
 | [DEMO_GUIDE.md](DEMO_GUIDE.md), [SAMPLE_DEMO_SCENARIO.md](SAMPLE_DEMO_SCENARIO.md) | Running and presenting the demo |
+| [MVP_FINAL_REPORT.md](MVP_FINAL_REPORT.md) | Where the project stands, test results, and next steps |
 | [MVP_RELEASE_CHECKLIST.md](MVP_RELEASE_CHECKLIST.md) | What remains before going online, or using real records |
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Modal and Vercel |
 | [CLAUDE.md](CLAUDE.md) | How the code is organised |

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { addToast, countLabel, focusTrapTarget, nextActiveIndex, studentLabel, viewState } from './uiState.js';
+import { LIST_STEP, addToast, countLabel, focusTrapTarget, nextActiveIndex, nextVisibleCount, studentLabel, viewState } from './uiState.js';
 
 test('a failure never looks like an empty list', () => {
   assert.equal(viewState({ loading: false, error: 'Server down', count: 0 }), 'error');
@@ -32,6 +32,12 @@ test('a student is named with roll number and class, so two with one name differ
   const label = studentLabel({ name: 'Ahmed Khan', roll_number: '045', grade: 'Grade 8', section: 'B' });
 
   assert.equal(label, 'Ahmed Khan (#045, Grade 8-B)');
+});
+
+test('a long list grows in steps, and stops at its end', () => {
+  assert.equal(nextVisibleCount(LIST_STEP, 358), LIST_STEP * 2);
+  assert.equal(nextVisibleCount(350, 358), 358);
+  assert.equal(nextVisibleCount(358, 358), 358);
 });
 
 test('counts read correctly', () => {

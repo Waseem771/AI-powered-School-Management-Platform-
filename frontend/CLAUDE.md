@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # output in dist/
 npm test
+npm run test:e2e # browser tests; set E2E_PYTHON if `python` lacks the backend's packages
 ```
 
 There is no lint or formatter. The backend must be running on `localhost:8000` (or `VITE_API_URL` set) for any page to load data.

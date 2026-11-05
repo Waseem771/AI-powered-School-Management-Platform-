@@ -233,7 +233,7 @@ export default function StudentProfile() {
         </div>
         <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Fact label="Guardian">{student.guardian_name}</Fact>
-          <Fact label="Phone"><a href={`tel:${student.phone}`} className="inline-flex min-h-11 items-center text-brand-700 underline-offset-2 hover:underline sm:min-h-0">{student.phone}</a></Fact>
+          <Fact label="Phone"><a href={`tel:${student.phone}`} className="inline-flex min-h-11 items-center text-brand-700 underline-offset-2 hover:underline">{student.phone}</a></Fact>
           <Fact label="Date of birth">{student.dob || 'Not recorded'}</Fact>
         </dl>
       </Card>

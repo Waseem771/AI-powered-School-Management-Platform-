@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). M9 is complete on branch `mvp/m9-demo`, built on M8 (not pushed), except removing old files, which waits for approval. Next: M10.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). M9 is complete on branch `mvp/m9-demo`, built on M8 (not pushed), except removing old files, which waits for approval. M10 is complete on branch `mvp/m10-qa`, built on M9 (not pushed), except what needs the owner. See `MVP_FINAL_REPORT.md`.
 
 ## Principles
 
@@ -170,10 +170,12 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Not done:** old files stay until the owner approves removing them (`MVP_RELEASE_CHECKLIST.md`, section 7). The demo has only been run locally. The Final Term marks carry no date, and sit in the current session so that real trends show, though December's exams would not have happened yet on some build dates. The calendar's dates are made up.
 
-#### M10. Full QA and release (medium)
+#### M10. Full QA and release ✅ complete locally, not deployed
 - Run all of [MVP_TESTING_CHECKLIST.md](MVP_TESTING_CHECKLIST.md). Add Playwright for the 10-minute demo flow.
 - Rehearse the demo on real phone and desktop.
 - Prepare the final report. **Deploy only with your approval.**
+
+**Done:** 53 browser tests on the production build, a browser security policy, speed at 500 students, backup and restore, and `MVP_FINAL_REPORT.md`. **Not done: rehearsal on a real phone, which needs the owner, and deployment, which needs approval.**
 
 ### Stage 4: P1, only after the MVP demo works
 

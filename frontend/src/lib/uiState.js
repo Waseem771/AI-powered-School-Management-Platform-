@@ -33,6 +33,13 @@ export function studentLabel(student) {
   return `${student.name} (#${student.roll_number}, ${student.grade}-${student.section})`;
 }
 
+export const LIST_STEP = 25;
+
+/** How many rows to show next when a long list is asked for more. Never more than exist. */
+export function nextVisibleCount(current, total, step = LIST_STEP) {
+  return Math.min(current + step, total);
+}
+
 /** "1 student", "2 students". */
 export function countLabel(count, singular, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;

@@ -103,7 +103,7 @@ export default function Dashboard() {
       )}
 
       {/* Top 4 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Current students"
           value={kpis.total_students ?? 0}
@@ -292,7 +292,7 @@ export default function Dashboard() {
             {activityItems.map((item) => (
               <li key={`${item.kind}-${item.payment_id ?? item.invoice_id ?? item.student_id}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
                 <div className="min-w-0">
-                  <Link to={`/students/${item.student_id}`} className="font-semibold text-slate-900 underline-offset-2 hover:underline">{item.student_name}</Link>
+                  <Link to={`/students/${item.student_id}`} className="inline-flex min-h-11 items-center font-semibold text-slate-900 underline-offset-2 hover:underline">{item.student_name}</Link>
                   <span className="ml-2 font-mono text-xs text-slate-600">#{item.roll_number}</span>
                   <p className="text-slate-700">{activityText(item)}</p>
                 </div>

@@ -18,7 +18,7 @@ const studentColumn = {
   mobile: 'title',
   render: (invoice) => (
     <div>
-      <Link to={`/students/${invoice.student_id}`} className="font-bold text-slate-900 underline-offset-2 hover:underline">{invoice.student_name}</Link>
+      <Link to={`/students/${invoice.student_id}`} className="inline-flex min-h-11 items-center font-bold text-slate-900 underline-offset-2 hover:underline">{invoice.student_name}</Link>
       {invoice.student_archived && <span className="ml-1.5"><Badge>Archived</Badge></span>}
       <div className="text-xs text-slate-600">Roll #{invoice.roll_number} &bull; {invoice.grade}-{invoice.section}</div>
     </div>

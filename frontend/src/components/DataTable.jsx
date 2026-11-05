@@ -1,6 +1,7 @@
 import React from 'react';
 import { EmptyState, ErrorState, LoadingState } from './ui/States';
 import { viewState } from '../lib/uiState';
+import { ShowMoreButton, useShowMore } from './ui/ShowMore';
 
 const alignClass = (column) => (column.align === 'right' ? 'text-right' : 'text-left');
 
@@ -61,14 +62,16 @@ function Table({ columns, rows, rowKey }) {
  * 'title' for the card's heading and 'actions' for its buttons. Any other column is a labelled line.
  */
 export default function DataTable({ columns, rows, rowKey = (row) => row.id, loading, error, onRetry, loadingLabel, emptyState }) {
+  const list = useShowMore(rows);
   const state = viewState({ loading, error, count: rows.length });
   if (state === 'loading') return <LoadingState label={loadingLabel} />;
   if (state === 'error') return <ErrorState message={error} onRetry={onRetry} />;
   if (state === 'empty') return <EmptyState {...emptyState} />;
   return (
     <>
-      <Cards columns={columns} rows={rows} rowKey={rowKey} />
-      <Table columns={columns} rows={rows} rowKey={rowKey} />
+      <Cards columns={columns} rows={list.shown} rowKey={rowKey} />
+      <Table columns={columns} rows={list.shown} rowKey={rowKey} />
+      <ShowMoreButton list={list} />
     </>
   );
 }

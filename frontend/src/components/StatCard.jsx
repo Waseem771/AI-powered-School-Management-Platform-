@@ -7,19 +7,20 @@ const ICON_TONES = {
   red: 'bg-rose-50 text-rose-700',
 };
 
+/** The icon sits beside the title, so a large figure always has the card's full width. */
 export default function StatCard({ title, value, subtitle, icon: Icon, color = 'blue' }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-600">{title}</p>
-        <p className="mt-1 whitespace-nowrap text-xl font-bold text-navy-900 xl:text-2xl">{value}</p>
-        {subtitle && <p className="mt-1 text-xs text-slate-600">{subtitle}</p>}
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 text-sm font-semibold text-slate-600">{title}</p>
+        {Icon && (
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${ICON_TONES[color]}`}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </div>
+        )}
       </div>
-      {Icon && (
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${ICON_TONES[color]}`}>
-          <Icon className="h-6 w-6" aria-hidden="true" />
-        </div>
-      )}
+      <p className="mt-1 break-words text-2xl font-bold text-navy-900">{value}</p>
+      {subtitle && <p className="mt-1 text-xs text-slate-600">{subtitle}</p>}
     </div>
   );
 }

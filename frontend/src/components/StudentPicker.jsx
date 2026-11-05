@@ -115,10 +115,12 @@ export default function StudentPicker({ label = 'Student', student, onChange, au
       {open && !student && (
         // Part of the page's flow, so a dialog's scrolling can never cut it off.
         // Keeps focus in the field while an option is pressed, so the press is not lost to blur.
+        // tabIndex -1: browsers can tab into a scrolling list, and focus would be lost when it closes.
         <ul
           id={listId}
           role="listbox"
           aria-label={label}
+          tabIndex={-1}
           onMouseDown={(event) => event.preventDefault()}
           className="mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1"
         >

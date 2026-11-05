@@ -6,6 +6,7 @@ import RiskSimulator from '../components/RiskSimulator';
 import Button from '../components/ui/Button';
 import { SearchInput } from '../components/ui/Field';
 import { Card, PageHeader } from '../components/ui/Page';
+import { ShowMoreButton, useShowMore } from '../components/ui/ShowMore';
 import { EmptyState, ErrorNotice, ErrorState, LoadingState } from '../components/ui/States';
 import { apiErrorMessage } from '../lib/errors';
 import {
@@ -120,6 +121,8 @@ export default function AtRisk() {
     || student.grade.toLowerCase().includes(query)
   ));
 
+  const list = useShowMore(shown);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -150,7 +153,7 @@ export default function AtRisk() {
 
       <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput label="Search by name, roll number, or grade" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full max-w-md" />
-        <p className="text-sm text-slate-600">Showing <b>{shown.length}</b> of {students.length}</p>
+        <p className="text-sm text-slate-600"><b>{shown.length}</b> of {students.length} match</p>
       </Card>
 
       <ErrorNotice>{detailError}</ErrorNotice>
@@ -159,9 +162,10 @@ export default function AtRisk() {
         {loading && <Card><LoadingState label="Loading estimates…" /></Card>}
         {!loading && loadError && <Card><ErrorState message={loadError} onRetry={fetchStudents} /></Card>}
         {!loading && !loadError && shown.length === 0 && <Card><EmptyState icon={Users} title="No students match this view" message="Try a different band or search." /></Card>}
-        {!loading && !loadError && shown.map((student) => (
+        {!loading && !loadError && list.shown.map((student) => (
           <StudentCard key={student.id} student={student} opening={openingId === student.id} onOpen={() => openDetail(student.id)} />
         ))}
+        {!loading && !loadError && list.hasMore && <Card><ShowMoreButton list={list} /></Card>}
       </div>
 
       {simulatorOpen && <RiskSimulator onClose={() => setSimulatorOpen(false)} />}

@@ -22,10 +22,10 @@ The live site still runs older code. These do not wait for the rest.
 
 ## 3. Code
 
-- ✅ M0 to M9 complete in code, on branches built one on another
-- [ ] 👤 Approve pushing branches M2 to M9
+- ✅ M0 to M10 complete in code, on branches built one on another. Results are in [MVP_FINAL_REPORT.md](MVP_FINAL_REPORT.md)
+- [ ] 👤 Approve pushing branches M2 to M10
 - [ ] Merge in order and confirm tests still pass after each
-- [ ] M10: full QA pass
+- ✅ M10: full QA pass on the local production build
 
 ## 4. Tests
 
@@ -33,11 +33,13 @@ The live site still runs older code. These do not wait for the rest.
 - [ ] Tests pass on the merged code
 - [ ] 👤 Valid Groq key added locally, and all chatbot paths run against it
 - [ ] 👤 New Modal token added locally, and a real Admissions answer reviewed
-- [ ] Run on a real phone and at tablet width
-- [ ] A person looks over every page
+- ✅ Run in a browser at phone and tablet widths
+- [ ] 👤 Run on a real phone
+- [ ] 👤 You look over every page
 - [ ] 👤 Challan, report card, and receipt printed on A4, and Urdu names checked by a native reader
-- [ ] Browser security policy (CSP) tested with the PDF viewer
-- [ ] Session expiry tested in a browser
+- ✅ Browser security policy tested with PDFs, on a local production build
+- ✅ Session expiry tested in a browser
+- [ ] Security policy confirmed on Vercel
 
 ## 5. Online demo
 

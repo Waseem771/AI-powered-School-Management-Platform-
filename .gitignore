@@ -9,6 +9,8 @@ env/
 # Build artifacts & caches
 dist/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
 build/
 *.py[cod]
 __pycache__/

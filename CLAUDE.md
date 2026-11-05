@@ -88,9 +88,10 @@ npm run build
 python -m pytest                 # from backend/; all backend tests
 python -m pytest test_backend.py # from backend/; one file
 npm test                         # from frontend/
+npm run test:e2e                 # from frontend/; the demo in a real browser, on its own ports and throwaway database
 ```
 
-`backend/conftest.py` gives every test run a temporary seeded database and blank keys, so tests cannot touch `school.db` or call Groq. Running a test file directly (`python test_backend.py`) also goes through pytest and stays isolated.
+Browser tests in `frontend/e2e/` use the production build with the headers from `vercel.json`, and installed Edge (`E2E_CHANNEL` to change it). Set `E2E_PYTHON` if `python` lacks the backend's packages. `backend/conftest.py` gives every test run a temporary seeded database and blank keys, so tests cannot touch `school.db` or call Groq. Running a test file directly (`python test_backend.py`) also goes through pytest and stays isolated.
 
 ## Environment variables
 
@@ -193,13 +194,13 @@ ReportLab reads text as markup, so all stored text must go through `_field`, `_h
 
 ### Frontend
 
-Pages are built from `src/components/ui/`, and colours come from the `navy`, `brand`, and `accent` tokens in `tailwind.config.js`. Every data view separates loading, failed (with Try again), and empty, through `DataTable` or `ui/States.jsx`, so a server failure never looks like no records. Controls are at least 44 px. Tables become cards on phones. There are no browser alert or confirm boxes: use `Modal` and `useToast`. Screens use plain language, with no technical names such as RAG or SHAP.
+Pages are built from `src/components/ui/`, and colours come from the `navy`, `brand`, and `accent` tokens in `tailwind.config.js`. Every data view separates loading, failed (with Try again), and empty, through `DataTable` or `ui/States.jsx`, so a server failure never looks like no records. Controls are at least 44 px. Tables become cards on phones, and long lists show 25 at a time (`ui/ShowMore.jsx`). There are no browser alert or confirm boxes: use `Modal` and `useToast`. Screens use plain language, with no technical names such as RAG or SHAP.
 
 All API calls go through the `api` object in `src/api/client.js`, which also handles the 401 redirect to `/login`. The base URL is `VITE_API_URL`, falling back to `localhost:8000` in dev and a hardcoded Modal URL in production builds. Pages live in `src/pages/` and are routed in `src/App.jsx` under the shared `Layout`. `ProtectedRoute` only checks that `educore_user` exists in `localStorage`; the backend enforces real access.
 
 The chatbot page keeps its history, session id, and memory toggle in `localStorage` (`educore_chat_history`, `educore_chat_session_id`, `educore_chat_memory_enabled`). "Try the model" (`components/RiskSimulator.jsx`) calls the real model through `POST /ai/simulate`.
 
-CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173 and 5174 in development. In production, `/docs` and `/openapi.json` are off and security headers are added.
+The browser security policy is in `frontend/vercel.json`. If the backend moves off `*.modal.run`, update `connect-src` there. CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173 and 5174 in development. In production, `/docs` and `/openapi.json` are off and security headers are added.
 
 ## Known gotchas
 
