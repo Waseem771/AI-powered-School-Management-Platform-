@@ -8,7 +8,8 @@ What must be true before showing EduCore AI online, and before any real school's
 
 The live site still runs older code. These do not wait for the rest.
 
-- [ ] 👤 Revoke the Modal proxy token published in the repo's history, and create a new one
+- ✅ Revoked the Modal proxy token published in the repo's history (owner, 2026-11-05)
+- [ ] 👤 Create a new token, only if using Admissions
 - [ ] 👤 Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal secret `educore-secrets`
 - [ ] 👤 Approve merging and deploying the safety fixes in pull request #1
 
@@ -23,7 +24,7 @@ The live site still runs older code. These do not wait for the rest.
 ## 3. Code
 
 - ✅ M0 to M10 complete in code, on branches built one on another. Results are in [MVP_FINAL_REPORT.md](MVP_FINAL_REPORT.md)
-- [ ] 👤 Approve pushing branches M2 to M10
+- ✅ Branches M2 to M10 pushed to GitHub, not merged
 - [ ] Merge in order and confirm tests still pass after each
 - ✅ M10: full QA pass on the local production build
 

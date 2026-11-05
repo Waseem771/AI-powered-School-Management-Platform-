@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). M9 is complete on branch `mvp/m9-demo`, built on M8 (not pushed), except removing old files, which waits for approval. M10 is complete on branch `mvp/m10-qa`, built on M9 (not pushed), except what needs the owner. See `MVP_FINAL_REPORT.md`.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1. M3 is complete on branch `mvp/m3-records`, built on M2. M4 is complete on branch `mvp/m4-pdfs`, built on M3, and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4, except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5. M7 is complete on branch `mvp/m7-design`, built on M6. M8 is complete on branch `mvp/m8-pages`, built on M7. M9 is complete on branch `mvp/m9-demo`, built on M8, except removing old files, which waits for approval. M10 is complete on branch `mvp/m10-qa`, built on M9, except what needs the owner. See `MVP_FINAL_REPORT.md`. All branches are on GitHub, not merged or deployed.
 
 ## Principles
 
@@ -206,7 +206,7 @@ M2 needs to land before M5 so the chatbot uses the corrected fee calculation. M3
 
 ## What is still needed
 
-- **Revoke the published Modal proxy token now** (see SECURITY_REVIEW.md, S0).
+- ~~Revoke the published Modal proxy token~~ Done by the owner on 2026-11-05.
 - A Groq API key in your local `backend/.env` before M5. Do not paste it in chat.
 - A new Modal proxy token in your local `backend/.env` before reviewing Admissions.
 - Approval to deploy after M1.

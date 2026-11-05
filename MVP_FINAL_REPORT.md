@@ -1,6 +1,6 @@
 # EduCore AI: MVP Final Report
 
-**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **Nothing from M2 onward is pushed, merged, or deployed.**
+**Date:** 5 November 2026. **Code:** branch `mvp/m10-qa`, which holds all of M0 to M10. **All branches are on GitHub. Nothing from M2 onward is merged or deployed.**
 
 ## Verdict
 
@@ -79,7 +79,7 @@ Please do not assume these work:
 
 | Status | Findings |
 |---|---|
-| **Needs you now** | **S0:** a Modal proxy token is public in the repo's history and must be revoked. **The live site** still has S0a, S1, S3, S4, and S5 until pull request #1 is deployed |
+| **Needs you now** | **The live site** still has S0a, S1, S3, S4, and S5 until pull request #1 is deployed |
 | Fixed in code | Sign-in key and password handling, hashing, sign-in limits, exact-origin CORS, logout, PDF access, safe PDF text, file names, chatbot input limits, per-user chat, delete protection, security headers, and a browser security policy |
 | Partly fixed | **S11:** tokens stay in browser storage, now short-lived and backed by a security policy. **S12:** contact details are on fewer screens. **S15:** contact details no longer go to Groq, but names, marks, and fees do when a key is set, so schools must be told |
 | Open | **S9:** no staff roles, so every account has full access. No general request limits beyond sign-in. No record of who changed what |
@@ -106,9 +106,9 @@ Details: [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 
 In order of urgency:
 
-1. **Revoke the published Modal token.** Do this first.
+1. ~~Revoke the published Modal token.~~ Done on 5 November 2026.
 2. **Set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL`** in the Modal secret, then **approve deploying** the security fixes.
-3. **Approve pushing** branches M2 to M10.
+3. ~~Approve pushing branches M2 to M10.~~ Done on 5 November 2026.
 4. **Answer two policy questions:** does a 40-49% subject count as a pass (now Grade F and Pass, as written), and should promotion use Final Term only?
 5. **Review:** click through the app, print the samples on A4, and have an Urdu reader check the names.
 6. **Add a Groq key** to `backend/.env` if you want AI wording in demos. Do not paste it in chat.

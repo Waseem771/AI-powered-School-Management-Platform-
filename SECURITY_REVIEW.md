@@ -12,7 +12,7 @@
 
 | IDs | Status |
 |---|---|
-| S0 | Code fixed. **The token must still be revoked in Modal** |
+| S0 | Code fixed. The owner reported revoking the token in Modal on 2026-11-05. It stays visible in git history, but no longer works |
 | S0a, S1 | Fixed in code; live until deployed |
 | S2 | Fixed: PDFs are fetched with the login token. Confirmed in real Chrome across two origins |
 | S3 | Fixed: production refuses a missing, short, or published key. Key removed from docs. **A new key must be set on Modal** |
@@ -38,7 +38,7 @@
 
 These need **you**, because they touch your production accounts and I will not deploy without approval:
 
-0. **Revoke the Modal proxy token** (S0) in the Modal dashboard and create a new one. Do this first: it is public now, and removing it from code does not make it safe.
+0. ~~Revoke the Modal proxy token~~ (S0): done by the owner on 2026-11-05. A new one is needed only for AI Admissions.
 1. **Set a new random `SECRET_KEY`** in the Modal secret `educore-secrets`. Generate one with:
 
    ```bash
