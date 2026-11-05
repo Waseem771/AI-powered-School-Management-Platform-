@@ -19,9 +19,8 @@ def client():
 
 
 @pytest.fixture()
-def auth_headers(client):
-    login = client.post("/auth/login", json={"username": "admin", "password": "admin123"})
-    client.cookies.clear()
+def auth_headers(client, admin_password):
+    login = client.post("/auth/login", json={"username": "admin", "password": admin_password})
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 

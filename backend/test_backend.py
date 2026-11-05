@@ -12,14 +12,14 @@ from main import app
 
 client = TestClient(app)
 
-def test_all_endpoints():
+def test_all_endpoints(admin_password):
     print("--- 1. Testing Root Endpoint ---")
     res = client.get("/")
     assert res.status_code == 200, res.text
     print("Root OK:", res.json())
 
     print("\n--- 2. Testing Auth Login ---")
-    login_res = client.post("/auth/login", json={"username": "admin", "password": "admin123"})
+    login_res = client.post("/auth/login", json={"username": "admin", "password": admin_password})
     assert login_res.status_code == 200, login_res.text
     token_data = login_res.json()
     token = token_data["access_token"]
@@ -61,7 +61,7 @@ def test_all_endpoints():
     assert len(invoices) > 0
 
     first_inv_id = invoices[0]["id"]
-    pdf_res = client.get(f"/fees/{first_inv_id}/pdf")
+    pdf_res = client.get(f"/fees/{first_inv_id}/pdf", headers=headers)
     assert pdf_res.status_code == 200
     assert pdf_res.headers["content-type"] == "application/pdf"
     assert len(pdf_res.content) > 1000
@@ -74,7 +74,7 @@ def test_all_endpoints():
     res_data = results_res.json()
     print(f"Results for student {res_data['student']['name']}: {len(res_data['results'])} subjects. Summary: {res_data['summary']}")
 
-    report_pdf_res = client.get(f"/results/{first_student_id}/report-card/pdf")
+    report_pdf_res = client.get(f"/results/{first_student_id}/report-card/pdf", headers=headers)
     assert report_pdf_res.status_code == 200
     assert report_pdf_res.headers["content-type"] == "application/pdf"
     assert len(report_pdf_res.content) > 1000
@@ -100,12 +100,12 @@ def test_all_endpoints():
 
     print("\n--- 8. Testing RAG Policy Chatbot ---")
     # Topics
-    topics_res = client.get("/chatbot/topics")
+    topics_res = client.get("/chatbot/topics", headers=headers)
     assert topics_res.status_code == 200
     print(f"Chatbot topics available: {len(topics_res.json()['topics'])}")
 
     # Ask Question
-    chat_q = client.post("/chatbot/ask", json={"question": "What is the fee refund policy?"})
+    chat_q = client.post("/chatbot/ask", headers=headers, json={"question": "What is the fee refund policy?"})
     assert chat_q.status_code == 200
     chat_ans = chat_q.json()
     print(f"Chatbot Question: What is the fee refund policy?")

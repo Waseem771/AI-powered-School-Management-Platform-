@@ -4,7 +4,7 @@ print(f"Python: {sys.version}")
 modules = [
     "fastapi", "uvicorn", "sqlmodel", "reportlab", "sklearn",
     "shap", "sentence_transformers", "faiss", "groq",
-    "jwt", "passlib", "bcrypt", "multipart", "dotenv",
+    "jwt", "bcrypt", "multipart", "dotenv",
     "numpy", "pandas"
 ]
 

@@ -9,8 +9,9 @@ Deployment Quickstart:
 2. Authenticate modal account:
        modal setup
 
-3. Create your secret on Modal dashboard or CLI:
-       modal secret create educore-secrets GROQ_API_KEY=gsk_... SECRET_KEY=educore_secret_jwt_2026
+3. Create your secret on the Modal dashboard. See DEPLOYMENT_GUIDE.md for each value:
+       SECRET_KEY, ADMIN_PASSWORD, FRONTEND_URL, and optionally GROQ_API_KEY,
+       MODAL_PROXY_TOKEN_ID, MODAL_PROXY_TOKEN_SECRET
 
 4. Seed the database on the Modal persistent volume:
        modal run modal_app.py::seed_database_volume
@@ -49,7 +50,10 @@ image = (
     volumes={"/data": data_volume},
     secrets=[modal.Secret.from_name("educore-secrets")],
     timeout=300,
+    # SQLite on a Volume is safe with one writer only, and the login throttle lives in memory.
+    max_containers=1,
 )
+@modal.concurrent(max_inputs=20)
 @modal.asgi_app()
 def fastapi_app():
     """Serverless ASGI entrypoint for FastAPI on Modal."""

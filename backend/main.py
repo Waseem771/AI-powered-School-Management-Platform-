@@ -1,11 +1,12 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sqlmodel import Session, select
 
-from config import SCHOOL_NAME
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import Session
+
+from config import ADMIN_PASSWORD, ADMIN_PASSWORD_RESET, CORS_ORIGINS, IS_PRODUCTION, SCHOOL_NAME
 from database import create_db_and_tables, engine
-from models.user import User, hash_password
+from services.admin_setup import ensure_admin_account
 from services.ai_service import ai_service
 
 # Routers
@@ -18,59 +19,59 @@ from routers.ai import router as ai_router
 from routers.chatbot import router as chatbot_router
 from routers.admissions_crew import router as admissions_crew_router
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("=== [EduCore AI] Initializing System ===")
-    # 1. Ensure database tables exist
     create_db_and_tables()
 
-    # 2. Ensure default admin user exists
     with Session(engine) as session:
-        admin_user = session.exec(select(User).where(User.username == "admin")).first()
-        if not admin_user:
-            admin = User(
-                username="admin",
-                password_hash=hash_password("admin123"),
-                role="admin"
-            )
-            session.add(admin)
-            session.commit()
-            print("[Auth] Created default admin account (admin / admin123)")
+        ensure_admin_account(session, IS_PRODUCTION, ADMIN_PASSWORD, force_reset=ADMIN_PASSWORD_RESET)
 
-    # 3. Keep startup responsive. The embedding model is initialized on the
+    if IS_PRODUCTION and not CORS_ORIGINS:
+        print("[Security] FRONTEND_URL is not set, so browsers cannot reach this API.")
+
+    # Keep startup responsive. The embedding model is initialized on the
     # first policy-assistant request instead of blocking every API endpoint.
     print("[RAG] Policy assistant model will initialize on first use.")
 
-    print("=== [EduCore AI] System Ready on http://localhost:8000 ===")
+    print("=== [EduCore AI] System Ready ===")
     yield
     print("=== [EduCore AI] Shutting down ===")
 
+
 app = FastAPI(
     title=f"EduCore AI - {SCHOOL_NAME} Management API",
-    description="Full-stack AI-powered School Administration Platform featuring JWT Auth, Student CRUD, ReportLab PDF generators, scikit-learn + SHAP At-Risk detection, and FAISS + Groq RAG policy chatbot.",
+    description="School administration platform: students, fees, exam results, analytics, and AI assistance.",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
 )
 
-import os
 
-cors_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-]
-frontend_url = os.getenv("FRONTEND_URL", "").strip()
-if frontend_url:
-    cors_origins.append(frontend_url.rstrip("/"))
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    # Student records and PDFs must not linger in shared-computer browser caches.
+    response.headers["Cache-Control"] = "no-store"
+    if IS_PRODUCTION:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    return response
 
+
+# Sign-in uses a bearer token, not cookies, so credentials stay off.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Register routers
@@ -83,16 +84,19 @@ app.include_router(ai_router)
 app.include_router(chatbot_router)
 app.include_router(admissions_crew_router)
 
+
 @app.get("/")
 def root():
-    return {
+    status = {
         "system": "EduCore AI",
         "school": SCHOOL_NAME,
         "status": "online",
         "version": "1.0.0",
-        "docs_url": "/docs"
     }
+    return status if IS_PRODUCTION else {**status, "docs_url": "/docs"}
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -54,6 +54,29 @@ def test_no_credentials_are_written_in_project_files():
     assert offenders == []
 
 
+def test_published_signing_key_and_default_password_are_gone_from_docs_and_frontend():
+    old_key_fragment = "educore_super" + "_secret"
+    old_password = "admin" + "123"
+    places = [
+        PROJECT_DIR / "README.md",
+        PROJECT_DIR / "DEPLOYMENT_GUIDE.md",
+        PROJECT_DIR / "CLAUDE.md",
+        BACKEND_DIR / "CLAUDE.md",
+        BACKEND_DIR / ".env.example",
+        BACKEND_DIR / "modal_app.py",
+        BACKEND_DIR / "config.py",
+        *(PROJECT_DIR / "frontend" / "src").rglob("*.js*"),
+    ]
+
+    offenders = [
+        str(path.relative_to(PROJECT_DIR))
+        for path in places
+        if old_key_fragment in (text := path.read_text(encoding="utf-8", errors="ignore")) or old_password in text
+    ]
+
+    assert offenders == []
+
+
 if __name__ == "__main__":
     import sys
 

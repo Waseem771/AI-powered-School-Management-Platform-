@@ -10,7 +10,6 @@ sentence-transformers==6.2.0
 faiss-cpu==1.15.1
 groq==1.7.0
 pyjwt==2.15.1
-passlib==1.7.4
 bcrypt==5.0.0
 python-multipart==0.0.33
 python-dotenv==1.2.4

@@ -2,11 +2,11 @@ import random
 from datetime import datetime, date
 from sqlmodel import Session, select
 from database import engine, create_db_and_tables
-from models.user import User, hash_password
 from models.student import Student
 from models.fee import AcademicYear, FeeStructure, Invoice, Payment
 from models.result import Result
-from config import GRADES, SUBJECTS
+from config import ADMIN_PASSWORD, ADMIN_PASSWORD_RESET, GRADES, IS_PRODUCTION, SUBJECTS
+from services.admin_setup import ensure_admin_account
 
 PAKISTANI_NAMES = [
     # Boys
@@ -42,15 +42,7 @@ def seed_database():
             return
 
         # 1. Seed Admin User
-        admin = session.exec(select(User).where(User.username == "admin")).first()
-        if not admin:
-            admin = User(
-                username="admin",
-                password_hash=hash_password("admin123"),
-                role="admin"
-            )
-            session.add(admin)
-            print("[Seed] Created admin account: admin / admin123")
+        ensure_admin_account(session, IS_PRODUCTION, ADMIN_PASSWORD, force_reset=ADMIN_PASSWORD_RESET)
 
         # 2. Seed Academic Year
         ay = session.exec(select(AcademicYear).where(AcademicYear.label == "2025-2026")).first()
