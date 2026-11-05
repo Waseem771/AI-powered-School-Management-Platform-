@@ -1,22 +1,45 @@
 from collections import Counter
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, col, select
-from typing import Dict
+from typing import Dict, Optional
 from database import get_session
 from models.student import Student
 from models.result import Result
 from services.academics import latest_exam_marks, percentage
 from services.ai_service import CATEGORY_HIGH, CATEGORY_LOW, CATEGORY_MEDIUM, NOT_ENOUGH_DATA
 from routers.auth import get_current_user
-from services.fee_ledger import school_totals
+from services.fee_ledger import monthly_totals, school_totals
+from services.school_activity import recent_activity
 from services.risk_assessment import assess_students
 from config import GRADES, SUBJECTS
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
+DEFAULT_ACTIVITY_ITEMS = 10
+MAX_ACTIVITY_ITEMS = 50
+
+
+def _fee_period(session: Session, month: Optional[str], totals: dict) -> dict:
+    """The fee figures to show: one billing month, or everything. A month with no invoices is all zeros."""
+    if not month:
+        return {
+            "month": None,
+            "invoiced": totals["invoiced"],
+            "collected": totals["collected"],
+            "outstanding": totals["outstanding"],
+            "overdue": totals["overdue"],
+            "collection_rate": totals["collection_rate"],
+        }
+    rows = [row for row in monthly_totals(session, month) if row["month"].casefold() == month.strip().casefold()]
+    if not rows:
+        return {"month": month, "invoiced": 0, "collected": 0, "outstanding": 0, "overdue": 0, "collection_rate": 0.0}
+    row = rows[0]
+    return {key: row[key] for key in ("month", "invoiced", "collected", "outstanding", "overdue", "collection_rate")}
+
 @router.get("/stats")
 def get_dashboard_stats(
+    month: Optional[str] = None,
     session: Session = Depends(get_session),
     _user = Depends(get_current_user)
 ):
@@ -29,6 +52,7 @@ def get_dashboard_stats(
     fee_totals = school_totals(session)
     total_paid = fee_totals["collected"]
     total_pending = fee_totals["outstanding"]
+    fee_period = _fee_period(session, month, fee_totals)
 
     # Grade distribution
     grade_counts = {}
@@ -85,9 +109,11 @@ def get_dashboard_stats(
         },
         "grade_distribution": grade_distribution,
         "fee_summary": [
-            {"name": "Collected", "value": total_paid, "color": "#10B981"},
-            {"name": "Pending Dues", "value": total_pending, "color": "#EF4444"}
+            {"name": "Collected", "value": fee_period["collected"], "color": "#10B981"},
+            {"name": "Pending Dues", "value": fee_period["outstanding"], "color": "#EF4444"}
         ],
+        "fee_period": fee_period,
+        "fee_months": [row["month"] for row in monthly_totals(session)],
         "risk_breakdown": [
             {"category": CATEGORY_HIGH, "count": high_risk_count, "fill": "#EF4444"},
             {"category": CATEGORY_MEDIUM, "count": medium_risk_count, "fill": "#F59E0B"},
@@ -96,3 +122,12 @@ def get_dashboard_stats(
         ],
         "subject_performance": subject_performance
     }
+
+
+@router.get("/activity")
+def get_recent_activity(
+    limit: int = Query(default=DEFAULT_ACTIVITY_ITEMS, ge=1, le=MAX_ACTIVITY_ITEMS),
+    session: Session = Depends(get_session),
+    _user=Depends(get_current_user),
+):
+    return {"items": recent_activity(session, limit)}

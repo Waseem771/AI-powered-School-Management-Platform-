@@ -105,7 +105,7 @@ export default function Layout() {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-white">{schoolName}</p>
-            {session && <p className="truncate text-[11px] text-accent-300">{session}</p>}
+            {session && <p className="truncate text-[11px] text-accent-300">{session}{school?.demo_mode ? ' · DEMO MODE' : ''}</p>}
           </div>
         </div>
         <button
@@ -203,6 +203,7 @@ export default function Layout() {
         <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-slate-200 bg-white px-8 py-3 md:flex">
           <div>
             {session && <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800">{session}</span>}
+            {school?.demo_mode && <span className="ml-2 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">DEMO MODE</span>}
           </div>
           <p className="text-sm text-slate-700">Signed in as <b>{user.username}</b></p>
         </header>

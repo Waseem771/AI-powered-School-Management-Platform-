@@ -45,7 +45,7 @@ export const api = {
 
   // Students
   getStudents: (params, options) => client.get('/students', { params, ...options }),
-  getStudent: (id) => client.get(`/students/${id}`),
+  getStudent: (id, options) => client.get(`/students/${id}`, options),
   createStudent: (data) => client.post('/students', data),
   updateStudent: (id, data) => client.put(`/students/${id}`, data),
   deleteStudent: (id) => client.delete(`/students/${id}`),
@@ -53,7 +53,10 @@ export const api = {
   restoreStudent: (id) => client.post(`/students/${id}/restore`),
 
   // Fees
-  getFees: (params) => client.get('/fees', { params }),
+  getFees: (params, options) => client.get('/fees', { params, ...options }),
+  getStudentFeeSummary: (studentId, options) => client.get(`/fees/student/${studentId}/summary`, options),
+  getReceiptPdf: (paymentId) =>
+    client.get(`/fees/payments/${paymentId}/receipt`, { responseType: 'blob' }).then((response) => response.data),
   getFeeSummary: () => client.get('/fees/summary'),
   getInvoicePayments: (invoiceId, options) => client.get(`/fees/${invoiceId}/payments`, options),
   generateChallan: (data) => client.post('/fees/generate', data),
@@ -62,7 +65,9 @@ export const api = {
     client.get(`/fees/${invoiceId}/pdf`, { responseType: 'blob' }).then((response) => response.data),
 
   // Results
-  getStudentResults: (studentId, params) => client.get(`/results/${studentId}`, { params }),
+  getStudentResults: (studentId, params, options) => client.get(`/results/${studentId}`, { params, ...options }),
+  getClassMarks: (params, options) => client.get('/results/class', { params, ...options }),
+  saveClassMarks: (data) => client.post('/results/class', data),
   enterMarks: (data) => client.post('/results', data),
   getReportCardPdf: (studentId, params) =>
     client
@@ -72,10 +77,12 @@ export const api = {
   // Dashboard
   getDashboardStats: (options) => client.get('/dashboard/stats', options),
   getSchoolInfo: (options) => client.get('/school/info', options),
+  getPublicSchool: (options) => client.get('/school/public', options),
+  getRecentActivity: (options) => client.get('/dashboard/activity', options),
 
   // AI At-Risk
   getAtRiskStudents: (params) => client.get('/ai/at-risk', { params }),
-  getStudentRiskDetail: (studentId) => client.get(`/ai/at-risk/${studentId}`),
+  getStudentRiskDetail: (studentId, options) => client.get(`/ai/at-risk/${studentId}`, options),
   simulateRisk: (payload, options) => client.post('/ai/simulate', payload, options),
 
   // Chatbot

@@ -1,77 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Download, GraduationCap, Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, CheckCircle2, Download, GraduationCap, Plus, Search, Users } from 'lucide-react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
+import { ClassMarksDialog, MarksDialog } from '../components/MarksDialogs';
 import PdfButton from '../components/PdfButton';
 import StatCard from '../components/StatCard';
 import StudentPicker from '../components/StudentPicker';
 import Button from '../components/ui/Button';
-import { SelectField, TextField } from '../components/ui/Field';
-import Modal from '../components/ui/Modal';
+import { SelectField } from '../components/ui/Field';
 import { Badge, Card, PageHeader } from '../components/ui/Page';
-import { EmptyState, ErrorNotice } from '../components/ui/States';
+import { EmptyState } from '../components/ui/States';
 import { useToast } from '../components/ui/Toast';
 import { apiErrorMessage } from '../lib/errors';
 import { examKey, examLabel, examParams, promotionBadge, promotionStyle } from '../lib/exams';
 
-const SUBJECT_OPTIONS = ['English', 'Urdu', 'Mathematics', 'Science', 'Islamiat', 'Pakistan Studies'].map((subject) => ({ value: subject, label: subject }));
-const EXAM_TYPE_OPTIONS = [
-  { value: 'Final Term', label: 'Final Term' },
-  { value: 'Midterm', label: 'Midterm' },
-];
-const FORM_ID = 'marks-form';
 const GRADE_TONES = { 'A+': 'good', A: 'good', B: 'info', C: 'warn', D: 'warn' };
-
-function MarksDialog({ student, examType, onClose, onSaved }) {
-  const [form, setForm] = useState({ subject: 'Mathematics', marks_obtained: '', total_marks: 100, exam_type: examType || 'Final Term' });
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const field = (key) => ({ value: form[key], onChange: (event) => setForm({ ...form, [key]: event.target.value }) });
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      await api.enterMarks({
-        student_id: student.id,
-        subject: form.subject,
-        marks_obtained: parseFloat(form.marks_obtained),
-        total_marks: parseFloat(form.total_marks),
-        exam_type: form.exam_type,
-      });
-      onSaved(form);
-    } catch (err) {
-      setError(apiErrorMessage(err, 'The marks could not be saved. Please try again.'));
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Modal
-      title="Enter Marks"
-      description={student.name}
-      busy={saving}
-      onClose={onClose}
-      footer={(
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button type="submit" form={FORM_ID} disabled={saving}>{saving ? 'Saving…' : 'Save Marks'}</Button>
-        </>
-      )}
-    >
-      <ErrorNotice>{error}</ErrorNotice>
-      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
-        <SelectField label="Subject" options={SUBJECT_OPTIONS} {...field('subject')} />
-        <div className="grid grid-cols-2 gap-4">
-          <TextField label="Marks obtained" type="number" step="0.5" min="0" max={form.total_marks} required {...field('marks_obtained')} />
-          <TextField label="Total marks" type="number" step="any" min="1" max="1000" required {...field('total_marks')} />
-        </div>
-        <SelectField label="Exam" options={EXAM_TYPE_OPTIONS} {...field('exam_type')} />
-      </form>
-    </Modal>
-  );
-}
 
 export default function Results() {
   const [student, setStudent] = useState(null);
@@ -81,6 +25,7 @@ export default function Results() {
   // The exam being viewed. Null means the student's latest.
   const [selectedExam, setSelectedExam] = useState(null);
   const [entering, setEntering] = useState(false);
+  const [enteringClass, setEnteringClass] = useState(false);
   const toast = useToast();
 
   const fetchResults = async () => {
@@ -146,9 +91,10 @@ export default function Results() {
       <PageHeader
         title="Exam Results"
         subtitle="Enter marks, see grades and promotion, and print report cards."
-        actions={student && (
+        actions={(
           <>
-            <Button variant="secondary" onClick={() => setEntering(true)}><Plus className="h-4 w-4" aria-hidden="true" /><span>Enter Marks</span></Button>
+            <Button variant="secondary" onClick={() => setEnteringClass(true)}><Users className="h-4 w-4" aria-hidden="true" /><span>Enter for a Class</span></Button>
+            {student && <Button variant="secondary" onClick={() => setEntering(true)}><Plus className="h-4 w-4" aria-hidden="true" /><span>Enter Marks</span></Button>}
             {hasMarks && (
               <PdfButton variant="primary" fetchPdf={() => api.getReportCardPdf(student.id, examParams(exam))}>
                 <Download className="h-4 w-4" aria-hidden="true" />
@@ -160,7 +106,10 @@ export default function Results() {
       />
 
       <Card className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
-        <StudentPicker student={student} onChange={handleChooseStudent} />
+        <div>
+          <StudentPicker student={student} onChange={handleChooseStudent} />
+          {student && <Link to={`/students/${student.id}`} className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline">Open full profile</Link>}
+        </div>
         {availableExams.length > 0 && (
           <SelectField
             label="Exam"
@@ -225,6 +174,12 @@ export default function Results() {
         </>
       )}
 
+      {enteringClass && (
+        <ClassMarksDialog
+          onClose={() => setEnteringClass(false)}
+          onSaved={(message) => { setEnteringClass(false); toast.success(message); fetchResults(); }}
+        />
+      )}
       {entering && <MarksDialog student={student} examType={exam?.exam_type} onClose={() => setEntering(false)} onSaved={handleMarksSaved} />}
     </div>
   );

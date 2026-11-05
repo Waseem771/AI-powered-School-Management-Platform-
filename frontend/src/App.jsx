@@ -5,6 +5,7 @@ import { ToastProvider } from './components/ui/Toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
+import StudentProfile from './pages/StudentProfile';
 import Fees from './pages/Fees';
 import Results from './pages/Results';
 import AtRisk from './pages/AtRisk';
@@ -40,6 +41,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="students" element={<Students />} />
+          <Route path="students/:id" element={<StudentProfile />} />
           <Route path="fees" element={<Fees />} />
           <Route path="results" element={<Results />} />
           <Route path="at-risk" element={<AtRisk />} />

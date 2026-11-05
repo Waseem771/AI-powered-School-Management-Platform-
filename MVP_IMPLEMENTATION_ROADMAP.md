@@ -1,6 +1,6 @@
 # EduCore AI: MVP Implementation Roadmap
 
-**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). Next: M8.
+**Status:** approved. M0 and M1 are in pull request #1 (not merged or deployed). M2 is complete on branch `mvp/m2-fees`, built on M1 (not pushed). M3 is complete on branch `mvp/m3-records`, built on M2 (not pushed). M4 is complete on branch `mvp/m4-pdfs`, built on M3 (not pushed), and waits for the owner's review of printed samples. M5 is complete on branch `mvp/m5-chatbot`, built on M4 (not pushed), except its test against a real Groq key. M6 is complete on branch `mvp/m6-honest-ai`, built on M5 (not pushed). M7 is complete on branch `mvp/m7-design`, built on M6 (not pushed). M8 is complete on branch `mvp/m8-pages`, built on M7 (not pushed). Next: M9.
 
 ## Principles
 
@@ -145,7 +145,7 @@ Effort figures are rough working-session estimates, not commitments.
 
 **Limits:** form errors appear at the top of a form, not beside each field. The login page has no school name, because it is shown before sign-in. The chatbot's suggested questions are still hidden on phones (M8). Not yet checked on a real phone, at tablet width, or by a person looking at every page.
 
-#### M8. Page improvements (medium to large)
+#### M8. Page improvements ✅ complete in code, not deployed
 - **Login:** EduCore AI branding and tagline, validation, DEMO MODE label only in demo mode.
 - **Dashboard:** real KPIs only, a date range or month filter, real recent activity (fees and enrolments).
 - **Students:** section filter, profile page combining biodata, fees, and results.
@@ -153,6 +153,10 @@ Effort figures are rough working-session estimates, not commitments.
 - **Results:** exam-type selector, correct Pass/Fail, whole-class entry if time allows.
 - **Chatbot:** visible prompts on mobile, clear "From school records" vs "From policy documents" labels.
 - School name and session come from one backend config.
+
+**Done:** all of the above, including whole-class marks entry. No database change was needed: the dates on existing records give recent activity. Fees filter by billing month, not by a free date range, because that is how fees are organised here.
+
+**Limits:** the dashboard's filter applies to fee figures only. A receipt's "Received by" line is for signing by hand. Receipts were checked on screen, not on paper. Field-level form errors are still not built: errors appear at the top of a form, except on whole-class marks.
 
 ### Stage 3: Demo
 

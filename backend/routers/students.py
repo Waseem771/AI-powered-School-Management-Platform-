@@ -43,6 +43,7 @@ def _commit_roll_number_change(session: Session, roll_number: str) -> None:
 def get_students(
     search: Optional[str] = None,
     grade: Optional[str] = None,
+    section: Optional[str] = None,
     status: Literal["active", "archived", "all"] = "active",
     session: Session = Depends(get_session),
     _user=Depends(get_current_user),
@@ -54,6 +55,8 @@ def get_students(
         query = query.where(col(Student.archived_at).is_not(None))
     if grade:
         query = query.where(Student.grade == grade)
+    if section:
+        query = query.where(Student.section == section)
     if search:
         search_fmt = f"%{search}%"
         query = query.where(

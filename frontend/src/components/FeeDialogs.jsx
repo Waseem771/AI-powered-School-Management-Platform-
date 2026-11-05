@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Banknote, Building2, CreditCard } from 'lucide-react';
+import { Banknote, Building2, CheckCircle2, CreditCard, Download } from 'lucide-react';
 import { api } from '../api/client';
+import { formatDate } from '../lib/activity';
 import { apiErrorMessage } from '../lib/errors';
 import {
   challanFormError,
@@ -10,11 +11,12 @@ import {
   monthPickerValue,
   paymentAmountError,
 } from '../lib/fees';
+import PdfButton from './PdfButton';
 import StudentPicker from './StudentPicker';
 import Button from './ui/Button';
 import { TextField } from './ui/Field';
 import Modal from './ui/Modal';
-import { ErrorNotice } from './ui/States';
+import { EmptyState, ErrorNotice, ErrorState, LoadingState } from './ui/States';
 
 const DEFAULT_FEE_AMOUNT = 4000;
 const CHALLAN_FORM_ID = 'challan-form';
@@ -25,8 +27,58 @@ const PAYMENT_MODES = [
   { id: 'online', label: 'Online', icon: CreditCard },
 ];
 
-export function IssueChallanDialog({ onClose, onIssued }) {
-  const [student, setStudent] = useState(null);
+function ReceiptButton({ paymentId, variant = 'secondary', children }) {
+  return (
+    <PdfButton variant={variant} fetchPdf={() => api.getReceiptPdf(paymentId)} title="Open the receipt">
+      <Download className="h-4 w-4" aria-hidden="true" />
+      <span>{children}</span>
+    </PdfButton>
+  );
+}
+
+function usePayments(invoice, enabled) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    api.getInvoicePayments(invoice.id, { signal: controller.signal })
+      .then((res) => { setPayments(res.data); setLoading(false); })
+      .catch((err) => {
+        if (err.code === 'ERR_CANCELED') return;
+        setError(apiErrorMessage(err, 'Earlier payments could not be loaded.'));
+        setLoading(false);
+      });
+    return () => controller.abort();
+  }, [invoice.id, enabled, attempt]);
+
+  return { payments, loading, error, retry: () => setAttempt((current) => current + 1) };
+}
+
+function PaymentList({ payments }) {
+  return (
+    <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200">
+      {payments.map((payment) => (
+        <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+          <div>
+            <p className="font-bold text-slate-900">{formatRupees(payment.amount_paid)}</p>
+            <p className="text-xs capitalize text-slate-600">{payment.payment_mode} &bull; {formatDate(payment.paid_at)} &bull; <span className="normal-case">{payment.receipt_number}</span></p>
+          </div>
+          <ReceiptButton paymentId={payment.id}>Receipt</ReceiptButton>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Pass `initialStudent` when the student is already known, such as on their profile. */
+export function IssueChallanDialog({ initialStudent = null, onClose, onIssued }) {
+  const [student, setStudent] = useState(initialStudent);
   const [form, setForm] = useState(() => {
     const month = monthPickerValue();
     return { amount: DEFAULT_FEE_AMOUNT, month, due_date: defaultDueDate(month) };
@@ -86,24 +138,14 @@ export function IssueChallanDialog({ onClose, onIssued }) {
   );
 }
 
-export function RecordPaymentDialog({ invoice, onClose, onPaid, onFailed }) {
+/** Stays open after saving, to offer the receipt. `onRecorded` is for refreshing the page behind it. */
+export function RecordPaymentDialog({ invoice, onClose, onRecorded }) {
   const [amount, setAmount] = useState(String(invoice.balance));
   const [mode, setMode] = useState('cash');
-  const [history, setHistory] = useState([]);
-  const [historyError, setHistoryError] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!(invoice.amount_paid > 0)) return undefined;
-    const controller = new AbortController();
-    api.getInvoicePayments(invoice.id, { signal: controller.signal })
-      .then((res) => setHistory(res.data))
-      .catch((err) => {
-        if (err.code !== 'ERR_CANCELED') setHistoryError(apiErrorMessage(err, 'Earlier payments could not be loaded.'));
-      });
-    return () => controller.abort();
-  }, [invoice.id, invoice.amount_paid]);
+  const [recorded, setRecorded] = useState(null);
+  const { payments, error: historyError } = usePayments(invoice, invoice.amount_paid > 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -114,14 +156,41 @@ export function RecordPaymentDialog({ invoice, onClose, onPaid, onFailed }) {
 
     setSaving(true);
     try {
-      await api.payInvoice(invoice.id, { amount_paid: parseFloat(amount), payment_mode: mode });
-      onPaid(`${formatRupees(parseFloat(amount))} recorded for ${invoice.student_name}.`);
+      const res = await api.payInvoice(invoice.id, { amount_paid: parseFloat(amount), payment_mode: mode });
+      setRecorded(res.data);
+      onRecorded();
     } catch (err) {
       setError(apiErrorMessage(err, 'The payment could not be recorded. Please try again.'));
+      onRecorded();
+    } finally {
       setSaving(false);
-      onFailed();
     }
   };
+
+  if (recorded) {
+    return (
+      <Modal
+        title="Payment Recorded"
+        description={`${invoice.student_name} (${invoice.challan_number})`}
+        onClose={onClose}
+        footer={(
+          <>
+            <Button variant="ghost" onClick={onClose}>Done</Button>
+            <ReceiptButton paymentId={recorded.payment_id} variant="primary">Print Receipt</ReceiptButton>
+          </>
+        )}
+      >
+        <div role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <p><b>{formatRupees(recorded.amount_paid)}</b> received, on receipt {recorded.receipt_number}.</p>
+        </div>
+        <dl className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+          <div className="flex justify-between gap-4"><dt className="text-slate-600">Paid so far</dt><dd className="font-semibold text-slate-900">{formatRupees(recorded.total_paid)}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-slate-600">Still owed</dt><dd className="font-semibold text-slate-900">{formatRupees(recorded.balance)}</dd></div>
+        </dl>
+      </Modal>
+    );
+  }
 
   const facts = [
     ['Billing month', invoice.month],
@@ -154,17 +223,10 @@ export function RecordPaymentDialog({ invoice, onClose, onPaid, onFailed }) {
       </dl>
 
       {historyError && <p className="text-sm text-rose-800">{historyError}</p>}
-      {history.length > 0 && (
-        <div className="text-sm">
-          <p className="mb-1 font-semibold text-slate-700">Earlier payments</p>
-          <ul className="space-y-1 text-slate-700">
-            {history.map((payment) => (
-              <li key={payment.id} className="flex justify-between gap-4">
-                <span className="capitalize">{payment.payment_mode} &bull; {new Date(payment.paid_at).toLocaleDateString()}</span>
-                <span className="font-semibold">{formatRupees(payment.amount_paid)}</span>
-              </li>
-            ))}
-          </ul>
+      {payments.length > 0 && (
+        <div>
+          <p className="mb-1 text-sm font-semibold text-slate-700">Earlier payments</p>
+          <PaymentList payments={payments} />
         </div>
       )}
 
@@ -199,6 +261,24 @@ export function RecordPaymentDialog({ invoice, onClose, onPaid, onFailed }) {
           </div>
         </fieldset>
       </form>
+    </Modal>
+  );
+}
+
+export function PaymentHistoryDialog({ invoice, onClose }) {
+  const { payments, loading, error, retry } = usePayments(invoice, true);
+
+  return (
+    <Modal
+      title="Payments"
+      description={`${invoice.student_name || ''} ${invoice.month} (${invoice.challan_number})`.trim()}
+      onClose={onClose}
+      footer={<Button variant="secondary" onClick={onClose}>Close</Button>}
+    >
+      {loading && <LoadingState label="Loading payments…" />}
+      {!loading && error && <ErrorState message={error} onRetry={retry} />}
+      {!loading && !error && payments.length === 0 && <EmptyState title="No payments yet" />}
+      {!loading && !error && payments.length > 0 && <PaymentList payments={payments} />}
     </Modal>
   );
 }

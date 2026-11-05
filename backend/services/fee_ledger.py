@@ -15,6 +15,18 @@ _READABLE_DUE_DATE_FORMATS = (DUE_DATE_DISPLAY_FORMAT, "%Y-%m-%d")
 _PAKISTAN_TIME = timezone(timedelta(hours=5))
 
 
+def utc_iso(moment: Optional[datetime]) -> Optional[str]:
+    """Dates are stored in UTC without saying so. Saying so stops browsers reading them as local time."""
+    if moment is None:
+        return None
+    return (moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)).isoformat()
+
+
+def school_time(moment: datetime) -> datetime:
+    """A stored date and time, as it read at the school."""
+    return (moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)).astimezone(_PAKISTAN_TIME)
+
+
 def school_today() -> date:
     """Overdue is judged by the date at the school, not the server's."""
     return datetime.now(_PAKISTAN_TIME).date()
@@ -71,11 +83,12 @@ def _month_order(month: str) -> tuple:
         return (1, month)
 
 
-def monthly_totals(session: Session, month: Optional[str] = None) -> List[dict]:
+def monthly_totals(session: Session, month: Optional[str] = None, today: Optional[date] = None) -> List[dict]:
     """Money for each billing month, oldest first. "October" alone finds October of every year.
 
     A payment counts towards the month of its invoice, not the day it was received.
     """
+    today = today or school_today()
     wanted = (month or "").strip().casefold()
     invoices = [
         invoice for invoice in session.exec(select(Invoice)).all()
@@ -98,9 +111,30 @@ def monthly_totals(session: Session, month: Optional[str] = None) -> List[dict]:
             "invoiced": invoiced,
             "collected": round(sum(paid.get(invoice.id, 0.0) for invoice in group), 2),
             "outstanding": outstanding,
+            "overdue": round(sum(
+                outstanding_balance(invoice.amount, paid.get(invoice.id, 0.0))
+                for invoice in group if is_overdue(invoice.status, invoice.due_date, today)
+            ), 2),
             "collection_rate": round((invoiced - outstanding) / invoiced * 100, 1) if invoiced > 0 else 0.0,
         })
     return rows
+
+
+def student_totals(session: Session, student_id: int, today: Optional[date] = None) -> dict:
+    """One student's money, shared by their profile page and the chatbot."""
+    today = today or school_today()
+    invoices = session.exec(select(Invoice).where(Invoice.student_id == student_id)).all()
+    paid = paid_by_invoice(session, [invoice.id for invoice in invoices])
+    balances = [(invoice, outstanding_balance(invoice.amount, paid.get(invoice.id, 0.0))) for invoice in invoices]
+    return {
+        "invoice_count": len(invoices),
+        "invoiced": round(sum(invoice.amount for invoice in invoices), 2),
+        "collected": round(sum(paid.values()), 2),
+        "outstanding": round(sum(balance for _, balance in balances), 2),
+        "overdue": round(
+            sum(balance for invoice, balance in balances if is_overdue(invoice.status, invoice.due_date, today)), 2
+        ),
+    }
 
 
 def fee_follow_ups(session: Session, student_ids: Iterable[int], today: Optional[date] = None) -> Dict[int, dict]:

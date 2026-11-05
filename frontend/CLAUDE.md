@@ -21,9 +21,9 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 
 ## Structure
 
-- `src/App.jsx`: routes `/login`, `/dashboard`, `/students`, `/fees`, `/results`, `/at-risk`, `/chatbot`, `/admissions`. Protected routes render inside `components/Layout.jsx`.
+- `src/App.jsx`: routes `/login`, `/dashboard`, `/students`, `/students/:id`, `/fees`, `/results`, `/at-risk`, `/chatbot`, `/admissions`. Protected routes render inside `components/Layout.jsx`.
 - `src/api/client.js`: the single axios instance and `api` object. Adds the bearer token from `localStorage`, redirects to `/login` on 401. Add every new endpoint here, never call axios directly from a page.
-- `src/pages/`: `Login`, `Dashboard`, `Students`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
+- `src/pages/`: `Login`, `Dashboard`, `Students`, `StudentProfile`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
 - `src/components/ui/`: `Button` (and `buttonClass` for links), `Field` (`TextField`, `SelectField`, `SearchInput`), `Modal`, `States` (`LoadingState`, `EmptyState`, `ErrorState`, `ErrorNotice`), `Toast` (`useToast`), `Page` (`PageHeader`, `Card`, `FilterChips`, `Badge`).
 - `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable` (a table, or cards on phones, with all its states), `StudentPicker` (search, in place of a dropdown of the whole school), `StatCard`, `PdfButton`, `FeeDialogs`, `ChatCards`, `ChatTables`, `RiskDetailDialog`, `RiskSimulator`, `ErrorBoundary`.
 - `src/lib/`: `session.js` (stored user, `clearSession`), `pdf.js` (open a fetched PDF), `errors.js` (`apiErrorMessage`, safe text for users), `uiState.js`, `schoolInfo.js`, `fees.js`, `exams.js`, `risk.js`, `chatStatus.js`. Logic worth testing goes here, because `npm test` only runs `src/lib/*.test.js`.

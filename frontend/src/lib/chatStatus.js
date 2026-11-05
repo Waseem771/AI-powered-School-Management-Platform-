@@ -26,6 +26,21 @@ function policySearchLine(search) {
   return { label: 'Policy search: starts on the first policy question', tone: 'off' };
 }
 
+/** Where an answer came from, in words a school owner can check. Null when it was not answered. */
+export function answerSource({ mode, grounded }) {
+  if (!grounded) return null;
+  if (mode === 'policy_rag') return 'From policy documents';
+  if (mode === 'school_data') return 'From school records';
+  if (mode === 'groq_tool_calling') return 'From school records, worded by AI';
+  return null;
+}
+
+/** "fee_policy.txt" becomes "Fee policy". */
+export function policyName(fileName) {
+  const words = fileName.replace(/\.txt$/, '').replaceAll('_', ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /** The short line under the chatbot's name. */
 export function chatStatusSummary(status) {
   if (!status) return 'Checking…';

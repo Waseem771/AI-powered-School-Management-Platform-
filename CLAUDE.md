@@ -20,10 +20,11 @@ They have separate dependencies and are deployed separately. See `DEPLOYMENT_GUI
 | Feature | Backend | Frontend page |
 |---------|---------|---------------|
 | JWT admin login | `routers/auth.py` | `pages/Login.jsx` |
-| Executive dashboard (KPIs, charts) | `routers/dashboard.py` | `pages/Dashboard.jsx` |
-| Student CRUD, search, grade filter | `routers/students.py` | `pages/Students.jsx` |
-| Fee invoices, payments, 2-part challan PDF | `routers/fees.py`, `services/pdf_service.py` | `pages/Fees.jsx` |
-| Marks entry, grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx` |
+| Dashboard (KPIs, charts, fee month filter, recent activity) | `routers/dashboard.py`, `services/school_activity.py` | `pages/Dashboard.jsx` |
+| Student CRUD, search, grade and section filters | `routers/students.py` | `pages/Students.jsx` |
+| Student profile: biodata, fees, results, estimate | Existing routes, plus `GET /fees/student/{id}/summary` | `pages/StudentProfile.jsx` |
+| Fee invoices, payments, 2-part challan PDF, payment receipt PDF | `routers/fees.py`, `services/pdf_service.py`, `services/receipts.py` | `pages/Fees.jsx`, `components/FeeDialogs.jsx` |
+| Marks entry (one student or a whole class), grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx`, `components/MarksDialogs.jsx` |
 | Academic early warning: estimate with SHAP reasons, suggested steps, separate fee follow-up flag, model trial | `routers/ai.py`, `services/ai_service.py`, `risk_features.py`, `risk_assessment.py` | `pages/AtRisk.jsx`, `components/RiskDetailDialog.jsx`, `RiskSimulator.jsx` |
 | Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `student_lookup.py`, `chat_intent.py`, `school_reports.py`, `assistant_tools.py`, `rag_service.py` | `pages/Chatbot.jsx`, `components/ChatCards.jsx`, `ChatTables.jsx` |
 | AI admissions (optional, CrewAI) | `routers/admissions_crew.py`, `school_crew/` | `pages/Admissions.jsx` |
@@ -101,6 +102,7 @@ Backend, set in `backend/.env` (template: `.env.example`) or the Modal secret `e
 | `SECRET_KEY` | JWT signing key (HS256, 8h tokens). Production refuses to start if it is missing, short, or a key once published in this repo |
 | `ADMIN_PASSWORD` | Sets the admin password when the account is created or still on a known default. Required then in production. Does not overwrite a password changed in the app |
 | `ADMIN_PASSWORD_RESET` | `true` forces `ADMIN_PASSWORD` to apply, for a forgotten password. Remove afterwards |
+| `DEMO_MODE` | `true` shows a DEMO MODE label on the sign-in page and in the app. For a copy holding made-up records |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Optional. Without a key, everything falls back to local logic |
 | `MODAL_PROXY_TOKEN_ID`, `MODAL_PROXY_TOKEN_SECRET` | Optional. AI admissions only; without them that feature returns 503 |
 | `DATABASE_URL` | Defaults to local SQLite; Modal sets `sqlite:////data/school.db` |
@@ -131,16 +133,16 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 
 ### API surface
 
-All routes require auth except `/auth/login`, `/auth/logout`, and the root status route.
+All routes require auth except `/auth/login`, `/auth/logout`, `/school/public` (name and demo mode only), and the root status route.
 
 | Prefix | Routes |
 |--------|--------|
 | `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
-| `/students` | `GET` (search, grade, status), `POST`, `GET/PUT/DELETE /{id}`, `POST /{id}/archive`, `POST /{id}/restore` |
-| `/fees` | `GET` (status, grade, student_id), `GET /summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf` |
-| `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /{student_id}/report-card/pdf` (same filters) |
-| `/dashboard` | `GET /stats` |
-| `/school` | `GET /info` (name, tagline, current academic session) |
+| `/students` | `GET` (search, grade, section, status), `POST`, `GET/PUT/DELETE /{id}`, `POST /{id}/archive`, `POST /{id}/restore` |
+| `/fees` | `GET` (status, grade, student_id), `GET /summary`, `GET /student/{student_id}/summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf`, `GET /payments/{payment_id}/receipt` |
+| `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /class` and `POST /class` (one subject for a whole class, all or nothing), `GET /{student_id}/report-card/pdf` (same filters) |
+| `/dashboard` | `GET /stats` (month), `GET /activity` (limit) |
+| `/school` | `GET /info` (name, tagline, session, demo mode), `GET /public` (name, demo mode) |
 | `/ai` | `GET /at-risk` (grade, risk_level), `GET /at-risk/{student_id}`, `POST /simulate` |
 | `/chatbot` | `POST /ask`, `GET/DELETE /history/{session_id}`, `GET /topics`, `GET /status` |
 
@@ -201,7 +203,9 @@ CORS in `main.py` allows exact origins only: `FRONTEND_URL`, plus localhost:5173
 ## Known gotchas
 
 - Risk estimates for the dashboard, At-Risk page, and chatbot come from `services/risk_assessment.py`, with features from `services/risk_features.py:compute_student_features`. Change them there only, so they never drift apart.
-- All fee money comes from `services/fee_ledger.py`, which the dashboard, Fees page, and chatbot share. Add fee calculations there only.
+- All fee money comes from `services/fee_ledger.py`, which the dashboard, Fees page, profile, and chatbot share. Add fee calculations there only.
+- A receipt number is `RCP-` plus the payment's id, so it is never stored. A receipt shows the invoice as it stood right after that payment.
+- Saving class marks leaves blank boxes alone, and saves nothing if any entry is wrong.
 - Challan numbers are `CHN-` plus a random number, checked against existing invoices (`_unique_challan_number` in `routers/fees.py`).
 - The challan PDF splits the invoice amount into tuition (capped at `TUITION_FEE_MONTHLY` from `config.py`) and the remainder as exam fee.
 - Students are archived, not deleted. `DELETE /students/{id}` is refused if they have any invoice or result. Archived students leave daily lists, counts, and at-risk, but their fee money stays in all totals, and they can still pay. They cannot get new challans or marks.

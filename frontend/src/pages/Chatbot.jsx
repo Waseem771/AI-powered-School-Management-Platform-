@@ -4,43 +4,18 @@ import {
   Send,
   Sparkles,
   FileText,
-  HelpCircle,
   User,
   CheckCircle2,
   Database,
   Search,
-  DollarSign,
-  BarChart2,
-  GraduationCap,
-  TrendingUp,
   AlertCircle,
   Brain,
   Trash2,
 } from 'lucide-react';
 import { api } from '../api/client';
 import StructuredData from '../components/ChatCards';
-import { chatStatusSummary, describeChatStatus } from '../lib/chatStatus';
+import { answerSource, chatStatusSummary, describeChatStatus, policyName } from '../lib/chatStatus';
 import { apiErrorMessage } from '../lib/errors';
-
-/* ─────────── Tool badge config ─────────────────────────────────────── */
-const TOOL_META = {
-  find_students:                  { icon: Search,       color: 'text-violet-700 bg-violet-50 border-violet-200',   label: 'Student Search'        },
-  get_student_profile:            { icon: GraduationCap,color: 'text-blue-700   bg-blue-50   border-blue-200',     label: 'Student Profile'       },
-  get_student_fee_summary:        { icon: DollarSign,   color: 'text-emerald-700 bg-emerald-50 border-emerald-200',label: 'Fee Records'           },
-  get_student_results:            { icon: BarChart2,    color: 'text-amber-700  bg-amber-50  border-amber-200',    label: 'Results & Marks'       },
-  get_collection_summary:         { icon: TrendingUp,   color: 'text-rose-700   bg-rose-50   border-rose-200',     label: 'Collection Summary'    },
-  get_students_with_pending_fees: { icon: AlertCircle,  color: 'text-red-700    bg-red-50    border-red-200',      label: 'Pending Fees List'     },
-  get_students_by_grade:          { icon: GraduationCap,color: 'text-cyan-700   bg-cyan-50   border-cyan-200',     label: 'Grade Student List'    },
-  get_student_counts:             { icon: GraduationCap,color: 'text-slate-700  bg-slate-50  border-slate-200',    label: 'Student Counts'        },
-  get_top_students:               { icon: BarChart2,    color: 'text-amber-700  bg-amber-50  border-amber-200',    label: 'Top Students'          },
-  get_subject_averages:           { icon: BarChart2,    color: 'text-amber-700  bg-amber-50  border-amber-200',    label: 'Subject Averages'      },
-  get_at_risk_students:           { icon: AlertCircle,  color: 'text-orange-700 bg-orange-50 border-orange-200',   label: 'Risk Estimates'        },
-  get_student_risk:               { icon: AlertCircle,  color: 'text-orange-700 bg-orange-50 border-orange-200',   label: 'Risk Estimate'         },
-  get_monthly_collection:         { icon: TrendingUp,   color: 'text-rose-700   bg-rose-50   border-rose-200',     label: 'Monthly Collection'    },
-  school_data:                    { icon: Database,     color: 'text-slate-700  bg-slate-50  border-slate-200',    label: 'School Database'       },
-  policy_rag:                     { icon: FileText,     color: 'text-indigo-700 bg-indigo-50 border-indigo-200',   label: 'Policy Documents'      },
-  groq_tool_calling:              { icon: Sparkles,     color: 'text-purple-700 bg-purple-50 border-purple-200',   label: 'AI + School Database'  },
-};
 
 /* ─────────── Data query quick-start prompts ─────────────────────────── */
 const DATA_PROMPTS = [
@@ -58,29 +33,6 @@ const DATA_PROMPTS = [
   { label: '📈 Collection report',   prompt: 'What is the overall fee collection summary?'           },
   { label: '🔍 Search student',      prompt: 'Find student Bilal Tariq'                              },
 ];
-
-/* ─────────── Tool badge ─────────────────────────────────────────────── */
-function ToolBadges({ mode, toolsUsed }) {
-  const show = [];
-  if (toolsUsed?.length) toolsUsed.forEach(t => { if (TOOL_META[t]) show.push(t); });
-  else if (mode && TOOL_META[mode]) show.push(mode);
-
-  if (!show.length) return null;
-  return (
-    <div className="mt-2.5 flex flex-wrap gap-1.5">
-      {show.map(key => {
-        const meta = TOOL_META[key];
-        const Icon = meta.icon;
-        return (
-          <span key={key} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${meta.color}`}>
-            <Icon className="w-3 h-3" />
-            {meta.label}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
 
 /* ─────────── Default Initial Greeting ──────────────────────────────── */
 const MAX_HISTORY_MESSAGE_LENGTH = 4000;
@@ -359,18 +311,23 @@ export default function Chatbot() {
                     <p className="whitespace-pre-wrap">{m.text}</p>
 
                     {/* Tool badges */}
-                    {isBot && <ToolBadges mode={m.mode} toolsUsed={m.toolsUsed} />}
+                    {isBot && answerSource(m) && (
+                      <p className="mt-2.5 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        {m.mode === 'policy_rag' ? <FileText className="h-3 w-3" aria-hidden="true" /> : <Database className="h-3 w-3" aria-hidden="true" />}
+                        {answerSource(m)}
+                      </p>
+                    )}
 
                     {/* Structured data cards */}
                     {isBot && <StructuredData structuredData={m.structuredData} />}
 
                     {/* Sources */}
-                    {isBot && m.sources?.length > 0 && (
+                    {isBot && m.mode === 'policy_rag' && m.sources?.length > 0 && (
                       <div className="mt-3 pt-2.5 border-t border-slate-200/80 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
-                        <span className="font-bold uppercase tracking-wider text-slate-400">Sources:</span>
+                        <span className="font-bold uppercase tracking-wider text-slate-400">Policy:</span>
                         {m.sources.map((src, i) => (
                           <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-semibold">
-                            <FileText className="w-2.5 h-2.5 text-blue-600" />{src}
+                            <FileText className="w-2.5 h-2.5 text-blue-600" />{policyName(src)}
                           </span>
                         ))}
                       </div>
@@ -406,6 +363,21 @@ export default function Chatbot() {
             </div>
           )}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Suggested questions on phones, where the side panel does not show */}
+        <div className="flex gap-2 overflow-x-auto border-t border-slate-100 px-3.5 pt-2.5 md:hidden" role="group" aria-label="Suggested questions">
+          {[...DATA_PROMPTS.slice(0, 5).map((p) => ({ label: p.label, prompt: p.prompt })), ...topics.slice(0, 4).map((t) => ({ label: t.topic, prompt: t.prompt }))].map(({ label, prompt }) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => handleSend(prompt)}
+              disabled={loading}
+              className="min-h-11 shrink-0 whitespace-nowrap rounded-xl border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-800 disabled:opacity-50"
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Input */}

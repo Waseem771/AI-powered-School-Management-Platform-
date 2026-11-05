@@ -20,8 +20,11 @@ from services.fee_ledger import (
     payment_status,
     school_today,
     school_totals,
+    student_totals,
+    utc_iso,
 )
 from services.pdf_service import generate_fee_challan_pdf, pdf_content_disposition
+from services.receipts import generate_receipt_pdf, receipt_details, receipt_number
 
 router = APIRouter(prefix="/fees", tags=["Fees"])
 
@@ -115,6 +118,25 @@ def get_fee_summary(session: Session = Depends(get_session), _user=Depends(get_c
     return school_totals(session)
 
 
+@router.get("/student/{student_id}/summary")
+def get_student_fee_summary(student_id: int, session: Session = Depends(get_session), _user=Depends(get_current_user)):
+    if not session.get(Student, student_id):
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student_totals(session, student_id)
+
+
+@router.get("/payments/{payment_id}/receipt")
+def download_payment_receipt(payment_id: int, session: Session = Depends(get_session), _user=Depends(get_current_user)):
+    details = receipt_details(session, payment_id)
+    if not details:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return Response(
+        content=generate_receipt_pdf(details),
+        media_type="application/pdf",
+        headers={"Content-Disposition": pdf_content_disposition("Receipt", details["receipt_number"])},
+    )
+
+
 @router.post("/generate", status_code=http_status.HTTP_201_CREATED)
 def generate_challan(
     req: ChallanGenerateRequest,
@@ -201,9 +223,12 @@ def pay_invoice(
     session.add(invoice)
     session.add(payment)
     session.commit()
+    session.refresh(payment)
 
     return {
         "message": "Payment recorded",
+        "payment_id": payment.id,
+        "receipt_number": receipt_number(payment.id),
         "invoice_id": invoice.id,
         "status": invoice.status,
         "amount_paid": amount,
@@ -226,9 +251,10 @@ def get_invoice_payments(
     return [
         {
             "id": payment.id,
+            "receipt_number": receipt_number(payment.id),
             "amount_paid": payment.amount_paid,
             "payment_mode": payment.payment_mode,
-            "paid_at": payment.paid_at.isoformat() if payment.paid_at else None,
+            "paid_at": utc_iso(payment.paid_at),
         }
         for payment in payments
     ]

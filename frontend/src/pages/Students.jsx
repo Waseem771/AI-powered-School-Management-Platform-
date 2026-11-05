@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Archive, ArchiveRestore, Edit2, GraduationCap, Trash2, UserPlus, Users } from 'lucide-react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
 import PdfButton from '../components/PdfButton';
+import StudentFormDialog, { GRADES, SECTIONS } from '../components/StudentFormDialog';
 import Button, { IconButton } from '../components/ui/Button';
-import { SearchInput, SelectField, TextField } from '../components/ui/Field';
+import { SearchInput } from '../components/ui/Field';
 import Modal from '../components/ui/Modal';
 import { Badge, Card, FilterChips, PageHeader } from '../components/ui/Page';
 import { ErrorNotice } from '../components/ui/States';
@@ -13,16 +15,12 @@ import { apiErrorMessage } from '../lib/errors';
 import { countLabel } from '../lib/uiState';
 
 const ALL_GRADES = 'all';
-const GRADES = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
 const GRADE_FILTERS = [{ value: ALL_GRADES, label: 'All Grades' }, ...GRADES.map((grade) => ({ value: grade, label: grade }))];
-const GRADE_OPTIONS = GRADES.map((grade) => ({ value: grade, label: grade }));
-const SECTION_OPTIONS = ['A', 'B'].map((section) => ({ value: section, label: `Section ${section}` }));
+const SECTION_FILTERS = [{ value: ALL_GRADES, label: 'All Sections' }, ...SECTIONS.map((section) => ({ value: section, label: `Section ${section}` }))];
 const VIEWS = [
   { value: 'active', label: 'Current Students' },
   { value: 'archived', label: 'Archived' },
 ];
-const EMPTY_FORM = { name: '', roll_number: '', grade: 'Grade 8', section: 'A', guardian_name: '', phone: '', dob: '' };
-const FORM_ID = 'student-form';
 
 const CONFIRMATIONS = {
   archive: {
@@ -50,61 +48,6 @@ const CONFIRMATIONS = {
     call: api.deleteStudent,
   },
 };
-
-function StudentFormDialog({ student, onClose, onSaved }) {
-  const [form, setForm] = useState(student ? {
-    name: student.name,
-    roll_number: student.roll_number,
-    grade: student.grade,
-    section: student.section,
-    guardian_name: student.guardian_name,
-    phone: student.phone,
-    dob: student.dob || '',
-  } : EMPTY_FORM);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const field = (key) => ({ value: form[key], onChange: (event) => setForm({ ...form, [key]: event.target.value }) });
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      if (student) await api.updateStudent(student.id, form);
-      else await api.createStudent(form);
-      onSaved(student ? `${form.name}'s record was updated.` : `${form.name} was added.`);
-    } catch (err) {
-      setError(apiErrorMessage(err, 'The student could not be saved. Please try again.'));
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Modal
-      title={student ? `Edit ${student.name}` : 'Add Student'}
-      size="lg"
-      busy={saving}
-      onClose={onClose}
-      footer={(
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button type="submit" form={FORM_ID} disabled={saving}>{saving ? 'Saving…' : 'Save Student'}</Button>
-        </>
-      )}
-    >
-      <ErrorNotice>{error}</ErrorNotice>
-      <form id={FORM_ID} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="Full name" required {...field('name')} />
-        <TextField label="Roll number" required hint="Letters, numbers, / and -" {...field('roll_number')} />
-        <SelectField label="Grade" options={GRADE_OPTIONS} {...field('grade')} />
-        <SelectField label="Section" options={SECTION_OPTIONS} {...field('section')} />
-        <TextField label="Guardian name" required {...field('guardian_name')} />
-        <TextField label="Contact phone" type="tel" required hint="For example 0300-1234567" {...field('phone')} />
-        <TextField label="Date of birth (optional)" type="date" {...field('dob')} />
-      </form>
-    </Modal>
-  );
-}
 
 function ConfirmActionDialog({ action, onClose, onDone }) {
   const [error, setError] = useState('');
@@ -148,6 +91,7 @@ export default function Students() {
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedGrade, setSelectedGrade] = useState(ALL_GRADES);
+  const [selectedSection, setSelectedSection] = useState(ALL_GRADES);
   const [view, setView] = useState('active');
   // Null, or { student } for the form (student is null when adding).
   const [editing, setEditing] = useState(null);
@@ -161,6 +105,7 @@ export default function Students() {
       setLoadError('');
       const params = { status: view };
       if (selectedGrade !== ALL_GRADES) params.grade = selectedGrade;
+      if (selectedSection !== ALL_GRADES) params.section = selectedSection;
       const res = await api.getStudents(params);
       setStudents(res.data);
     } catch (err) {
@@ -171,7 +116,7 @@ export default function Students() {
     }
   };
 
-  useEffect(() => { fetchStudents(); }, [selectedGrade, view]);
+  useEffect(() => { fetchStudents(); }, [selectedGrade, selectedSection, view]);
 
   const finish = (message) => {
     setEditing(null);
@@ -192,7 +137,7 @@ export default function Students() {
   const columns = [
     { header: 'Name', mobile: 'title', render: (student) => (
       <div>
-        <span className="font-bold text-slate-900">{student.name}</span>
+        <Link to={`/students/${student.id}`} className="font-bold text-slate-900 underline-offset-2 hover:underline">{student.name}</Link>
         <span className="ml-2 font-mono text-xs font-semibold text-brand-700 md:hidden">#{student.roll_number}</span>
         <div className="text-xs text-slate-600">Born: {student.dob || 'Not recorded'}</div>
       </div>
@@ -220,9 +165,9 @@ export default function Students() {
     ) },
   ];
 
-  const isFiltered = Boolean(query) || selectedGrade !== ALL_GRADES;
+  const isFiltered = Boolean(query) || selectedGrade !== ALL_GRADES || selectedSection !== ALL_GRADES;
   const emptyState = isFiltered
-    ? { icon: Users, title: 'No students match', message: 'Try a different search or grade.' }
+    ? { icon: Users, title: 'No students match', message: 'Try a different search, grade, or section.' }
     : view === 'archived'
       ? { icon: Archive, title: 'No archived students', message: 'Students who leave the school appear here, with all their records.' }
       : {
@@ -242,9 +187,10 @@ export default function Students() {
 
       <FilterChips label="Which students to show" options={VIEWS} value={view} onChange={setView} />
 
-      <Card className="flex flex-col items-stretch justify-between gap-3 p-4 md:flex-row md:items-center">
-        <SearchInput label="Search by name, roll number, or phone" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full md:w-96" />
+      <Card className="space-y-3 p-4">
+        <SearchInput label="Search by name, roll number, or phone" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full md:max-w-md" />
         <FilterChips label="Grade" options={GRADE_FILTERS} value={selectedGrade} onChange={setSelectedGrade} />
+        <FilterChips label="Section" options={SECTION_FILTERS} value={selectedSection} onChange={setSelectedSection} />
       </Card>
 
       <Card className="overflow-hidden">

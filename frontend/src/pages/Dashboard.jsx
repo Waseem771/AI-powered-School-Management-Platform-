@@ -23,10 +23,13 @@ import {
 } from 'recharts';
 import { api } from '../api/client';
 import { MODEL_NOTE } from '../lib/risk';
+import { activityText, formatDate } from '../lib/activity';
 import { apiErrorMessage } from '../lib/errors';
+import { useLoad } from '../lib/useLoad';
 import { countLabel } from '../lib/uiState';
 import StatCard from '../components/StatCard';
 import { buttonClass } from '../components/ui/Button';
+import { SelectField } from '../components/ui/Field';
 import { Card, PageHeader } from '../components/ui/Page';
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/States';
 
@@ -34,18 +37,21 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [month, setMonth] = useState('');
+  const activity = useLoad((options) => api.getRecentActivity(options), 'activity', 'Recent activity could not be loaded.');
 
   useEffect(() => {
     const controller = new AbortController();
     fetchDashboardStats(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [month]);
 
   const fetchDashboardStats = async (signal) => {
     try {
       setError('');
-      setLoading(true);
-      const res = await api.getDashboardStats({ signal });
+      // The page stays in place while only the month changes.
+      if (!stats) setLoading(true);
+      const res = await api.getDashboardStats({ signal, params: month ? { month } : undefined });
       setStats(res.data);
     } catch (err) {
       if (err.code === 'ERR_CANCELED') return;
@@ -65,6 +71,9 @@ export default function Dashboard() {
   }
 
   const kpis = stats?.kpis || {};
+  const period = stats?.fee_period || {};
+  const months = stats?.fee_months || [];
+  const activityItems = activity.data?.items || [];
   const feeSummary = stats?.fee_summary || [];
   const gradeData = stats?.grade_distribution || [];
   const subjectAverages = stats?.subject_performance || [];
@@ -82,6 +91,17 @@ export default function Dashboard() {
         )}
       />
 
+      {months.length > 0 && (
+        <div className="max-w-xs">
+          <SelectField
+            label="Fees shown for"
+            value={month}
+            onChange={(event) => setMonth(event.target.value)}
+            options={[{ value: '', label: 'All months' }, ...months.map((name) => ({ value: name, label: name }))]}
+          />
+        </div>
+      )}
+
       {/* Top 4 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -91,16 +111,16 @@ export default function Dashboard() {
           color="blue"
         />
         <StatCard
-          title="Fees collected"
-          value={`Rs. ${(kpis.total_collected || 0).toLocaleString()}`}
-          subtitle={`${kpis.collection_rate || 0}% of the amount billed`}
+          title={month ? `Collected for ${month}` : 'Fees collected'}
+          value={`Rs. ${(period.collected || 0).toLocaleString()}`}
+          subtitle={`${period.collection_rate || 0}% of the amount billed`}
           icon={CheckCircle2}
           color="green"
         />
         <StatCard
-          title="Fees still owed"
-          value={`Rs. ${(kpis.total_pending || 0).toLocaleString()}`}
-          subtitle={`Rs. ${(kpis.total_overdue || 0).toLocaleString()} overdue`}
+          title={month ? `Owed for ${month}` : 'Fees still owed'}
+          value={`Rs. ${(period.outstanding || 0).toLocaleString()}`}
+          subtitle={`Rs. ${(period.overdue || 0).toLocaleString()} overdue`}
           icon={Clock}
           color="amber"
         />
@@ -142,7 +162,7 @@ export default function Dashboard() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-900">Fees collected and owed</h2>
-            <p className="text-sm text-slate-600">All challans issued</p>
+            <p className="text-sm text-slate-600">{month || 'All challans issued'}</p>
           </div>
           <div className="h-52 w-full my-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -173,14 +193,14 @@ export default function Dashboard() {
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 <span>Collected:</span>
               </span>
-              <span className="font-bold text-slate-800">Rs. {(kpis.total_collected || 0).toLocaleString()}</span>
+              <span className="font-bold text-slate-800">Rs. {(period.collected || 0).toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="flex items-center gap-1.5 text-slate-600">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
                 <span>Still owed:</span>
               </span>
-              <span className="font-bold text-slate-800">Rs. {(kpis.total_pending || 0).toLocaleString()}</span>
+              <span className="font-bold text-slate-800">Rs. {(period.outstanding || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -258,6 +278,30 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      <Card className="overflow-hidden">
+        <div className="border-b border-slate-200 p-4">
+          <h2 className="text-base font-bold text-slate-900">Recent activity</h2>
+          <p className="text-sm text-slate-600">Payments, challans, and new students</p>
+        </div>
+        {activity.loading && <LoadingState label="Loading recent activity…" />}
+        {!activity.loading && activity.error && <ErrorState message={activity.error} onRetry={activity.reload} />}
+        {!activity.loading && !activity.error && activityItems.length === 0 && <EmptyState title="Nothing yet" message="Payments, challans, and new students appear here." />}
+        {!activity.loading && !activity.error && activityItems.length > 0 && (
+          <ul className="divide-y divide-slate-100">
+            {activityItems.map((item) => (
+              <li key={`${item.kind}-${item.payment_id ?? item.invoice_id ?? item.student_id}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <Link to={`/students/${item.student_id}`} className="font-semibold text-slate-900 underline-offset-2 hover:underline">{item.student_name}</Link>
+                  <span className="ml-2 font-mono text-xs text-slate-600">#{item.roll_number}</span>
+                  <p className="text-slate-700">{activityText(item)}</p>
+                </div>
+                <span className="text-xs text-slate-600">{formatDate(item.at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

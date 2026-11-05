@@ -18,7 +18,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | `test_school_assistant.py` on a fresh install | ❌ crash | ✅ M0 |
 | `test_backend.py` on a fresh install | ❌ crash | ✅ M0 |
 | Same three with SQLModel 0.0.44 | ✅ | not needed now |
-| Full suite, clean install, without CrewAI | ⬜ | ✅ M7: 428 passed |
+| Full suite, clean install, without CrewAI | ⬜ | ✅ M8: 453 passed |
 | Database upgrade on a copy of `school.db`: backup made, data unchanged, safe to re-run | ⬜ | ✅ M3 |
 | App refuses to start on an old database and leaves it byte-identical | ⬜ | ✅ M3 |
 | Production startup on a copy of `school.db`, data unchanged | ⬜ | ✅ M1 |
@@ -200,7 +200,7 @@ The **Target** for every line is ✅. Use the blank Retest column as modules lan
 | Drawer navigation works at 375 px | ✅ | ✅ M7 |
 | Tap targets at least 44 px | ❌ | ✅ M7, measured on all 7 pages |
 | Tables usable without sideways scroll | ❌ | ✅ M7, cards on phones |
-| Chatbot prompts available on mobile | ❌ | |
+| Chatbot prompts available on mobile | ❌ | ✅ M8 |
 | Tablet (768 px) | ⬜ | |
 | Real phone | ⬜ | |
 | Screenshot review by a person | ⬜ pane was hidden | |

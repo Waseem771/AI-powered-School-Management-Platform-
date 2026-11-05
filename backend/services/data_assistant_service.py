@@ -12,7 +12,7 @@ from services import chat_intent, school_reports
 from services.academics import exam_summary, select_exam
 from services.ai_service import MODEL_NOTE
 from services.assistant_tools import TOOL_DEFINITIONS
-from services.fee_ledger import STATUS_PAID, monthly_totals, outstanding_balance, paid_by_invoice, school_totals
+from services.fee_ledger import STATUS_PAID, monthly_totals, outstanding_balance, paid_by_invoice, school_totals, student_totals
 from services.student_lookup import find_matching_students, student_brief
 
 _MAX_QUERY_LENGTH = 80
@@ -172,14 +172,11 @@ class SchoolDataAssistant:
             select(Invoice).where(Invoice.student_id == student.id).order_by(Invoice.created_at.desc())
         ).all()
         paid_amounts = paid_by_invoice(self.session, [i.id for i in invoices])
+        totals = student_totals(self.session, student.id)
         return {
             "found": True,
             "student": student_brief(student),
-            "totals": {
-                "invoiced": round(sum(i.amount for i in invoices), 2),
-                "paid": round(sum(paid_amounts.values()), 2),
-                "pending": round(sum(outstanding_balance(i.amount, paid_amounts.get(i.id, 0.0)) for i in invoices), 2),
-            },
+            "totals": {"invoiced": totals["invoiced"], "paid": totals["collected"], "pending": totals["outstanding"]},
             "invoices": [
                 {
                     "challan_number": i.challan_number,

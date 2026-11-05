@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status as http_status
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from config import SUBJECTS
 from database import get_session
@@ -25,6 +25,7 @@ from services.pdf_service import generate_report_card_pdf, pdf_content_dispositi
 router = APIRouter(prefix="/results", tags=["Results"])
 
 MAX_TOTAL_MARKS = 1000.0
+MAX_CLASS_ENTRIES = 200
 
 
 class MarkEntryRequest(BaseModel):
@@ -48,11 +49,67 @@ class MarkEntryRequest(BaseModel):
         return self
 
 
+class ClassMarkEntry(BaseModel):
+    student_id: int
+    marks_obtained: float = Field(ge=0, allow_inf_nan=False)
+
+
+class ClassMarksRequest(BaseModel):
+    subject: str
+    total_marks: float = Field(default=100.0, gt=0, le=MAX_TOTAL_MARKS, allow_inf_nan=False)
+    exam_type: ExamType = FINAL_TERM
+    entries: List[ClassMarkEntry] = Field(min_length=1, max_length=MAX_CLASS_ENTRIES)
+
+    @field_validator("subject")
+    @classmethod
+    def subject_is_known(cls, value: str) -> str:
+        if value not in SUBJECTS:
+            raise ValueError(f"Subject must be one of: {', '.join(SUBJECTS)}.")
+        return value
+
+    @model_validator(mode="after")
+    def entries_are_sound(self) -> "ClassMarksRequest":
+        ids = [entry.student_id for entry in self.entries]
+        if len(set(ids)) != len(ids):
+            raise ValueError("The same student appears more than once.")
+        if any(entry.marks_obtained > self.total_marks for entry in self.entries):
+            raise ValueError(f"Marks obtained cannot be more than the total of {self.total_marks:g}.")
+        return self
+
+
 def _get_student_or_404(session: Session, student_id: int) -> Student:
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
+
+
+def _store_mark(
+    session: Session, student_id: int, subject: str, obtained: float, total: float, exam_type: str, year_id: int
+) -> Result:
+    """Adds or updates one mark in this session, without committing."""
+    mark = session.exec(
+        select(Result).where(
+            Result.student_id == student_id,
+            Result.subject == subject,
+            Result.exam_type == exam_type,
+            Result.academic_year_id == year_id,
+        )
+    ).first()
+    if mark:
+        mark.marks_obtained = obtained
+        mark.total_marks = total
+    else:
+        mark = Result(
+            student_id=student_id,
+            subject=subject,
+            marks_obtained=obtained,
+            total_marks=total,
+            exam_type=exam_type,
+            academic_year_id=year_id,
+        )
+    session.add(mark)
+    return mark
 
 
 def _subject_order(mark: Result) -> int:
@@ -93,6 +150,85 @@ def _mark_rows(marks: List[Result]) -> List[Dict[str, Any]]:
         }
         for mark in marks
     ]
+
+
+@router.get("/class")
+def get_class_marks(
+    grade: str,
+    section: str,
+    subject: str,
+    exam_type: ExamType = FINAL_TERM,
+    session: Session = Depends(get_session),
+    _user=Depends(get_current_user),
+):
+    """One class's marks for one subject of this year's exam, ready for entering the whole class."""
+    if subject not in SUBJECTS:
+        raise HTTPException(status_code=422, detail=f"Subject must be one of: {', '.join(SUBJECTS)}.")
+    students = session.exec(
+        select(Student)
+        .where(Student.grade == grade, Student.section == section, col(Student.archived_at).is_(None))
+        .order_by(Student.roll_number)
+    ).all()
+    year_id = current_academic_year_id(session)
+    marks = {
+        mark.student_id: mark
+        for mark in session.exec(
+            select(Result).where(
+                col(Result.student_id).in_([student.id for student in students]),
+                Result.subject == subject,
+                Result.exam_type == exam_type,
+                Result.academic_year_id == year_id,
+            )
+        ).all()
+    }
+    return {
+        "session": academic_year_labels(session).get(year_id),
+        "students": [
+            {
+                "id": student.id,
+                "name": student.name,
+                "roll_number": student.roll_number,
+                "grade": student.grade,
+                "section": student.section,
+                "marks_obtained": marks[student.id].marks_obtained if student.id in marks else None,
+                "total_marks": marks[student.id].total_marks if student.id in marks else None,
+            }
+            for student in students
+        ],
+    }
+
+
+@router.post("/class")
+def save_class_marks(
+    req: ClassMarksRequest,
+    session: Session = Depends(get_session),
+    _user=Depends(get_current_user),
+):
+    """Saves a whole class at once. If anything is wrong, nothing is saved."""
+    students = {student.id: student for student in session.exec(
+        select(Student).where(col(Student.id).in_([entry.student_id for entry in req.entries]))
+    ).all()}
+    for entry in req.entries:
+        student = students.get(entry.student_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="One of these students no longer exists. Reload and try again.")
+        if student.archived_at:
+            raise HTTPException(
+                status_code=http_status.HTTP_409_CONFLICT,
+                detail=f"Roll number {student.roll_number} is archived. Restore the student before entering marks.",
+            )
+
+    year_id = current_academic_year_id(session)
+    for entry in req.entries:
+        _store_mark(session, entry.student_id, req.subject, entry.marks_obtained, req.total_marks, req.exam_type, year_id)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT, detail="These marks were just saved by another request."
+        )
+    return {"message": "Marks recorded successfully", "saved": len(req.entries)}
 
 
 @router.get("/{student_id}")
@@ -138,28 +274,7 @@ def enter_or_update_marks(
         )
 
     year_id = current_academic_year_id(session)
-    target = session.exec(
-        select(Result).where(
-            Result.student_id == req.student_id,
-            Result.subject == req.subject,
-            Result.exam_type == req.exam_type,
-            Result.academic_year_id == year_id,
-        )
-    ).first()
-
-    if target:
-        target.marks_obtained = req.marks_obtained
-        target.total_marks = req.total_marks
-    else:
-        target = Result(
-            student_id=req.student_id,
-            subject=req.subject,
-            marks_obtained=req.marks_obtained,
-            total_marks=req.total_marks,
-            exam_type=req.exam_type,
-            academic_year_id=year_id,
-        )
-    session.add(target)
+    target = _store_mark(session, req.student_id, req.subject, req.marks_obtained, req.total_marks, req.exam_type, year_id)
     try:
         session.commit()
     except IntegrityError:

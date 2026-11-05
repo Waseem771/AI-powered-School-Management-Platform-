@@ -21,6 +21,8 @@ CURRENCY = os.getenv("CURRENCY", "Rs.")
 # Environment. Anything other than an explicit "development" gets production safeguards.
 APP_ENV = os.getenv("APP_ENV", "production").strip().lower()
 IS_PRODUCTION = APP_ENV != "development"
+# Labels the app as a demonstration holding made-up records.
+DEMO_MODE = os.getenv("DEMO_MODE", "").strip().lower() == "true"
 
 # Auth & Security
 MIN_SECRET_KEY_LENGTH = 32

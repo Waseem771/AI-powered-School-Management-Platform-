@@ -23,31 +23,31 @@
 | **Dashboard: fees collected / pending** | ✅ | M2: from payment rows, with an overdue figure |
 | **Dashboard: exam performance** | ✅ | M3: each student's latest exam only; a subject with no marks is left out |
 | **Dashboard: grade distribution** | ✅ | Real |
-| **Dashboard: date ranges** | ⬜ | None; all data is all-time |
-| **Dashboard: recent activity** | ⬜ | No activity data exists |
+| **Dashboard: date ranges** | ✅ | M8: fee figures filter by billing month |
+| **Dashboard: recent activity** | ✅ | M8: payments, challans, and enrolments from real records |
 | **Dashboard: retry on error** | ❌ | "Try again" can never succeed |
-| **Student list, search, grade filter** | ✅ | Works; no section filter |
-| **Section filter** | ⬜ | API and UI both lack it |
+| **Student list, search, grade filter** | ✅ | Works |
+| **Section filter** | ✅ | M8 |
 | **Add student** | ✅ | M3: all fields validated, with clear messages. Urdu names accepted |
 | **Edit student** | ✅ | M3: duplicate roll and null fields rejected clearly |
 | **Delete student** | ✅ | M3: archive and restore keep all history. Permanent delete refused if any records exist |
-| **Student profile page** | ⬜ | No page; data exists only in table rows |
+| **Student profile page** | ✅ | M8: biodata, fees, results, and estimate |
 | **Fee invoice list and status filter** | ✅ | M2: shows balance and overdue; summary cards are independent of filters |
 | **Issue challan** | ✅ | M2: validated, one per student per month, current-month defaults |
 | **Record payment (UI path)** | ✅ | M2: full or part payment, with clear errors |
 | **Payment integrity (API)** | ✅ | M2: double, over, negative, and simultaneous payments rejected |
 | **Partial payments and balances** | ✅ | M2 |
-| **Per-student fee history** | ⚙️ | Available only through a chatbot tool |
-| **Payment records view / receipts** | 🟡 | M2: earlier payments shown in the payment dialog. Receipts are M8 |
+| **Per-student fee history** | ✅ | M8: on the student's profile |
+| **Payment records view / receipts** | ✅ | M8: payment history and a printable receipt for each payment. Checked on screen, not on paper |
 | **Late fees, sibling concession** | ⬜ | In policy text only |
 | **Challan PDF** | ✅ | M4: A4, special characters safe, Urdu printed in Nastaliq |
 | **Challan PDF in deployed setup (cross-site)** | ✅ | M1: fetched with the login token. Confirmed in Chrome across two origins, not yet on Vercel and Modal |
-| **Marks entry** | ✅ | M3: range, subject, and exam type validated. Stored against the current year |
+| **Marks entry** | ✅ | M3: range, subject, and exam type validated. Stored against the current year. M8: a whole class at once |
 | **Grade calculation** | 🟡 | Consistent with policy table, but F below 50 conflicts with pass at 40 |
 | **Subject-wise results view** | ✅ | M3: Pass/Fail by percentage, with an exam picker |
 | **Result summaries** | ✅ | M3: one exam at a time. Promotion follows the written policy, with reasons |
 | **Report card PDF** | ✅ | M3: truthful, one exam, policy-based. M4: A4, special characters safe, Urdu printed in Nastaliq |
-| **Chatbot UI** | 🟡 | M5: status comes from the server. Prompts are still hidden on mobile |
+| **Chatbot UI** | ✅ | M5: status comes from the server. M8: prompts on phones, and each answer says where it came from |
 | **Chatbot: policy questions** | ✅ | All 7 tested correct, with citations |
 | **Chatbot: collection and pending summaries** | ✅ | Correct |
 | **Chatbot: single-student lookups** | ✅ | M5: right student by roll or name; asks when several match |
@@ -61,7 +61,7 @@
 | **Empty states** | ✅ | M7: separate from failures, with a next step where one exists |
 | **Error states** | ✅ | M7: a message and working Try again on data pages |
 | **Demo data** | 🟡 | Consistent, but stale, thin, and uses public figures' names |
-| **DEMO MODE label** | ⬜ | None |
+| **DEMO MODE label** | ✅ | M8: only when `DEMO_MODE=true` |
 
 ## AI insights (requested in section 4F)
 
@@ -106,12 +106,12 @@ Parent app, payroll and HR, full accounting, transport and GPS, library, biometr
 
 | Status | Count |
 |---|---|
-| ✅ Fully functional | 40 |
-| 🟡 Partially functional | 7 |
+| ✅ Fully functional | 48 |
+| 🟡 Partially functional | 5 |
 | 🖥️ Frontend only | 0 |
-| ⚙️ Backend only | 3 |
+| ⚙️ Backend only | 2 |
 | ❌ Broken | 2 |
-| ⬜ Missing | 11 |
+| ⬜ Missing | 6 |
 | ❓ Not tested | 2 |
 | **Total** | **65** |
 
