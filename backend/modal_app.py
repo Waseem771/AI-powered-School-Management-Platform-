@@ -107,3 +107,48 @@ def upgrade_database(apply: bool = False):
         data_volume.commit()
     if exit_code != 0:
         raise SystemExit(exit_code)
+
+
+# Phase 1b (see EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md section 7a.3): a dedicated,
+# separate volume for backups. Declaring it here does not create anything on Modal by itself --
+# like data_volume above, it is only resolved against the real Modal API when a function using
+# it actually runs there. This app has not been redeployed since this was added: no `modal
+# deploy`, no `modal run` against run_scheduled_backup below, so neither this volume nor the
+# Cron trigger exist on Modal yet. That is a separate, later approval (Phase 1c).
+backup_volume = modal.Volume.from_name("educore-backups", create_if_missing=True)
+
+
+@app.function(
+    image=image,
+    volumes={
+        # Read-only: the backup job must never become a second writer to educore-data. See
+        # plan section 6.4 -- this makes an accidental write fail at the OS level, not just by
+        # convention.
+        "/data": data_volume.with_mount_options(read_only=True),
+        "/backups": backup_volume,
+    },
+    timeout=600,
+    schedule=modal.Cron("0 2 * * *", timezone="Asia/Karachi"),
+)
+def run_scheduled_backup():
+    """Daily verified backup of /data/school.db into educore-backups, with retention.
+
+    Not yet live: this function exists in code only until this app is next deployed (Phase 1c).
+    The actual backup/retention algorithm is in services/backup_job.py, tested there against
+    temporary directories -- this function only wires it to the real Modal mount points.
+    """
+    import sys
+    sys.path.insert(0, "/root/backend")
+    os.chdir("/root/backend")
+
+    from pathlib import Path as _Path
+    from services.backup_job import run_daily_backup_job
+
+    # Defensive: pick up the latest committed state rather than trust a possibly-reused
+    # container's view from an earlier mount. See plan section 6.1.
+    data_volume.reload()
+    result = run_daily_backup_job(_Path("/data/school.db"), _Path("/backups"))
+    backup_volume.commit()
+    if not result.ok:
+        raise RuntimeError(f"scheduled backup failed: {result.reason}")
+    print(f"backup ok: {result.daily_path} promoted={result.promoted} pruned={result.pruned}")

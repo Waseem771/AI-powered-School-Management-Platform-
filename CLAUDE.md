@@ -47,8 +47,12 @@ backend/            FastAPI app (run commands from here)
   services/         ai_service, pdf_service, rag_service, data_assistant_service, school_assistant_service,
                     fee_ledger (all fee calculations), academics (all exam and promotion calculations),
                     admin_setup, login_throttle, risk_features,
-                    chat_intent, student_lookup, school_reports, assistant_tools (chatbot)
-  migrate_db.py     reports on and upgrades an existing database, with a backup
+                    chat_intent, student_lookup, school_reports, assistant_tools (chatbot),
+                    backup_service (shared SQLite backup helper, used by migrate_db.py),
+                    backup_job (daily backup/retention algorithm, wired in modal_app.py's
+                    run_scheduled_backup but not yet deployed; see
+                    EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md)
+  migrate_db.py     reports on and upgrades an existing database, with a backup (via services/backup_service.py)
   knowledge_base/   5 policy .txt files used by the RAG chatbot
   assets/fonts/     Noto Nastaliq Urdu and its licence, used to print Urdu in PDFs
   test_*.py         pytest tests; test_modal.py is a manual script, not collected
@@ -225,3 +229,8 @@ Backend: set `SECRET_KEY`, `ADMIN_PASSWORD`, and `FRONTEND_URL` in the Modal sec
 ## Code graph
 
 This repo may have a code-review-graph knowledge graph (see `AGENTS.md` when present). Use its MCP tools, when available, to narrow scope before reading source. If the graph and the source disagree, trust the source.
+
+## Rules saved by Reflect
+
+- Only do evidence-based verification and recommendations; do not fix anything, do not modify source code, databases, Modal resources, hosting settings or deployment configs, and wait for approval before making any changes (saved Nov 13, 2026)
+- Do not modify source code, databases, Modal resources, secrets, or production settings; this is a planning-only task (saved Nov 13, 2026)

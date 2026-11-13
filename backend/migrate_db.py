@@ -32,6 +32,7 @@ from typing import List, Optional, Tuple
 
 from models.fee import INVOICE_STUDENT_MONTH_INDEX
 from models.result import ExamType, RESULT_UNIQUE_INDEX
+from services.backup_service import create_consistent_backup
 from services.fee_ledger import parse_due_date
 
 ROW_LIMIT = 50
@@ -172,11 +173,17 @@ def _totals(connection: sqlite3.Connection) -> Tuple:
     ).fetchone()
 
 
-def _backup(connection: sqlite3.Connection, database: Path) -> Path:
+def _backup(database: Path) -> Path:
+    """Backs up `database` with the shared, read-only-source helper in `services/backup_service.py`.
+
+    Kept as a thin wrapper (same timestamped-name scheme as before) so the rest of this file, and
+    anything that re-runs this script, sees identical filenames and behavior to before this
+    module was shared with the new backup service. Raises RuntimeError on failure instead of
+    returning a path, so `_apply()` can report it the same way it reports every other failure.
+    """
     target = database.with_name(f"{database.name}.backup-{datetime.now():%Y%m%d-%H%M%S}")
-    with sqlite3.connect(target) as backup_connection:
-        connection.backup(backup_connection)
-    backup_connection.close()
+    if not create_consistent_backup(database, target):
+        raise RuntimeError(f"could not create a backup at {target}")
     return target
 
 
@@ -192,7 +199,11 @@ def _apply(database: Path) -> int:
             return 1
 
         before = _totals(connection)
-        backup_path = _backup(connection, database)
+        try:
+            backup_path = _backup(database)
+        except RuntimeError as error:
+            print(f"\nERROR: {error}. Nothing was changed.")
+            return 1
         print(f"\nBackup written: {backup_path}")
 
         connection.execute("BEGIN IMMEDIATE")

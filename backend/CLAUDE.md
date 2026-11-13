@@ -23,6 +23,8 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 - `models/`: `user.py`, `student.py` (Base/Create/Update/Read schemas), `fee.py` (Invoice, Payment, FeeStructure, AcademicYear), `result.py` (`calculate_grade`).
 - `routers/`: one file per resource; every route except login uses `_user = Depends(get_current_user)`.
 - `services/`: business logic; routers stay thin.
+- `services/backup_service.py`: shared SQLite backup helper (`create_consistent_backup`, `verify_backup`, `record_counts`, `create_verified_backup`, `select_files_to_prune`), built on the Online Backup API. `migrate_db.py`'s pre-migration backup uses it.
+- `services/backup_job.py`: the daily backup/promotion/retention algorithm (`run_daily_backup_job`) from `EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md` section 7a.3, built on `backup_service.py`. Takes plain `Path`s, so it is tested entirely against temporary directories (`test_backup_job.py`) with no Modal involved. `modal_app.py`'s `run_scheduled_backup` wires it to the real `/data` (read-only) and `/backups` mounts, scheduled for 02:00 `Asia/Karachi` via `modal.Cron` — but that function has not been deployed, so neither the `educore-backups` Volume nor the Cron trigger exist on Modal yet (Phase 1b is code + local tests only; the deploy is Phase 1c, a separate approval).
 - `knowledge_base/*.txt`: policy source for RAG. Editing these changes chatbot answers; restart so chunks reload.
 
 ## Conventions
