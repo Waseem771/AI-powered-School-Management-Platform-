@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, or_, select
 
 from database import get_session
+from models.admission import AdmissionApplication
 from models.fee import Invoice
 from models.result import Result
 from models.student import Student, StudentCreate, StudentRead, StudentUpdate
@@ -162,10 +163,11 @@ def delete_student(
 
     has_invoices = session.exec(select(Invoice.id).where(Invoice.student_id == id)).first() is not None
     has_results = session.exec(select(Result.id).where(Result.student_id == id)).first() is not None
-    if has_invoices or has_results:
+    has_admission = session.exec(select(AdmissionApplication.id).where(AdmissionApplication.student_id == id)).first() is not None
+    if has_invoices or has_results or has_admission:
         raise HTTPException(
             status_code=http_status.HTTP_409_CONFLICT,
-            detail="This student has fee or exam records, so it cannot be deleted. Archive the student instead.",
+            detail="This student has fee, exam, or admission records, so it cannot be deleted. Archive the student instead.",
         )
 
     session.delete(student)

@@ -85,6 +85,23 @@ export const api = {
   getStudentRiskDetail: (studentId, options) => client.get(`/ai/at-risk/${studentId}`, options),
   simulateRisk: (payload, options) => client.post('/ai/simulate', payload, options),
 
+  // Admissions (new students)
+  getAdmissionOptions: (options) => client.get('/admissions/options', options),
+  getAdmissionStats: (options) => client.get('/admissions/stats', options),
+  getApplications: (params, options) => client.get('/admissions', { params, ...options }),
+  getApplication: (id, options) => client.get(`/admissions/${id}`, options),
+  createApplication: (data) => client.post('/admissions', data),
+  updateApplication: (id, data) => client.put(`/admissions/${id}`, data),
+  changeApplicationStatus: (id, data) => client.post(`/admissions/${id}/status`, data),
+  setApplicationDocument: (id, data) => client.put(`/admissions/${id}/documents`, data),
+  addApplicationAssessment: (id, data) => client.post(`/admissions/${id}/assessments`, data),
+  getNextRollNumber: (options) => client.get('/admissions/next-roll-number', options),
+  enrollApplicant: (id, data) => client.post(`/admissions/${id}/enroll`, data),
+  getApplicationFeePolicy: (id, options) => client.get(`/admissions/${id}/fee-policy`, options),
+  getAdmissionReminder: (id, language) => client.post(`/admissions/${id}/assistant/reminder`, { language }),
+  getAdmissionSummary: (id) => client.get(`/admissions/${id}/assistant/summary`),
+  askAdmissionPolicy: (question) => client.post('/admissions/assistant/policy', { question }),
+
   // Chatbot
   askChatbot: (payload, options) => {
     const body = typeof payload === 'string' ? { question: payload } : payload;

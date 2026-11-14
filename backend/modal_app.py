@@ -110,11 +110,9 @@ def upgrade_database(apply: bool = False):
 
 
 # Phase 1b (see EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md section 7a.3): a dedicated,
-# separate volume for backups. Declaring it here does not create anything on Modal by itself --
-# like data_volume above, it is only resolved against the real Modal API when a function using
-# it actually runs there. This app has not been redeployed since this was added: no `modal
-# deploy`, no `modal run` against run_scheduled_backup below, so neither this volume nor the
-# Cron trigger exist on Modal yet. That is a separate, later approval (Phase 1c).
+# separate volume for backups. This is live: the educore-backups volume exists on Modal and the
+# schedule below has been firing since 2026-11-13. Because it lives in this file, every
+# `modal deploy modal_app.py` redeploys it along with the web app.
 backup_volume = modal.Volume.from_name("educore-backups", create_if_missing=True)
 
 
@@ -133,7 +131,7 @@ backup_volume = modal.Volume.from_name("educore-backups", create_if_missing=True
 def run_scheduled_backup():
     """Daily verified backup of /data/school.db into educore-backups, with retention.
 
-    Not yet live: this function exists in code only until this app is next deployed (Phase 1c).
+    Live since 2026-11-13 (see DEPLOYMENT_GUIDE.md, "Backups and restoring").
     The actual backup/retention algorithm is in services/backup_job.py, tested there against
     temporary directories -- this function only wires it to the real Modal mount points.
     """

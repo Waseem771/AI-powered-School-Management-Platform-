@@ -7,7 +7,7 @@ on that day's backup having passed `create_verified_backup` first.
 This module only ever sees local `Path`s. `modal_app.py`'s scheduled function passes it the real
 mount points (`/data/school.db`, read-only; `/backups`, the educore-backups Volume) when it runs
 on Modal; tests pass temporary directories instead. Neither this module nor its tests create,
-read, or write anything on Modal itself -- see modal_app.py for the (not yet deployed) wiring.
+read, or write anything on Modal itself -- see modal_app.py for the wiring (live on Modal since 2026-11-13).
 """
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 # EduCore AI — Phase 1: Database Protection & Backup Implementation Plan
 
-**Status: PLANNING ONLY. Nothing in this document has been implemented. No source file, schema, secret, Modal resource, Vercel setting, or production record was modified while preparing or revising it.**
+**Status (updated 2026-11-14): implemented and live. Phases 1a and 1b are in the code, and the backup job has been running on Modal since 2026-11-13. The text below is the original plan, kept for its reasoning; for day-to-day steps use DEPLOYMENT_GUIDE.md, "Backups and restoring".**
 
 **Date:** 2026-11-13 (Revision 2 — supersedes the first draft, approved in principle, now revised for timezone, Volume concurrency, the restore procedure, and the retention algorithm, per your explicit feedback). **Repository state inspected:** branch `mvp/m10-qa`, commit `f9114ab`. **Scope:** Phase 1 of database reliability — automated backups, commit strategy, and disaster recovery for the existing SQLite-on-Modal-Volume architecture. No architecture change, no new database engine, no hosting change.
 

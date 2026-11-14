@@ -137,6 +137,36 @@ https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
 
 ---
 
+## Backups and restoring
+
+A scheduled job (`run_scheduled_backup` in `backend/modal_app.py`) runs at 02:00 Pakistan time every day. It makes a verified copy of `school.db` in the separate `educore-backups` volume, under `daily/`, `weekly/` (Mondays) and `monthly/` (the 1st). It keeps 14 daily, 8 weekly and 12 monthly copies. It mounts the live volume read-only, so it cannot change your records. The job is in the same file as the web app, so every `modal deploy modal_app.py` redeploys it.
+
+Check it is working (read-only):
+
+```bash
+modal volume ls --json educore-backups daily
+```
+
+The newest file should be from the last 02:00, and its size should be close to `school.db`'s.
+
+**Before any release,** take a copy on demand. This only adds a file to the backup volume:
+
+```bash
+modal run modal_app.py::run_scheduled_backup
+```
+
+**To restore** (this stops the app, so it is a full outage while it runs):
+
+1. `modal app stop educore-ai-school-platform`
+2. Keep what is there now: `modal volume cp educore-data school.db school.db.pre-restore-<date>`
+3. Download the backup you want and check it opens: `modal volume get educore-backups daily/<file>.db ./candidate.db`
+4. Put it in place: `modal volume put educore-data ./candidate.db school.db --force`
+5. `modal deploy modal_app.py`, then run the checks in Part 3.
+
+The pre-migration copy `school.db.backup-<date>` (Step 5) is a separate, older safety copy. The full reasoning is in `EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md`, section 10.
+
+---
+
 ## Rolling back
 
 Passwords are upgraded to bcrypt at first sign-in, and code from before this change cannot read those hashes. If you roll back to older code after signing in, the admin account will not be able to sign in until its password hash is restored from a backup.

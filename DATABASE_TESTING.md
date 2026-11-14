@@ -23,7 +23,7 @@ schedule — both phases were explicitly approved as code-and-local-tests only.
 | `backend/migrate_db.py` | 1a | Refactored to call `backup_service.create_consistent_backup` instead of its own inline copy. Behavior unchanged — its own 14 tests pass unmodified. |
 | `backend/services/backup_job.py` | 1b | `run_daily_backup_job`: one verified daily backup, then weekly (Monday)/monthly (1st) promotion, then per-tier retention (14 daily / 8 weekly / 12 monthly). Pure `Path`-based, no Modal import. |
 | `backend/test_backup_job.py` | 1b | 11 tests: ordinary day, weekly promotion, monthly promotion, both at once, missing-source failure, a failed run never touching an existing good backup, retention caps per tier, newest-never-pruned, and a UTC-vs-Asia/Karachi timezone edge case. |
-| `backend/modal_app.py` | 1b | Added `backup_volume = modal.Volume.from_name("educore-backups", create_if_missing=True)` and `run_scheduled_backup` (`/data` mounted **read-only**, `/backups` mounted, `schedule=modal.Cron("0 2 * * *", timezone="Asia/Karachi")`). Defined in code only — this app has not been redeployed since, so neither the Volume nor the Cron trigger exist on Modal. |
+| `backend/modal_app.py` | 1b | Added `backup_volume = modal.Volume.from_name("educore-backups", create_if_missing=True)` and `run_scheduled_backup` (`/data` mounted **read-only**, `/backups` mounted, `schedule=modal.Cron("0 2 * * *", timezone="Asia/Karachi")`). Deployed on 2026-11-13: the Volume exists, and daily backups were seen on 2026-11-13 20:32 and 2026-11-14 02:00 (Asia/Karachi). |
 | `backend/CLAUDE.md`, `CLAUDE.md` | 1a/1b | Repo-map and layout notes updated to describe the above. |
 
 ## Key design points, carried from the approved plan

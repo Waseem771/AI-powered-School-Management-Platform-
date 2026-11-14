@@ -50,8 +50,8 @@ backend/            FastAPI app (run commands from here)
                     chat_intent, student_lookup, school_reports, assistant_tools (chatbot),
                     backup_service (shared SQLite backup helper, used by migrate_db.py),
                     backup_job (daily backup/retention algorithm, wired in modal_app.py's
-                    run_scheduled_backup but not yet deployed; see
-                    EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md)
+                    run_scheduled_backup, live on Modal since 2026-11-13; see
+                    DEPLOYMENT_GUIDE.md "Backups and restoring")
   migrate_db.py     reports on and upgrades an existing database, with a backup (via services/backup_service.py)
   knowledge_base/   5 policy .txt files used by the RAG chatbot
   assets/fonts/     Noto Nastaliq Urdu and its licence, used to print Urdu in PDFs
