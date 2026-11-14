@@ -588,3 +588,66 @@ def test_the_application_date_follows_the_school_clock_not_the_servers(client, a
 
     after_the_school_day = client.post("/admissions", json=_payload(application_date="2031-01-02"), headers=admin)
     assert after_the_school_day.status_code == 422
+
+
+# 15. Roll-number suggestion follows the school's 3-digit style
+@pytest.fixture
+def add_students():
+    """Adds made-up students, and removes them afterwards so other test files see the same school."""
+    added = []
+
+    def add(rolls):
+        with Session(engine) as session:
+            for roll in rolls:
+                student = Student(name=f"Roll Test {roll}", roll_number=roll, grade="Grade 6", section="A", guardian_name="Sample Guardian", phone="0300-1112233")
+                session.add(student)
+                session.flush()
+                added.append(student.id)
+            session.commit()
+
+    yield add
+    with Session(engine) as session:
+        for student_id in added:
+            student = session.get(Student, student_id)
+            if student:
+                session.delete(student)
+        session.commit()
+
+
+def test_a_long_test_roll_number_does_not_move_the_suggestion(client, admin, add_students):
+    with Session(engine) as session:
+        before = admissions.next_roll_number(session)
+    add_students(["111111", "5555"])
+    with Session(engine) as session:
+        suggested = admissions.next_roll_number(session)
+
+    assert suggested == before and len(suggested) == 3
+    assert client.get("/admissions/next-roll-number", headers=admin).json()["roll_number"] == suggested
+
+
+def test_the_suggestion_is_padded_unused_and_follows_the_highest_three_digit_number(add_students):
+    add_students(["840"])
+    with Session(engine) as session:
+        assert admissions.next_roll_number(session) == "841"
+    add_students(["841", "842"])
+    with Session(engine) as session:
+        assert admissions.next_roll_number(session) == "843"
+
+
+def test_when_the_top_of_the_range_is_used_a_free_gap_is_suggested(add_students):
+    add_students(["999"])
+    with Session(engine) as session:
+        suggested = admissions.next_roll_number(session)
+        taken = set(session.exec(select(Student.roll_number)).all())
+
+    assert suggested not in taken and len(suggested) == 3
+
+
+def test_enrolling_with_a_taken_roll_number_never_touches_the_existing_student(client, admin, add_students):
+    add_students(["111111"])
+    application = _approved(client, admin)
+    response = client.post(f"/admissions/{application['id']}/enroll", json=_enroll_body(application, roll_number="111111"), headers=admin)
+
+    assert response.status_code == 409
+    with Session(engine) as session:
+        assert len(session.exec(select(Student).where(Student.roll_number == "111111")).all()) == 1

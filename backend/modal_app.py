@@ -109,6 +109,22 @@ def upgrade_database(apply: bool = False):
         raise SystemExit(exit_code)
 
 
+@app.function(image=image, volumes={"/data": data_volume}, timeout=300)
+def add_academic_session(label: str, apply: bool = False):
+    """Adds a session (never as the current one). Reports only unless apply. See add_academic_session.py."""
+    import sys
+    sys.path.insert(0, "/root/backend")
+    os.chdir("/root/backend")
+
+    from add_academic_session import main as add_session
+
+    code = add_session(["/data/school.db", label] + (["--apply"] if apply else []))
+    if apply:
+        data_volume.commit()
+    if code != 0:
+        raise SystemExit(code)
+
+
 # Phase 1b (see EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md section 7a.3): a dedicated,
 # separate volume for backups. This is live: the educore-backups volume exists on Modal and the
 # schedule below has been firing since 2026-11-13. Because it lives in this file, every

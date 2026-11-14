@@ -194,14 +194,25 @@ def assessment_dict(assessment: AdmissionAssessment) -> Dict:
 
 # ── Roll numbers and enrollment ─────────────────────────────────────────────
 
+ROLL_NUMBER_DIGITS = 3  # The school's own style: 001, 046, 699.
+
+
 def next_roll_number(session: Session) -> str:
-    """One above the highest numeric roll number, in the school's 3-digit style (046). Never reuses a number."""
-    numbers = [int(roll) for roll in session.exec(select(Student.roll_number)).all() if roll.isdigit()]
-    candidate = max(numbers, default=0) + 1
+    """The next free number in the school's 3-digit style (046), or "" when none is free.
+
+    Only numbers already in that style count. A longer test or odd number (5555, 111111) does not
+    move the suggestion. Taken numbers are skipped, so a number is never suggested twice.
+    """
     taken = set(session.exec(select(Student.roll_number)).all())
-    while f"{candidate:03d}" in taken:
-        candidate += 1
-    return f"{candidate:03d}"
+    in_style = [int(roll) for roll in taken if roll.isdigit() and len(roll) == ROLL_NUMBER_DIGITS]
+    highest = max(in_style, default=0)
+    limit = 10**ROLL_NUMBER_DIGITS - 1
+    # Above the highest first, then any gap below it.
+    for candidate in [*range(highest + 1, limit + 1), *range(1, highest)]:
+        label = f"{candidate:0{ROLL_NUMBER_DIGITS}d}"
+        if label not in taken:
+            return label
+    return ""
 
 
 def enroll_application(session: Session, application_id: int, request, user) -> Dict:
