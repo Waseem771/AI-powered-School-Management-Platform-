@@ -52,10 +52,10 @@ test('an administrator creates a teacher, who sees only the teacher portal until
   for (const label of ['My Classes', 'Daily Attendance', 'Student Records', 'Marks Entry']) {
     await expect(main.getByText(label, { exact: true })).toBeVisible();
   }
-  await expect(main.getByText('Coming in Phase 2').first()).toBeVisible();
+  await expect(main.getByText('Coming later').first()).toBeVisible();
 
   const nav = teacher.getByRole('navigation', { name: 'Main navigation' });
-  await expect(nav.getByRole('link')).toHaveText(['Teacher Dashboard', 'My Profile']);
+  await expect(nav.getByRole('link')).toHaveText(['Teacher Dashboard', 'My Classes', 'My Profile']);
 
   // Direct addresses of restricted screens go back to the portal.
   for (const path of ['/students', '/fees', '/admissions', '/teachers', '/dashboard', '/chatbot']) {
@@ -106,7 +106,7 @@ test('an administrator is kept out of the teacher portal and still sees the usua
   await page.goto('/teacher/dashboard');
   await expect(page).toHaveURL(/\/dashboard$/);
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
-  for (const label of ['Dashboard', 'Students', 'Fees', 'Exam Results', 'Admissions', 'Teachers']) {
+  for (const label of ['Dashboard', 'Students', 'Fees', 'Exam Results', 'Admissions', 'Teachers', 'Teacher Assignments', 'Attendance']) {
     await expect(nav.getByRole('link', { name: label })).toBeVisible();
   }
 });

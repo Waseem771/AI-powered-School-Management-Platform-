@@ -286,6 +286,11 @@ def test_every_route_is_either_public_or_refuses_a_teacher(client, teacher_token
         ("GET", "/auth/me"),
         ("POST", "/auth/change-password"),
         ("GET", "/teacher/profile"),
+        ("GET", "/teacher/classes"),
+        ("GET", "/teacher/classes/{assignment_id}"),
+        ("GET", "/teacher/classes/{assignment_id}/attendance"),
+        ("PUT", "/teacher/classes/{assignment_id}/attendance"),
+        ("GET", "/teacher/classes/{assignment_id}/history"),
     }
     problems = []
     checked = 0

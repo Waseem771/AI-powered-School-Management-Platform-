@@ -5,7 +5,10 @@ import {
   Bot,
   ClipboardCheck,
   GraduationCap,
+  BookOpen,
+  CalendarCheck,
   KeyRound,
+  Link2,
   UserCircle,
   UserCog,
   LayoutDashboard,
@@ -31,6 +34,9 @@ const ICONS = {
   chatbot: Bot,
   admissions: ClipboardCheck,
   teachers: UserCog,
+  assignments: Link2,
+  attendance: CalendarCheck,
+  classes: BookOpen,
   profile: UserCircle,
 };
 
@@ -103,9 +109,9 @@ export default function Layout() {
   const session = sessionLabel(school);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row">
+    <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row print:block print:bg-white">
       {/* Mobile top bar */}
-      <div className="flex items-center justify-between bg-navy-900 px-4 py-2 text-white md:hidden">
+      <div className="flex items-center justify-between bg-navy-900 px-4 py-2 text-white md:hidden print:hidden">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600">
             <School className="h-5 w-5 text-white" aria-hidden="true" />
@@ -143,7 +149,7 @@ export default function Layout() {
         aria-modal={mobileMenuOpen || undefined}
         aria-label="Main navigation"
         onKeyDown={trapDrawerFocus}
-        className={`fixed top-0 z-40 flex h-[100dvh] w-64 flex-col justify-between overflow-y-auto bg-navy-900 text-white transition-transform duration-200 ease-in-out md:sticky ${
+        className={`fixed top-0 z-40 flex h-[100dvh] w-64 flex-col justify-between overflow-y-auto bg-navy-900 text-white transition-transform duration-200 ease-in-out md:sticky print:hidden ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -210,7 +216,7 @@ export default function Layout() {
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col" inert={mobileMenuOpen ? '' : undefined} aria-hidden={mobileMenuOpen || undefined}>
-        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-slate-200 bg-white px-8 py-3 md:flex">
+        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-slate-200 bg-white px-8 py-3 md:flex print:hidden">
           <div>
             {session && <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800">{session}</span>}
             {school?.demo_mode && <span className="ml-2 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">DEMO MODE</span>}

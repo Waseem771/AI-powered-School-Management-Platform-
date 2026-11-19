@@ -16,6 +16,13 @@ import AdmissionDetail from './pages/AdmissionDetail';
 import Teachers from './pages/Teachers';
 import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherProfile from './pages/TeacherProfile';
+import TeacherClasses from './pages/TeacherClasses';
+import TeacherClassDetail from './pages/TeacherClassDetail';
+import TeacherAttendance from './pages/TeacherAttendance';
+import TeacherAttendanceHistory from './pages/TeacherAttendanceHistory';
+import TeacherAssignments from './pages/TeacherAssignments';
+import Attendance from './pages/Attendance';
+import AttendanceReport from './pages/AttendanceReport';
 import { canAccessPath, homePathFor } from './lib/access';
 import { getStoredUser } from './lib/session';
 
@@ -75,6 +82,13 @@ export default function App() {
           <Route path="teachers" element={<Teachers />} />
           <Route path="teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="teacher/profile" element={<TeacherProfile />} />
+          <Route path="teacher/classes" element={<TeacherClasses />} />
+          <Route path="teacher/classes/:id" element={<TeacherClassDetail />} />
+          <Route path="teacher/classes/:id/attendance" element={<TeacherAttendance />} />
+          <Route path="teacher/classes/:id/history" element={<TeacherAttendanceHistory />} />
+          <Route path="teacher-assignments" element={<TeacherAssignments />} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="attendance/report" element={<AttendanceReport />} />
           </Route>
         </Route>
 

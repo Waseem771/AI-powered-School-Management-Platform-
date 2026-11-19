@@ -15,9 +15,16 @@ const STAFF_NAV = [
   { to: '/chatbot', label: 'School Assistant', icon: 'chatbot' },
   { to: '/admissions', label: 'Admissions', icon: 'admissions' },
 ];
-const TEACHERS_NAV = { to: '/teachers', label: 'Teachers', icon: 'teachers' };
+// Only the administrator account manages teachers, their classes and school-wide attendance.
+const ADMIN_NAV = [
+  { to: '/teachers', label: 'Teachers', icon: 'teachers' },
+  { to: '/teacher-assignments', label: 'Teacher Assignments', icon: 'assignments' },
+  { to: '/attendance', label: 'Attendance', icon: 'attendance' },
+];
+const ADMIN_ONLY_SEGMENTS = new Set(['teachers', 'teacher-assignments', 'attendance']);
 const TEACHER_NAV = [
   { to: '/teacher/dashboard', label: 'Teacher Dashboard', icon: 'dashboard' },
+  { to: '/teacher/classes', label: 'My Classes', icon: 'classes' },
   { to: '/teacher/profile', label: 'My Profile', icon: 'profile' },
 ];
 
@@ -37,7 +44,7 @@ export function homePathFor(user) {
 
 export function navItemsFor(user) {
   if (isTeacher(user)) return TEACHER_NAV;
-  return isAdmin(user) ? [...STAFF_NAV, TEACHERS_NAV] : STAFF_NAV;
+  return isAdmin(user) ? [...STAFF_NAV, ...ADMIN_NAV] : STAFF_NAV;
 }
 
 /** True when this account has a screen at `pathname`. Whole path segments are compared, so "/teachers" is not "/teacher". */
@@ -45,7 +52,7 @@ export function canAccessPath(user, pathname) {
   const firstSegment = String(pathname ?? '').split('/').filter(Boolean)[0] ?? '';
   if (isTeacher(user)) return firstSegment === 'teacher';
   if (firstSegment === 'teacher') return false;
-  if (firstSegment === 'teachers') return isAdmin(user);
+  if (ADMIN_ONLY_SEGMENTS.has(firstSegment)) return isAdmin(user);
   return true;
 }
 

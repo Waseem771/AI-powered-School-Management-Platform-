@@ -51,6 +51,31 @@ export const api = {
   deactivateTeacher: (id) => client.post(`/teachers/${id}/deactivate`),
   getTeacherProfile: (options) => client.get('/teacher/profile', options),
 
+  // Teacher assignments (administrators)
+  getAssignmentOptions: (options) => client.get('/teacher-assignments/options', options),
+  getAssignments: (params, options) => client.get('/teacher-assignments', { params, ...options }),
+  createAssignment: (data) => client.post('/teacher-assignments', data),
+  updateAssignment: (id, data) => client.put(`/teacher-assignments/${id}`, data),
+  deleteAssignment: (id) => client.delete(`/teacher-assignments/${id}`),
+
+  // Teacher classes and attendance
+  getMyClasses: (options) => client.get('/teacher/classes', options),
+  getMyClass: (id, options) => client.get(`/teacher/classes/${id}`, options),
+  getClassAttendance: (id, date, options) => client.get(`/teacher/classes/${id}/attendance`, { params: { date }, ...options }),
+  saveClassAttendance: (id, data) => client.put(`/teacher/classes/${id}/attendance`, data),
+  getClassHistory: (id, params, options) => client.get(`/teacher/classes/${id}/history`, { params, ...options }),
+
+  // Attendance (administrators)
+  getAttendanceOverview: (params, options) => client.get('/attendance/overview', { params, ...options }),
+  getAttendanceClassDay: (params, options) => client.get('/attendance/class-day', { params, ...options }),
+  correctAttendanceClassDay: (data) => client.put('/attendance/class-day', data),
+  getAttendanceMonthly: (params, options) => client.get('/attendance/monthly', { params, ...options }),
+  getFrequentAbsentees: (params, options) => client.get('/attendance/frequent-absentees', { params, ...options }),
+  getStudentAttendance: (id, params, options) => client.get(`/attendance/students/${id}/history`, { params, ...options }),
+  getAttendanceChanges: (params, options) => client.get('/attendance/changes', { params, ...options }),
+  getAttendanceReport: (params, options) => client.get('/attendance/report', { params, ...options }),
+  getAttendanceCsv: (params) => client.get('/attendance/export.csv', { params, responseType: 'blob' }).then((r) => r.data),
+
   // Students
   getStudents: (params, options) => client.get('/students', { params, ...options }),
   getStudent: (id, options) => client.get(`/students/${id}`, options),

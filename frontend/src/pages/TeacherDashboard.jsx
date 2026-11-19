@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarCheck, ClipboardList, GraduationCap, Users } from 'lucide-react';
 import { api } from '../api/client';
 import { Badge, Card, PageHeader } from '../components/ui/Page';
@@ -8,8 +9,6 @@ import { roleLabel } from '../lib/schoolInfo';
 
 // Features that do not exist yet. They are labelled as such and cannot be opened.
 const COMING_SOON = [
-  { title: 'My Classes', note: 'Coming in Phase 2', icon: Users },
-  { title: 'Daily Attendance', note: 'Coming in Phase 2', icon: CalendarCheck },
   { title: 'Student Records', note: 'Coming later', icon: ClipboardList },
   { title: 'Marks Entry', note: 'Coming later', icon: GraduationCap },
 ];
@@ -55,6 +54,26 @@ export default function TeacherDashboard() {
           </div>
         </dl>
       </Card>
+
+      <section aria-labelledby="available-heading">
+        <h2 id="available-heading" className="mb-3 text-base font-bold text-slate-900">Your work</h2>
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {[
+            { to: '/teacher/classes', title: 'My Classes', note: 'See your classes and student rosters', icon: Users },
+            { to: '/teacher/classes', title: 'Daily Attendance', note: 'Choose a class, then take attendance', icon: CalendarCheck },
+          ].map(({ to, title, note, icon: Icon }) => (
+            <li key={title}>
+              <Link to={to} className="flex min-h-11 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                <Icon className="h-6 w-6 shrink-0 text-brand-600" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{title}</p>
+                  <p className="text-xs text-slate-600">{note}</p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section aria-labelledby="coming-soon-heading">
         <h2 id="coming-soon-heading" className="mb-3 text-base font-bold text-slate-900">Coming soon</h2>

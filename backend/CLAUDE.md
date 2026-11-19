@@ -19,6 +19,7 @@ Tests: `python -m pytest`. `conftest.py` provides a temporary seeded database, s
 
 - `main.py`: FastAPI app, CORS, router registration, lifespan (creates tables, sets up the admin account through `services/admin_setup.py`).
 - `routers/teachers.py`: teacher account management (admin only) and the teacher portal endpoint. Auth dependencies live in `routers/auth.py`: `get_authenticated_user` (any active account), `get_current_user` (staff; refuses portal-only roles such as teacher, so new routes are closed to teachers by default) and `require_roles(...)`. `test_teachers.py` audits every route in the OpenAPI schema for this.
+- `routers/assignments.py`, `routers/attendance.py`, `services/attendance.py`, `models/attendance.py`: teacher-class assignments and daily attendance (see the root CLAUDE.md for the rules). Reports count recorded rows only. `test_attendance.py` covers them.
 - `config.py`: env loading, `GRADES`, `SECTIONS`, `SUBJECTS`, fee amounts, JWT settings.
 - `database.py`: SQLite engine and `get_session` dependency.
 - `models/`: `user.py`, `student.py` (Base/Create/Update/Read schemas), `fee.py` (Invoice, Payment, FeeStructure, AcademicYear), `result.py` (`calculate_grade`).

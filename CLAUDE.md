@@ -136,6 +136,7 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 - `results`: student_id, subject, marks_obtained, total_marks, exam_type (`Final Term` or `Midterm`), academic_year_id, one per student, subject, exam, and year. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F. A subject is passed at 40%, and promotion follows `services/academics.py`, so a 40-49% subject reads as Grade F and Pass.
 - `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role, `is_active` (default true; false ends all of the account's tokens at once), optional `full_name` and `email`. Role `teacher` is portal-only: `get_current_user` refuses it with 403 on every school-data route, and only `/teacher/profile`, `/auth/me`, `/auth/change-password` and `/auth/logout` accept it.
 - `revoked_tokens`: tokens ended by logout, kept until they expire.
+- `teacher_class_assignments`, `student_attendance`, `attendance_change_history`: new tables only (`create_all` adds them, no migration). A class is a grade and section, as on `students`. One attendance row per student per day (unique); a student with no row is *not recorded*, never absent. Corrections need a reason and write a history row. Teachers can record or correct the last 7 days (`TEACHER_EDIT_WINDOW_DAYS`); admins any past date. All rules are in `services/attendance.py`.
 
 ### API surface
 
@@ -146,6 +147,9 @@ All routes require auth except `/auth/login`, `/auth/logout`, `/school/public` (
 | `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
 | `/teachers` | Admin only: `GET`, `POST`, `POST /{id}/activate`, `POST /{id}/deactivate` |
 | `/teacher` | Teacher only: `GET /profile` |
+| `/teacher-assignments` | Admin only: `GET /options`, `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` (a teacher can have many classes, a class many teachers, one row per teacher, grade, section and session) |
+| `/teacher/classes` | Teacher only, own classes only (403 otherwise): `GET`, `GET /{id}` (roster), `GET`/`PUT /{id}/attendance`, `GET /{id}/history` |
+| `/attendance` | Admin only: `GET /overview`, `/class-day` (+`PUT` to correct), `/monthly`, `/frequent-absentees`, `/students/{id}/history`, `/changes`, `/report`, `/export.csv` |
 | `/students` | `GET` (search, grade, section, status), `POST`, `GET/PUT/DELETE /{id}`, `POST /{id}/archive`, `POST /{id}/restore` |
 | `/fees` | `GET` (status, grade, student_id), `GET /summary`, `GET /student/{student_id}/summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf`, `GET /payments/{payment_id}/receipt` |
 | `/results` | `GET /{student_id}` (exam_type, academic_year_id), `POST` (upsert marks), `GET /class` and `POST /class` (one subject for a whole class, all or nothing), `GET /{student_id}/report-card/pdf` (same filters) |
@@ -236,3 +240,4 @@ This repo may have a code-review-graph knowledge graph (see `AGENTS.md` when pre
 
 - Only do evidence-based verification and recommendations; do not fix anything, do not modify source code, databases, Modal resources, hosting settings or deployment configs, and wait for approval before making any changes (saved Nov 13, 2026)
 - Do not modify source code, databases, Modal resources, secrets, or production settings; this is a planning-only task (saved Nov 13, 2026)
+- Local development only: do not deploy to production, never modify production SQLite or Modal Volumes, and never change production credentials or auth secrets (saved Nov 19, 2026)
