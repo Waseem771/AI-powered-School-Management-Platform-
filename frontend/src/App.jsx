@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import { ToastProvider } from './components/ui/Toast';
 import Login from './pages/Login';
@@ -13,6 +13,11 @@ import Chatbot from './pages/Chatbot';
 import Admissions from './pages/Admissions';
 import AdmissionForm from './pages/AdmissionForm';
 import AdmissionDetail from './pages/AdmissionDetail';
+import Teachers from './pages/Teachers';
+import TeacherDashboard from './pages/TeacherDashboard';
+import TeacherProfile from './pages/TeacherProfile';
+import { canAccessPath, homePathFor } from './lib/access';
+import { getStoredUser } from './lib/session';
 
 // The backend enforces access on every request. This only keeps the client from
 // rendering private navigation before a user signs in.
@@ -22,6 +27,20 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
   return children;
+}
+
+// Sends each role to its own home, and away from screens it has no use for. Backend still decides.
+function RequireAccess() {
+  const { pathname } = useLocation();
+  const user = getStoredUser();
+  if (!canAccessPath(user, pathname)) {
+    return <Navigate to={homePathFor(user)} replace />;
+  }
+  return <Outlet />;
+}
+
+function HomeRedirect() {
+  return <Navigate to={homePathFor(getStoredUser())} replace />;
 }
 
 export default function App() {
@@ -40,7 +59,8 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<HomeRedirect />} />
+          <Route element={<RequireAccess />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="students" element={<Students />} />
           <Route path="students/:id" element={<StudentProfile />} />
@@ -52,9 +72,13 @@ export default function App() {
           <Route path="admissions/new" element={<AdmissionForm />} />
           <Route path="admissions/:id" element={<AdmissionDetail />} />
           <Route path="admissions/:id/edit" element={<AdmissionForm />} />
+          <Route path="teachers" element={<Teachers />} />
+          <Route path="teacher/dashboard" element={<TeacherDashboard />} />
+          <Route path="teacher/profile" element={<TeacherProfile />} />
+          </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<HomeRedirect />} />
       </Routes>
     </Router>
     </ToastProvider>

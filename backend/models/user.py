@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
+from sqlalchemy import text as sa_text
 from sqlmodel import Field, SQLModel
 
 MIN_PASSWORD_LENGTH = 10
@@ -21,6 +22,16 @@ class User(SQLModel, table=True):
     password_hash: str
     role: str = Field(default="admin")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Added for the Teacher Portal. The server default makes every account that already exists active,
+    # so no legacy account is locked out or changed. See migrate_db.py for the upgrade of old databases.
+    is_active: bool = Field(default=True, sa_column_kwargs={"server_default": sa_text("1")})
+    full_name: Optional[str] = Field(default=None)
+    email: Optional[str] = Field(default=None)
+
+
+ROLE_TEACHER = "teacher"
+# Roles that have a portal of their own and no access to the staff-side routes.
+PORTAL_ONLY_ROLES = frozenset({ROLE_TEACHER})
 
 
 class RevokedToken(SQLModel, table=True):

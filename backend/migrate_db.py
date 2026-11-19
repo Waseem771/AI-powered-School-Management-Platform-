@@ -8,17 +8,21 @@ nothing. No existing rows change.
   - students.archived_at: a new empty column. Empty means the student is active.
   - One challan per student per month, enforced by a unique index.
   - One mark per student, subject, exam, and year, enforced by a unique index.
+  - users.is_active (default 1, so every existing account stays active), users.full_name and
+    users.email: new columns for teacher accounts. Existing users keep their id, username,
+    password hash and role. Skipped when the database has no users table yet, because the app
+    creates that table with the columns in place.
 
 It stops, changing nothing, if duplicates already exist, because deciding which record is right
 takes a person.
 
 Run this BEFORE deploying code that needs it. The app refuses to start on a database without the
-new column. Older code ignores all three changes, so upgrading first is safe.
+new columns. Older code ignores all of these changes, so upgrading first is safe.
 
 Rollback: restore the backup file. Or run:
     DROP INDEX uq_invoices_student_month;
     DROP INDEX uq_results_student_subject_exam_year;
-    (The empty column can stay. Older code ignores it.)
+    (The new columns can stay. Older code ignores them, and is_active defaults to active.)
 
 This reads no application secrets, so it can run without the app's settings.
 """
@@ -37,6 +41,12 @@ from services.fee_ledger import parse_due_date
 
 ROW_LIMIT = 50
 ARCHIVE_COLUMN = "archived_at"
+# (column, definition) added to `users` for teacher accounts. Additive; existing rows read as active.
+USER_COLUMNS = (
+    ("is_active", "BOOLEAN NOT NULL DEFAULT 1"),
+    ("full_name", "VARCHAR"),
+    ("email", "VARCHAR"),
+)
 VALID_EXAM_TYPES = ExamType.__args__
 
 
@@ -149,6 +159,13 @@ def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> b
     return any(row[1] == column for row in connection.execute(f"PRAGMA table_info({table})"))
 
 
+def _table_exists(connection: sqlite3.Connection, table: str) -> bool:
+    return (
+        connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+        is not None
+    )
+
+
 def _pending_changes(connection: sqlite3.Connection) -> List[str]:
     """The SQL still needed, in the order to run it."""
     changes = []
@@ -160,7 +177,20 @@ def _pending_changes(connection: sqlite3.Connection) -> List[str]:
         changes.append(
             f"CREATE UNIQUE INDEX {RESULT_UNIQUE_INDEX} ON results (student_id, subject, exam_type, academic_year_id)"
         )
+    if _table_exists(connection, "users"):
+        for column, definition in USER_COLUMNS:
+            if not _column_exists(connection, "users", column):
+                changes.append(f"ALTER TABLE users ADD COLUMN {column} {definition}")
     return changes
+
+
+def _user_identity_rows(connection: sqlite3.Connection) -> List[Tuple]:
+    """What must never change in an upgrade: who can sign in, with which password and role."""
+    if not _table_exists(connection, "users"):
+        return []
+    return connection.execute(
+        "SELECT id, username, password_hash, role, created_at FROM users ORDER BY id"
+    ).fetchall()
 
 
 def _totals(connection: sqlite3.Connection) -> Tuple:
@@ -199,6 +229,7 @@ def _apply(database: Path) -> int:
             return 1
 
         before = _totals(connection)
+        users_before = _user_identity_rows(connection)
         try:
             backup_path = _backup(database)
         except RuntimeError as error:

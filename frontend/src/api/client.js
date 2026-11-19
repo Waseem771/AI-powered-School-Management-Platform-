@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sessionEndedPath } from '../lib/access';
 import { clearSession } from '../lib/session';
 
 // Production builds get this from VITE_API_URL (see frontend/.env.production).
@@ -28,7 +29,7 @@ client.interceptors.response.use(
       // If unauthorized on protected route, redirect to login
       if (window.location.pathname !== '/login') {
         clearSession();
-        window.location.href = '/login';
+        window.location.href = sessionEndedPath();
       }
     }
     return Promise.reject(error);
@@ -42,6 +43,13 @@ export const api = {
   changePassword: (currentPassword, newPassword) =>
     client.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword }),
   getMe: () => client.get('/auth/me'),
+
+  // Teacher accounts (administrators) and the teacher's own portal
+  getTeachers: (options) => client.get('/teachers', options),
+  createTeacher: (data) => client.post('/teachers', data),
+  activateTeacher: (id) => client.post(`/teachers/${id}/activate`),
+  deactivateTeacher: (id) => client.post(`/teachers/${id}/deactivate`),
+  getTeacherProfile: (options) => client.get('/teacher/profile', options),
 
   // Students
   getStudents: (params, options) => client.get('/students', { params, ...options }),

@@ -22,6 +22,8 @@ from routers.chatbot import router as chatbot_router
 from routers.admissions_crew import router as admissions_crew_router
 from routers.school import router as school_router
 from routers.admissions_management import router as admissions_router
+from routers.teachers import portal_router as teacher_portal_router
+from routers.teachers import router as teachers_router
 
 
 @asynccontextmanager
@@ -107,6 +109,8 @@ app.include_router(chatbot_router)
 app.include_router(admissions_crew_router)
 app.include_router(school_router)
 app.include_router(admissions_router)
+app.include_router(teachers_router)
+app.include_router(teacher_portal_router)
 
 
 @app.get("/")

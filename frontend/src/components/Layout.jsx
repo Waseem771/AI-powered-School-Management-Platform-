@@ -6,6 +6,8 @@ import {
   ClipboardCheck,
   GraduationCap,
   KeyRound,
+  UserCircle,
+  UserCog,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -14,20 +16,23 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { isTeacher, navItemsFor } from '../lib/access';
 import { clearSession, getStoredUser } from '../lib/session';
 import { roleLabel, sessionLabel } from '../lib/schoolInfo';
 import { api } from '../api/client';
 import ChangePasswordDialog from './ChangePasswordDialog';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/students', label: 'Students', icon: Users },
-  { to: '/fees', label: 'Fees', icon: Receipt },
-  { to: '/results', label: 'Exam Results', icon: GraduationCap },
-  { to: '/at-risk', label: 'Academic Early Warning', icon: AlertTriangle },
-  { to: '/chatbot', label: 'School Assistant', icon: Bot },
-  { to: '/admissions', label: 'Admissions', icon: ClipboardCheck },
-];
+const ICONS = {
+  dashboard: LayoutDashboard,
+  students: Users,
+  fees: Receipt,
+  results: GraduationCap,
+  atRisk: AlertTriangle,
+  chatbot: Bot,
+  admissions: ClipboardCheck,
+  teachers: UserCog,
+  profile: UserCircle,
+};
 
 export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,7 +45,9 @@ export default function Layout() {
 
   useEffect(() => {
     const controller = new AbortController();
-    api.getSchoolInfo({ signal: controller.signal })
+    // Teachers may not read the school's full details, only its public name.
+    const loadSchool = isTeacher(user) ? api.getPublicSchool : api.getSchoolInfo;
+    loadSchool({ signal: controller.signal })
       .then((res) => setSchool(res.data))
       .catch((error) => {
         // The header simply leaves out the school's details. Every page reports its own failures.
@@ -152,7 +159,9 @@ export default function Layout() {
           </div>
 
           <nav id="primary-navigation" aria-label="Main navigation" className="mt-2 space-y-1 p-3">
-            {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+            {navItemsFor(user).map(({ to, label, icon }) => {
+              const Icon = ICONS[icon];
+              return (
               <NavLink
                 key={to}
                 to={to}
@@ -166,7 +175,8 @@ export default function Layout() {
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{label}</span>
               </NavLink>
-            ))}
+              );
+            })}
           </nav>
         </div>
 

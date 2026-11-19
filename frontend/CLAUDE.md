@@ -27,6 +27,7 @@ React 18 (plain JS/JSX), Vite 5, Tailwind 3, React Router 6, Axios, Recharts, lu
 - `src/pages/`: `Login`, `Dashboard`, `Students`, `StudentProfile`, `Fees`, `Results`, `AtRisk`, `Chatbot`, `Admissions`.
 - `src/components/ui/`: `Button` (and `buttonClass` for links), `Field` (`TextField`, `SelectField`, `SearchInput`), `Modal`, `States` (`LoadingState`, `EmptyState`, `ErrorState`, `ErrorNotice`), `Toast` (`useToast`), `Page` (`PageHeader`, `Card`, `FilterChips`, `Badge`).
 - `src/components/`: `Layout` (sidebar and accessible mobile drawer), `DataTable` (a table, or cards on phones, with all its states), `StudentPicker` (search, in place of a dropdown of the whole school), `StatCard`, `PdfButton`, `FeeDialogs`, `ChatCards`, `ChatTables`, `RiskDetailDialog`, `RiskSimulator`, `ErrorBoundary`.
+- `src/lib/access.js`: which screens and menu items each role gets (`navItemsFor`, `canAccessPath`, `homePathFor`). Teachers use `pages/TeacherDashboard.jsx` and `TeacherProfile.jsx`; administrators manage them in `pages/Teachers.jsx`. Display logic only: the backend enforces access.
 - `src/lib/`: `session.js` (stored user, `clearSession`), `pdf.js` (open a fetched PDF), `errors.js` (`apiErrorMessage`, safe text for users), `uiState.js`, `schoolInfo.js`, `fees.js`, `exams.js`, `risk.js`, `chatStatus.js`. Logic worth testing goes here, because `npm test` only runs `src/lib/*.test.js`.
 
 ## Conventions

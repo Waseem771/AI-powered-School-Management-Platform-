@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, School } from 'lucide-react';
 import { api } from '../api/client';
 import Button from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
 import { ErrorNotice } from '../components/ui/States';
+import { homePathFor, sessionEndedNotice } from '../lib/access';
 import { apiErrorMessage } from '../lib/errors';
 
 export default function Login() {
@@ -14,6 +15,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [school, setSchool] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const endedNotice = sessionEndedNotice(location.search);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,7 +45,7 @@ export default function Login() {
         username: res.data.username,
         role: res.data.role
       }));
-      navigate('/dashboard');
+      navigate(homePathFor({ role: res.data.role }), { replace: true });
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not sign in. Please check your details and try again.'));
     } finally {
@@ -64,6 +67,9 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} noValidate className="space-y-4">
+          {endedNotice && !error && (
+            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{endedNotice}</p>
+          )}
           <ErrorNotice>{error}</ErrorNotice>
           <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
           <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />

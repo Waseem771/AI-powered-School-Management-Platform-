@@ -14,6 +14,7 @@ from sqlmodel import Session, col, delete, select
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from database import get_session
 from models.user import (
+    PORTAL_ONLY_ROLES,
     RevokedToken,
     User,
     hash_password,
@@ -76,10 +77,12 @@ def _unauthorized(detail: str = "Authentication required") -> HTTPException:
     )
 
 
-def get_current_user(
+def get_authenticated_user(
     token: Optional[str] = Depends(oauth2_scheme),
     session: Session = Depends(get_session),
 ) -> User:
+    """Any signed-in, active account, whatever its role. Only for routes every role may use
+    (the account's own profile, password change). School data routes use get_current_user."""
     if not token:
         raise _unauthorized()
 
@@ -98,7 +101,34 @@ def get_current_user(
         raise _unauthorized("Your session has expired. Please sign in again.")
     if session.get(RevokedToken, claims["jti"]) is not None:
         raise _unauthorized("Your session has expired. Please sign in again.")
+    # Checked on every request, so deactivating an account ends its tokens at once.
+    if not user.is_active:
+        raise _unauthorized("This account has been deactivated.")
     return user
+
+
+def get_current_user(user: User = Depends(get_authenticated_user)) -> User:
+    """A signed-in member of staff. Every school-data route depends on this, so accounts that only
+    have a portal of their own (teachers) are refused everywhere else by default."""
+    if (user.role or "").lower() in PORTAL_ONLY_ROLES:
+        raise _forbidden()
+    return user
+
+
+def _forbidden() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to do this.")
+
+
+def require_roles(*roles: str):
+    """A dependency allowing only the named roles, e.g. Depends(require_roles("admin"))."""
+    allowed = frozenset(role.lower() for role in roles)
+
+    def check(user: User = Depends(get_authenticated_user)) -> User:
+        if (user.role or "").lower() not in allowed:
+            raise _forbidden()
+        return user
+
+    return check
 
 
 @lru_cache
@@ -142,6 +172,13 @@ def login(payload: LoginRequest, http_request: Request, session: Session = Depen
 
     login_throttle.reset(username_key)
 
+    # Said only after the password was right, so it does not reveal which usernames exist.
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deactivated. Please contact the school office.",
+        )
+
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(payload.password)
         session.add(user)
@@ -179,7 +216,7 @@ def logout(
 def change_password(
     payload: ChangePasswordRequest,
     http_request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_authenticated_user),
     session: Session = Depends(get_session),
 ):
     username_key, address_key = _throttle_keys(current_user.username, http_request)
@@ -208,8 +245,11 @@ def change_password(
 
 
 @router.get("/me")
-def me(current_user: User = Depends(get_current_user)):
+def me(current_user: User = Depends(get_authenticated_user)):
     return {
         "username": current_user.username,
         "role": current_user.role,
+        "full_name": current_user.full_name,
+        "email": current_user.email,
+        "is_active": current_user.is_active,
     }
