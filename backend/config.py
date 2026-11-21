@@ -66,6 +66,35 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ADMIN_PASSWORD_RESET = os.getenv("ADMIN_PASSWORD_RESET", "").strip().lower() == "true"
 CORS_ORIGINS = allowed_cors_origins(IS_PRODUCTION, os.getenv("FRONTEND_URL", ""))
 
+# Email (self-service password reset). Credentials come from the environment only, never from code.
+# EMAIL_BACKEND: "smtp" (real delivery; the only one production accepts), "file" (development: each email is
+# written to EMAIL_OUTBOX_DIR as an .eml file, nothing is sent), or empty (no email, the feature stays quiet).
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "" if IS_PRODUCTION else "file").strip().lower()
+EMAIL_FROM = os.getenv("EMAIL_FROM", SCHOOL_EMAIL).strip()
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587") or "587")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "").strip()
+
+
+def normalise_smtp_password(host: str, raw: str) -> str:
+    """Google shows an App Password as four groups of four letters with spaces between them. The spaces are only
+    for reading: Gmail's own SMTP password has none, so they are removed for Gmail hosts. Other hosts are untouched."""
+    if (host or "").strip().lower().endswith(("gmail.com", "googlemail.com")):
+        return "".join((raw or "").split())
+    return raw or ""
+
+
+SMTP_PASSWORD = normalise_smtp_password(SMTP_HOST, os.getenv("SMTP_PASSWORD", ""))
+SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls").strip().lower()  # starttls, ssl or none
+EMAIL_OUTBOX_DIR = Path(os.getenv("EMAIL_OUTBOX_DIR", str(BASE_DIR / "dev_outbox")))
+# Where the reset link points: the frontend's address. Defaults to the first FRONTEND_URL, or localhost in development.
+PASSWORD_RESET_URL_BASE = (
+    os.getenv("PASSWORD_RESET_URL_BASE", "").strip()
+    or (os.getenv("FRONTEND_URL", "").split(",")[0].strip())
+    or ("" if IS_PRODUCTION else "http://localhost:5173")
+).rstrip("/")
+PASSWORD_RESET_TOKEN_MINUTES = 60
+
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/school.db")
 

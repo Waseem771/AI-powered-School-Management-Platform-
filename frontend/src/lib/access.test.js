@@ -5,6 +5,8 @@ import {
   canAccessPath,
   homePathFor,
   isAdmin,
+  isParent,
+  isPortalUser,
   isTeacher,
   navItemsFor,
   sessionEndedNotice,
@@ -14,11 +16,13 @@ import {
 const admin = { username: 'admin', role: 'admin' };
 const registrar = { username: 'r', role: 'Registrar' };
 const teacher = { username: 'sara', role: 'teacher' };
+const parent = { username: 'mr.khan', role: 'parent' };
 
 test('each role lands on its own home screen', () => {
   assert.equal(homePathFor(admin), '/dashboard');
   assert.equal(homePathFor(registrar), '/dashboard');
   assert.equal(homePathFor(teacher), '/teacher/dashboard');
+  assert.equal(homePathFor(parent), '/parent/dashboard');
   assert.equal(homePathFor(null), '/dashboard');
 });
 
@@ -44,11 +48,12 @@ test('an administrator keeps every existing item and gains Teachers; other staff
   assert.deepEqual(adminLinks.slice(0, 7), [
     '/dashboard', '/students', '/fees', '/results', '/at-risk', '/chatbot', '/admissions',
   ]);
-  assert.deepEqual(adminLinks.slice(7), ['/teachers', '/teacher-assignments', '/attendance']);
-  for (const adminOnly of ['/teachers', '/teacher-assignments', '/attendance']) {
+  assert.deepEqual(adminLinks.slice(7), ['/teachers', '/teacher-assignments', '/attendance', '/parents']);
+  for (const adminOnly of ['/teachers', '/teacher-assignments', '/attendance', '/parents']) {
     assert.equal(navItemsFor(registrar).some((item) => item.to === adminOnly), false, adminOnly);
   }
   assert.equal(navItemsFor(admin).some((item) => item.to.startsWith('/teacher/')), false);
+  assert.equal(navItemsFor(admin).some((item) => item.to.startsWith('/parent/')), false);
 });
 
 test('a teacher is sent away from every restricted screen, including by direct address', () => {
@@ -79,4 +84,37 @@ test('the sign-in page explains an ended session, such as a deactivated account'
   assert.equal(sessionEndedNotice('?reason=ended'), 'Your session has ended. Please sign in again.');
   assert.equal(sessionEndedNotice(''), '');
   assert.equal(sessionEndedNotice('?reason=other'), '');
+});
+
+test('a parent sees only the parent menu, and no staff or teacher item', () => {
+  const items = navItemsFor(parent);
+
+  assert.deepEqual(items.map((item) => item.to), [
+    '/parent/dashboard', '/parent/attendance', '/parent/results', '/parent/fees', '/parent/profile',
+  ]);
+  for (const restricted of ['/students', '/fees', '/results', '/admissions', '/teachers', '/chatbot', '/attendance', '/parents', '/teacher/dashboard']) {
+    assert.equal(items.some((item) => item.to === restricted), false, restricted);
+  }
+});
+
+test('a parent is sent away from every other screen, including by direct address', () => {
+  for (const path of ['/dashboard', '/students', '/students/4', '/fees', '/results', '/at-risk', '/chatbot', '/admissions',
+    '/teachers', '/attendance', '/attendance/report', '/teacher-assignments', '/parents', '/teacher/dashboard', '/teacher/classes/1', '/']) {
+    assert.equal(canAccessPath(parent, path), false, path);
+  }
+  for (const path of ['/parent/dashboard', '/parent/attendance', '/parent/results', '/parent/fees', '/parent/profile']) {
+    assert.equal(canAccessPath(parent, path), true, path);
+  }
+});
+
+test('staff and teachers cannot open the parent portal, and only an administrator manages parents', () => {
+  assert.equal(canAccessPath(admin, '/parent/dashboard'), false);
+  assert.equal(canAccessPath(registrar, '/parent/fees'), false);
+  assert.equal(canAccessPath(teacher, '/parent/dashboard'), false);
+  assert.equal(canAccessPath(admin, '/parents'), true);
+  assert.equal(canAccessPath(registrar, '/parents'), false);
+  assert.equal(isParent(parent), true);
+  assert.equal(isParent(teacher), false);
+  assert.equal(isPortalUser(parent) && isPortalUser(teacher), true);
+  assert.equal(isPortalUser(admin) || isPortalUser(registrar), false);
 });

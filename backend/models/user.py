@@ -30,8 +30,9 @@ class User(SQLModel, table=True):
 
 
 ROLE_TEACHER = "teacher"
+ROLE_PARENT = "parent"
 # Roles that have a portal of their own and no access to the staff-side routes.
-PORTAL_ONLY_ROLES = frozenset({ROLE_TEACHER})
+PORTAL_ONLY_ROLES = frozenset({ROLE_TEACHER, ROLE_PARENT})
 
 
 class RevokedToken(SQLModel, table=True):
@@ -41,6 +42,41 @@ class RevokedToken(SQLModel, table=True):
 
     jti: str = Field(primary_key=True)
     expires_at: datetime = Field(index=True)
+
+
+class PasswordResetEvent(SQLModel, table=True):
+    """An administrator set a new password for an account. The audit record of who did it and when.
+
+    It never holds a password or a hash. While `completed_at` is empty the account's owner has not yet
+    chosen their own password, so every route except changing it (and signing out) is closed to them.
+    New table only: create_all adds it and no existing table changes.
+    """
+
+    __tablename__ = "password_reset_events"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    reset_by: int = Field(foreign_key="users.id")
+    reset_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = Field(default=None)
+
+
+class PasswordResetToken(SQLModel, table=True):
+    """A self-service "forgot password" link that was emailed to a teacher or parent.
+
+    Only a SHA-256 of the token is stored, never the token itself, so a copy of the database cannot be used
+    to reset anyone's password. A token works once (`used_at`) and only until `expires_at`. Times are timezone-aware UTC.
+    New table only: create_all adds it and no existing table changes.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    token_hash: str = Field(index=True, unique=True)
+    created_at: datetime
+    expires_at: datetime
+    used_at: Optional[datetime] = Field(default=None)
 
 
 def hash_password(password: str) -> str:

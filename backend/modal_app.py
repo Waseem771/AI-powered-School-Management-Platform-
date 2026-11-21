@@ -39,7 +39,7 @@ image = (
     .add_local_dir(
         Path(__file__).parent, 
         remote_path="/root/backend", 
-        ignore=["venv_312", "**/__pycache__", "**/*.pyc", "school.db", "*.backup-*", ".env"],
+        ignore=["venv_312", "**/__pycache__", "**/*.pyc", "school.db", "local_dev.db", "demo.db", "*.backup-*", ".env", "local_dev_credentials.env"],
         copy=True
     )
 )

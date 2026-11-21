@@ -7,7 +7,7 @@ import PdfButton from './PdfButton';
 import Button from './ui/Button';
 import { Badge } from './ui/Page';
 
-function StatusBadge({ status }) {
+export function StatusBadge({ status }) {
   if (status === 'paid') return <Badge tone="good"><CheckCircle2 className="h-3 w-3" aria-hidden="true" /> Paid</Badge>;
   if (status === 'partial') return <Badge tone="warn"><Clock className="h-3 w-3" aria-hidden="true" /> Part Paid</Badge>;
   return <Badge tone="bad"><Clock className="h-3 w-3" aria-hidden="true" /> Pending</Badge>;

@@ -4,6 +4,7 @@
  */
 export const STAFF_HOME = '/dashboard';
 export const TEACHER_HOME = '/teacher/dashboard';
+export const PARENT_HOME = '/parent/dashboard';
 export const SESSION_ENDED_REASON = 'ended';
 
 const STAFF_NAV = [
@@ -20,12 +21,20 @@ const ADMIN_NAV = [
   { to: '/teachers', label: 'Teachers', icon: 'teachers' },
   { to: '/teacher-assignments', label: 'Teacher Assignments', icon: 'assignments' },
   { to: '/attendance', label: 'Attendance', icon: 'attendance' },
+  { to: '/parents', label: 'Parents', icon: 'parents' },
 ];
-const ADMIN_ONLY_SEGMENTS = new Set(['teachers', 'teacher-assignments', 'attendance']);
+const ADMIN_ONLY_SEGMENTS = new Set(['teachers', 'teacher-assignments', 'attendance', 'parents']);
 const TEACHER_NAV = [
   { to: '/teacher/dashboard', label: 'Teacher Dashboard', icon: 'dashboard' },
   { to: '/teacher/classes', label: 'My Classes', icon: 'classes' },
   { to: '/teacher/profile', label: 'My Profile', icon: 'profile' },
+];
+const PARENT_NAV = [
+  { to: '/parent/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/parent/attendance', label: 'Attendance', icon: 'attendance' },
+  { to: '/parent/results', label: 'Results', icon: 'results' },
+  { to: '/parent/fees', label: 'Fees', icon: 'fees' },
+  { to: '/parent/profile', label: 'My Profile', icon: 'profile' },
 ];
 
 const roleOf = (user) => String(user?.role ?? '').toLowerCase();
@@ -34,24 +43,36 @@ export function isTeacher(user) {
   return roleOf(user) === 'teacher';
 }
 
+export function isParent(user) {
+  return roleOf(user) === 'parent';
+}
+
+/** Teachers and parents have a portal of their own and see no staff screen. */
+export function isPortalUser(user) {
+  return isTeacher(user) || isParent(user);
+}
+
 export function isAdmin(user) {
   return roleOf(user) === 'admin';
 }
 
 export function homePathFor(user) {
+  if (isParent(user)) return PARENT_HOME;
   return isTeacher(user) ? TEACHER_HOME : STAFF_HOME;
 }
 
 export function navItemsFor(user) {
   if (isTeacher(user)) return TEACHER_NAV;
+  if (isParent(user)) return PARENT_NAV;
   return isAdmin(user) ? [...STAFF_NAV, ...ADMIN_NAV] : STAFF_NAV;
 }
 
-/** True when this account has a screen at `pathname`. Whole path segments are compared, so "/teachers" is not "/teacher". */
+/** True when this account has a screen at `pathname`. Whole path segments are compared, so "/teachers" is not "/teacher", and "/parents" is not "/parent". */
 export function canAccessPath(user, pathname) {
   const firstSegment = String(pathname ?? '').split('/').filter(Boolean)[0] ?? '';
   if (isTeacher(user)) return firstSegment === 'teacher';
-  if (firstSegment === 'teacher') return false;
+  if (isParent(user)) return firstSegment === 'parent';
+  if (firstSegment === 'teacher' || firstSegment === 'parent') return false;
   if (ADMIN_ONLY_SEGMENTS.has(firstSegment)) return isAdmin(user);
   return true;
 }

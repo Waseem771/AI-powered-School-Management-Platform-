@@ -27,6 +27,7 @@ They have separate dependencies and are deployed separately. See `DEPLOYMENT_GUI
 | Marks entry (one student or a whole class), grades, report card PDF | `routers/results.py`, `services/pdf_service.py` | `pages/Results.jsx`, `components/MarksDialogs.jsx` |
 | Academic early warning: estimate with SHAP reasons, suggested steps, separate fee follow-up flag, model trial | `routers/ai.py`, `services/ai_service.py`, `risk_features.py`, `risk_assessment.py` | `pages/AtRisk.jsx`, `components/RiskDetailDialog.jsx`, `RiskSimulator.jsx` |
 | Chatbot: live data tools + policy RAG, with memory | `routers/chatbot.py`, `services/school_assistant_service.py`, `data_assistant_service.py`, `student_lookup.py`, `chat_intent.py`, `school_reports.py`, `assistant_tools.py`, `rag_service.py` | `pages/Chatbot.jsx`, `components/ChatCards.jsx`, `ChatTables.jsx` |
+| Parent Portal: linked children, attendance, released results, fees, receipts | `routers/parents.py`, `services/parent_portal.py`, `models/parent.py` | `pages/Parents.jsx` (admin), `pages/Parent*.jsx` (parents) |
 | AI admissions (optional, CrewAI) | `routers/admissions_crew.py`, `school_crew/` | `pages/Admissions.jsx` |
 
 ## Repo map
@@ -109,6 +110,7 @@ Backend, set in `backend/.env` (template: `.env.example`) or the Modal secret `e
 | `ADMIN_PASSWORD` | Sets the admin password when the account is created or still on a known default. Required then in production. Does not overwrite a password changed in the app |
 | `ADMIN_PASSWORD_RESET` | `true` forces `ADMIN_PASSWORD` to apply, for a forgotten password. Remove afterwards |
 | `DEMO_MODE` | `true` shows a DEMO MODE label on the sign-in page and in the app. For a copy holding made-up records |
+| `EMAIL_BACKEND`, `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_SECURITY`, `PASSWORD_RESET_URL_BASE` | Password reset by email. `file` (the development default) writes each email to `backend/dev_outbox/` and sends nothing; read it with `python dev_latest_email.py`. Production needs `EMAIL_BACKEND=smtp` and the SMTP settings in the Modal secret, otherwise no reset email is sent and the administrator's reset remains. The link goes to `PASSWORD_RESET_URL_BASE`, default the first `FRONTEND_URL` |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Optional. Without a key, everything falls back to local logic |
 | `MODAL_PROXY_TOKEN_ID`, `MODAL_PROXY_TOKEN_SECRET` | Optional. AI admissions only; without them that feature returns 503 |
 | `DATABASE_URL` | Defaults to local SQLite; Modal sets `sqlite:////data/school.db` |
@@ -134,8 +136,11 @@ Frontend: `VITE_API_URL` (no trailing slash). `frontend/.env.production` holds t
 - `students`: name, unique `roll_number`, grade, section, guardian_name, phone, dob (`YYYY-MM-DD`, or empty if unknown), `archived_at` (empty means active). Validation lives in `models/student.py`.
 - `invoices`: student_id, amount, month (`November 2026`), due_date (`10-Nov-2026`), unique `challan_number`, `status` (`pending`, `partial`, or `paid`), one per student per month. `payments`: invoice_id, amount_paid, `payment_mode` (cash/bank/online). Payment rows are the source of truth for money received. `fee_structures` and `academic_years` exist but are barely used.
 - `results`: student_id, subject, marks_obtained, total_marks, exam_type (`Final Term` or `Midterm`), academic_year_id, one per student, subject, exam, and year. Grades come from `calculate_grade` in `models/result.py`: A+ at 90%, A 80, B 70, C 60, D 50, otherwise F. A subject is passed at 40%, and promotion follows `services/academics.py`, so a 40-49% subject reads as Grade F and Pass.
-- `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role, `is_active` (default true; false ends all of the account's tokens at once), optional `full_name` and `email`. Role `teacher` is portal-only: `get_current_user` refuses it with 403 on every school-data route, and only `/teacher/profile`, `/auth/me`, `/auth/change-password` and `/auth/logout` accept it.
+- `users`: username, bcrypt password hash (older SHA-256 hashes upgrade at next login), role, `is_active` (default true; false ends all of the account's tokens at once), optional `full_name` and `email`. Roles `teacher` and `parent` are portal-only (`PORTAL_ONLY_ROLES`): `get_current_user` refuses them with 403 on every school-data route. A teacher reaches only `/teacher/...`, and a parent only `/parent/...`, plus `/auth/me`, `/auth/change-password` and `/auth/logout`.
 - `revoked_tokens`: tokens ended by logout, kept until they expire.
+- `password_reset_events` (user id, administrator id, reset time, completed time): new table only. The audit record of an administrator resetting a parent's or teacher's password. It never holds a password or hash. While `completed_at` is empty the account must choose its own password: `get_active_user` (behind `get_current_user` and `require_roles`) answers 403 to everything except `/auth/me`, `/auth/change-password` and `/auth/logout`. Changing the password completes it. Rules are in `services/password_reset.py`.
+- `parent_student_links` (parent user id, student id, optional relationship; unique pair) and `published_exams` (session id plus exam type, unique): new tables only (`create_all` adds them, no migration). A parent account is a `users` row with role `parent`, linked to one or more students. A parent sees marks only of exams listed in `published_exams`, which an administrator switches on per exam (nothing is published by default). A linked student cannot be deleted. All rules are in `services/parent_portal.py`.
+- `password_reset_tokens` (user id, SHA-256 of the token, created, expires, used): new table only. The emailed "forgot password" link of a teacher or parent. Works once (claimed atomically), for 60 minutes; a new request, an email change or any password change cancels earlier links. Only a hash is stored. Rules are in `services/self_service_reset.py`; sending is `services/email_service.py`. The email on `users` is the one the administrator entered, so it counts as verified by them; only an administrator can change it (with their own password), and the old address is told.
 - `teacher_class_assignments`, `student_attendance`, `attendance_change_history`: new tables only (`create_all` adds them, no migration). A class is a grade and section, as on `students`. One attendance row per student per day (unique); a student with no row is *not recorded*, never absent. Corrections need a reason and write a history row. Teachers can record or correct the last 7 days (`TEACHER_EDIT_WINDOW_DAYS`); admins any past date. All rules are in `services/attendance.py`.
 
 ### API surface
@@ -144,11 +149,14 @@ All routes require auth except `/auth/login`, `/auth/logout`, `/school/public` (
 
 | Prefix | Routes |
 |--------|--------|
-| `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me` |
-| `/teachers` | Admin only: `GET`, `POST`, `POST /{id}/activate`, `POST /{id}/deactivate` |
+| `/auth` | `POST /login`, `POST /logout`, `POST /change-password`, `GET /me`; public, for teachers and parents who forgot their password: `POST /forgot-password` (always the same answer, emails a link), `POST /reset-password/check`, `POST /reset-password` (token from the link plus a new password) |
+| `/teachers` | Admin only: `GET`, `POST`, `PUT /{id}/email` (needs the administrator's own password), `POST /{id}/activate`, `POST /{id}/deactivate`, `POST /{id}/reset-password` (for a teacher who forgot theirs; same rules as for parents) |
 | `/teacher` | Teacher only: `GET /profile` |
 | `/teacher-assignments` | Admin only: `GET /options`, `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` (a teacher can have many classes, a class many teachers, one row per teacher, grade, section and session) |
 | `/teacher/classes` | Teacher only, own classes only (403 otherwise): `GET`, `GET /{id}` (roster), `GET`/`PUT /{id}/attendance`, `GET /{id}/history` |
+| `/parents` | Admin only: `GET`, `POST` (account plus at least one child), `PUT /{id}/email` (needs the administrator's own password), `POST /{id}/activate`, `POST /{id}/deactivate`, `POST /{id}/reset-password` (new password; ends their sessions, forces a change at next sign-in), `POST /{id}/children`, `DELETE /{id}/children/{student_id}` |
+| `/result-publishing` | Admin only: `GET` (exams with marks, and whether parents can see them), `PUT` (show or hide one exam) |
+| `/parent` | Parent only, own children only (404 for any other student, same as a missing one): `GET /profile`, `GET /children` (dashboard), `GET /children/{id}`, `/attendance` (month), `/results`, `/report-card/pdf`, `/fees`, `/invoices/{invoice_id}/challan/pdf`, `/payments/{payment_id}/receipt`. Read-only |
 | `/attendance` | Admin only: `GET /overview`, `/class-day` (+`PUT` to correct), `/monthly`, `/frequent-absentees`, `/students/{id}/history`, `/changes`, `/report`, `/export.csv` |
 | `/students` | `GET` (search, grade, section, status), `POST`, `GET/PUT/DELETE /{id}`, `POST /{id}/archive`, `POST /{id}/restore` |
 | `/fees` | `GET` (status, grade, student_id), `GET /summary`, `GET /student/{student_id}/summary`, `POST /generate`, `POST /{id}/pay`, `GET /{id}/payments`, `GET /{id}/pdf`, `GET /payments/{payment_id}/receipt` |
@@ -162,7 +170,7 @@ All routes require auth except `/auth/login`, `/auth/logout`, `/school/public` (
 
 `routers/auth.py:get_current_user` accepts a bearer token only; there are no auth cookies. The frontend stores the token in `localStorage` and attaches it in an axios interceptor in `src/api/client.js`. Protected routes declare `_user = Depends(get_current_user)`.
 
-Tokens carry a `jti`, which logout adds to `revoked_tokens`, and a fingerprint of the password hash, so changing a password ends all older sessions. Failed logins are limited per username and per address by `services/login_throttle.py`. That throttle is in memory, which relies on the single Modal container.
+Tokens carry a `jti`, which logout adds to `revoked_tokens`, and a fingerprint of the password hash, so changing a password ends all older sessions, and so does an administrator's reset. Login and `/auth/me` report `must_change_password`; the frontend sends such an account to `/change-password` (`pages/ForcePasswordChange.jsx`), but the server enforces it. Failed logins are limited per username and per address by `services/login_throttle.py`. That throttle is in memory, which relies on the single Modal container.
 
 The PDF routes use the same dependency. The frontend fetches them as blobs through `src/lib/pdf.js` and `components/PdfButton.jsx`, because plain links cannot send the token.
 

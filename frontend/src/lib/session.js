@@ -22,3 +22,20 @@ export function clearSession(storage = window.localStorage) {
   }
   keys.forEach((key) => storage.removeItem(key));
 }
+
+/** What the server says while an administrator's reset is waiting for the owner to choose their own password. */
+export const PASSWORD_CHANGE_REQUIRED = 'You must choose a new password before you can continue.';
+export const CHANGE_PASSWORD_PATH = '/change-password';
+
+/** True while the signed-in account must choose a new password before using anything else. Display only: the server refuses everything until then. */
+export function mustChangePassword(user) {
+  return user?.must_change_password === true;
+}
+
+/** Remembers that a change is required (or done), keeping the rest of the stored user. */
+export function setPasswordChangeRequired(required, storage = window.localStorage) {
+  const user = { ...getStoredUser(storage) };
+  if (required) user.must_change_password = true;
+  else delete user.must_change_password;
+  storage.setItem('educore_user', JSON.stringify(user));
+}

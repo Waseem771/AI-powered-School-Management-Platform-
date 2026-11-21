@@ -6,12 +6,12 @@ from functools import lru_cache
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session, col, delete, select
 
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
+from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, PASSWORD_RESET_TOKEN_MINUTES, SECRET_KEY
 from database import get_session
 from models.user import (
     PORTAL_ONLY_ROLES,
@@ -22,7 +22,26 @@ from models.user import (
     password_problem,
     verify_password,
 )
+from services.email_address import clean_email
 from services.login_throttle import LoginThrottle
+from services.password_reset import (
+    PASSWORD_CHANGE_REQUIRED,
+    complete_pending,
+    invalidate_tokens,
+    password_change_pending,
+)
+from services.self_service_reset import (
+    ResetLinkUnusable,
+    complete_reset,
+    find_valid_token,
+    normalise_email,
+    request_throttle_by_address,
+    request_throttle_by_email,
+    run_in_background,
+    send_password_changed_email,
+    send_reset_link_if_eligible,
+    token_failure_throttle,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -46,6 +65,8 @@ class LoginResponse(BaseModel):
     username: str
     role: str
     access_token: str
+    # True after an administrator reset the password: only changing it (and signing out) is allowed until then.
+    must_change_password: bool = False
 
 
 class ChangePasswordRequest(BaseModel):
@@ -107,7 +128,19 @@ def get_authenticated_user(
     return user
 
 
-def get_current_user(user: User = Depends(get_authenticated_user)) -> User:
+def get_active_user(
+    user: User = Depends(get_authenticated_user),
+    session: Session = Depends(get_session),
+) -> User:
+    """A signed-in account that is free to use the app. After an administrator reset its password it is not,
+    until its owner chooses a new one. Every route refuses it except the account's own (/auth/me, change
+    password, sign out), which use get_authenticated_user. Checked on every request, so a forced change cannot be skipped by editing the browser."""
+    if password_change_pending(session, user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PASSWORD_CHANGE_REQUIRED)
+    return user
+
+
+def get_current_user(user: User = Depends(get_active_user)) -> User:
     """A signed-in member of staff. Every school-data route depends on this, so accounts that only
     have a portal of their own (teachers) are refused everywhere else by default."""
     if (user.role or "").lower() in PORTAL_ONLY_ROLES:
@@ -123,7 +156,7 @@ def require_roles(*roles: str):
     """A dependency allowing only the named roles, e.g. Depends(require_roles("admin"))."""
     allowed = frozenset(role.lower() for role in roles)
 
-    def check(user: User = Depends(get_authenticated_user)) -> User:
+    def check(user: User = Depends(get_active_user)) -> User:
         if (user.role or "").lower() not in allowed:
             raise _forbidden()
         return user
@@ -189,6 +222,7 @@ def login(payload: LoginRequest, http_request: Request, session: Session = Depen
         "username": user.username,
         "role": user.role,
         "access_token": create_access_token(user),
+        "must_change_password": password_change_pending(session, user.id),
     }
 
 
@@ -234,6 +268,8 @@ def change_password(
 
     current_user.password_hash = hash_password(payload.new_password)
     session.add(current_user)
+    complete_pending(session, current_user.id)  # choosing their own password ends a forced change
+    invalidate_tokens(session, current_user.id)  # an emailed reset link requested earlier must not undo this change
     session.commit()
     session.refresh(current_user)
 
@@ -244,12 +280,112 @@ def change_password(
     }
 
 
+FORGOT_PASSWORD_REPLY = (
+    "If that email address belongs to a teacher or parent account, a reset link is on its way. "
+    f"It works once, for {PASSWORD_RESET_TOKEN_MINUTES} minutes."
+)
+INVALID_RESET_LINK = "This reset link is not valid any more. Please ask for a new one."
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=1, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str) -> str:
+        # The same rule as for registering an address. Anything that is not one address is a 422, which says
+        # nothing about whether an address belongs to an account.
+        return clean_email(value)
+
+
+class ResetTokenRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+
+
+class ResetPasswordRequest(ResetTokenRequest):
+    new_password: str = Field(min_length=1, max_length=MAX_CREDENTIAL_LENGTH)
+
+
+def _client_address(http_request: Request) -> str:
+    return http_request.client.host if http_request.client else "unknown"
+
+
+def _too_many(wait: int) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Too many attempts. Please wait a few minutes and try again.",
+        headers={"Retry-After": str(wait)},
+    )
+
+
+@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(payload: ForgotPasswordRequest, http_request: Request):
+    """A teacher or parent asks for a reset link. The answer is always the same, and takes the same time, whether
+    or not the address belongs to an account, so this cannot be used to find out who has one. This function does
+    nothing that depends on the address except queue it: the lookup, the new link and the email happen afterwards
+    (see send_reset_link_if_eligible). The link is only ever emailed: it is not in the response and not in any log."""
+    address = _client_address(http_request)
+    wait = request_throttle_by_address.retry_after(address)
+    if wait:
+        raise _too_many(wait)
+    request_throttle_by_address.record_failure(address)
+
+    email = normalise_email(payload.email)
+    # Over the limit for this address, nothing is queued, and the reply is still the same: a visible limit would show the address is known.
+    if not request_throttle_by_email.retry_after(email):
+        request_throttle_by_email.record_failure(email)
+        run_in_background(send_reset_link_if_eligible, email)
+    return {"message": FORGOT_PASSWORD_REPLY}
+
+
+def _valid_token_or_refuse(session: Session, raw_token: str, http_request: Request):
+    address = _client_address(http_request)
+    wait = token_failure_throttle.retry_after(address)
+    if wait:
+        raise _too_many(wait)
+    row = find_valid_token(session, raw_token.strip())
+    if row is None:
+        token_failure_throttle.record_failure(address)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=INVALID_RESET_LINK)
+    return row
+
+
+@router.post("/reset-password/check")
+def check_reset_link(payload: ResetTokenRequest, http_request: Request, session: Session = Depends(get_session)):
+    """Lets the page say at once that a link is dead, before anyone types a new password."""
+    _valid_token_or_refuse(session, payload.token, http_request)
+    return {"valid": True}
+
+
+@router.post("/reset-password")
+def reset_password_with_link(
+    payload: ResetPasswordRequest,
+    http_request: Request,
+    background: BackgroundTasks,
+    session: Session = Depends(get_session),
+):
+    """Sets a new password from an emailed link. Same password policy as everywhere. The link is spent only
+    when the password is accepted, so a too-weak choice can be corrected. Every earlier session ends."""
+    row = _valid_token_or_refuse(session, payload.token, http_request)
+    problem = password_problem(payload.new_password)
+    if problem:
+        raise HTTPException(status_code=422, detail=f"New password is not acceptable: {problem}.")
+    try:
+        account = complete_reset(session, row, payload.new_password)
+    except ResetLinkUnusable:  # the same link was submitted twice at once, and the other submission won
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=INVALID_RESET_LINK)
+    if account.email:
+        background.add_task(send_password_changed_email, account.email, account.full_name)
+    return {"message": "Your password has been changed. Please sign in with the new password."}
+
+
 @router.get("/me")
-def me(current_user: User = Depends(get_authenticated_user)):
+def me(current_user: User = Depends(get_authenticated_user), session: Session = Depends(get_session)):
     return {
         "username": current_user.username,
         "role": current_user.role,
         "full_name": current_user.full_name,
         "email": current_user.email,
         "is_active": current_user.is_active,
+        "must_change_password": password_change_pending(session, current_user.id),
     }

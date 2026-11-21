@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, School } from 'lucide-react';
 import { api } from '../api/client';
 import Button from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
 import { ErrorNotice } from '../components/ui/States';
 import { homePathFor, sessionEndedNotice } from '../lib/access';
+import { CHANGE_PASSWORD_PATH } from '../lib/session';
 import { apiErrorMessage } from '../lib/errors';
 
 export default function Login() {
@@ -43,9 +44,11 @@ export default function Login() {
       }
       localStorage.setItem('educore_user', JSON.stringify({
         username: res.data.username,
-        role: res.data.role
+        role: res.data.role,
+        ...(res.data.must_change_password ? { must_change_password: true } : {}),
       }));
-      navigate(homePathFor({ role: res.data.role }), { replace: true });
+      // After an administrator's reset, the account's owner must choose their own password first.
+      navigate(res.data.must_change_password ? CHANGE_PASSWORD_PATH : homePathFor({ role: res.data.role }), { replace: true });
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not sign in. Please check your details and try again.'));
     } finally {
@@ -73,6 +76,9 @@ export default function Login() {
           <ErrorNotice>{error}</ErrorNotice>
           <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
           <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          <p className="text-right text-sm">
+            <Link to="/forgot-password" className="font-semibold text-brand-700 underline">Forgot password?</Link>
+          </p>
           <Button type="submit" disabled={loading} className="w-full">
             <span>{loading ? 'Signing in…' : 'Sign In'}</span>
             {!loading && <ArrowRight className="h-4 w-4" aria-hidden="true" />}

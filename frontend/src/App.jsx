@@ -21,10 +21,19 @@ import TeacherClassDetail from './pages/TeacherClassDetail';
 import TeacherAttendance from './pages/TeacherAttendance';
 import TeacherAttendanceHistory from './pages/TeacherAttendanceHistory';
 import TeacherAssignments from './pages/TeacherAssignments';
+import Parents from './pages/Parents';
+import ParentDashboard from './pages/ParentDashboard';
+import ParentAttendance from './pages/ParentAttendance';
+import ParentResults from './pages/ParentResults';
+import ParentFees from './pages/ParentFees';
+import ParentProfile from './pages/ParentProfile';
 import Attendance from './pages/Attendance';
 import AttendanceReport from './pages/AttendanceReport';
 import { canAccessPath, homePathFor } from './lib/access';
-import { getStoredUser } from './lib/session';
+import ForcePasswordChange from './pages/ForcePasswordChange';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import { CHANGE_PASSWORD_PATH, getStoredUser, mustChangePassword } from './lib/session';
 
 // The backend enforces access on every request. This only keeps the client from
 // rendering private navigation before a user signs in.
@@ -32,6 +41,10 @@ function ProtectedRoute({ children }) {
   const user = localStorage.getItem('educore_user');
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  // After an administrator's reset nothing else opens until the owner chooses a new password.
+  if (mustChangePassword(getStoredUser())) {
+    return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
   }
   return children;
 }
@@ -56,6 +69,9 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path={CHANGE_PASSWORD_PATH} element={<ForcePasswordChange />} />
 
         {/* Protected Admin Routes */}
         <Route
@@ -89,6 +105,12 @@ export default function App() {
           <Route path="teacher-assignments" element={<TeacherAssignments />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="attendance/report" element={<AttendanceReport />} />
+          <Route path="parents" element={<Parents />} />
+          <Route path="parent/dashboard" element={<ParentDashboard />} />
+          <Route path="parent/attendance" element={<ParentAttendance />} />
+          <Route path="parent/results" element={<ParentResults />} />
+          <Route path="parent/fees" element={<ParentFees />} />
+          <Route path="parent/profile" element={<ParentProfile />} />
           </Route>
         </Route>
 

@@ -7,6 +7,7 @@ import {
   GraduationCap,
   BookOpen,
   CalendarCheck,
+  HeartHandshake,
   KeyRound,
   Link2,
   UserCircle,
@@ -19,7 +20,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { isTeacher, navItemsFor } from '../lib/access';
+import { isPortalUser, navItemsFor } from '../lib/access';
 import { clearSession, getStoredUser } from '../lib/session';
 import { roleLabel, sessionLabel } from '../lib/schoolInfo';
 import { api } from '../api/client';
@@ -38,6 +39,7 @@ const ICONS = {
   attendance: CalendarCheck,
   classes: BookOpen,
   profile: UserCircle,
+  parents: HeartHandshake,
 };
 
 export default function Layout() {
@@ -51,8 +53,8 @@ export default function Layout() {
 
   useEffect(() => {
     const controller = new AbortController();
-    // Teachers may not read the school's full details, only its public name.
-    const loadSchool = isTeacher(user) ? api.getPublicSchool : api.getSchoolInfo;
+    // Teachers and parents may not read the school's full details, only its public name.
+    const loadSchool = isPortalUser(user) ? api.getPublicSchool : api.getSchoolInfo;
     loadSchool({ signal: controller.signal })
       .then((res) => setSchool(res.data))
       .catch((error) => {

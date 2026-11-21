@@ -32,7 +32,8 @@ function Cards({ columns, rows, rowKey }) {
 
 function Table({ columns, rows, rowKey }) {
   return (
-    <div className="hidden overflow-x-auto md:block">
+    // relative: screen-reader-only text in a cell is positioned inside this box, so it cannot widen the page.
+    <div className="relative hidden overflow-x-auto md:block">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">

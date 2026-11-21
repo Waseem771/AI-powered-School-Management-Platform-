@@ -21,6 +21,8 @@ os.environ["SECRET_KEY"] = "test-only-signing-key-not-used-outside-the-test-suit
 os.environ["ADMIN_PASSWORD"] = TEST_ADMIN_PASSWORD
 os.environ["ADMIN_PASSWORD_RESET"] = ""
 os.environ["FRONTEND_URL"] = ""
+# Reset emails are kept in memory for the tests to read. Nothing is ever sent.
+os.environ["EMAIL_BACKEND"] = "memory"
 
 # Manual connectivity script, not a test: it calls a real endpoint when run.
 collect_ignore = ["test_modal.py"]
@@ -44,11 +46,20 @@ def reset_login_throttle():
     """Failed logins in one test must not lock out the next."""
     from routers.auth import address_throttle, login_throttle
 
+    from services import email_service
+    from services.self_service_reset import clear_throttles, drain_background_work
+
+    drain_background_work()  # reset emails are made after the reply; nothing queued earlier may land in this test
     login_throttle.clear()
     address_throttle.clear()
+    clear_throttles()
+    email_service.outbox.clear()
     yield
+    drain_background_work()
     login_throttle.clear()
     address_throttle.clear()
+    clear_throttles()
+    email_service.outbox.clear()
 
 
 @pytest.fixture()

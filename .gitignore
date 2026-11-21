@@ -28,6 +28,9 @@ frontend/.env.local
 *.sqlite3
 backend/school.db
 
+# Local email testing: reset emails written as files in development
+backend/dev_outbox/
+
 # Cloned external directories
 AI-Engineering-Coach/
 ECC/

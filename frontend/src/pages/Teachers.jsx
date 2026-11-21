@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
+import ChangeEmailDialog from '../components/ChangeEmailDialog';
+import ResetPasswordDialog from '../components/ResetPasswordDialog';
 import Button from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
 import Modal from '../components/ui/Modal';
@@ -97,6 +99,8 @@ export default function Teachers() {
   const toast = useToast();
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState(null);
+  const [resetting, setResetting] = useState(null);
+  const [emailing, setEmailing] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const { data, loading, error, reload } = useLoad(
     (options) => api.getTeachers(options),
@@ -133,22 +137,35 @@ export default function Teachers() {
     {
       header: 'Status',
       render: (teacher) => (
-        <Badge tone={teacher.is_active ? 'good' : 'bad'}>{teacher.is_active ? 'Active' : 'Deactivated'}</Badge>
+        <div className="flex flex-wrap items-center justify-end gap-1.5 md:justify-start">
+          <Badge tone={teacher.is_active ? 'good' : 'bad'}>{teacher.is_active ? 'Active' : 'Deactivated'}</Badge>
+          {teacher.must_change_password && <Badge tone="warn">Must change password</Badge>}
+        </div>
       ),
     },
     {
       header: 'Action',
       mobile: 'actions',
       align: 'right',
-      render: (teacher) => (teacher.is_active ? (
-        <Button variant="secondary" disabled={busyId === teacher.id} onClick={() => setConfirming(teacher)}>
-          Deactivate<span className="sr-only"> {teacher.full_name || teacher.username}</span>
-        </Button>
-      ) : (
-        <Button variant="secondary" disabled={busyId === teacher.id} onClick={() => setActive(teacher, true)}>
-          Activate<span className="sr-only"> {teacher.full_name || teacher.username}</span>
-        </Button>
-      )),
+      render: (teacher) => (
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <Button variant="secondary" onClick={() => setEmailing(teacher)}>
+            Change email<span className="sr-only"> for {teacher.full_name || teacher.username}</span>
+          </Button>
+          <Button variant="secondary" onClick={() => setResetting(teacher)}>
+            Reset password<span className="sr-only"> for {teacher.full_name || teacher.username}</span>
+          </Button>
+          {teacher.is_active ? (
+            <Button variant="secondary" disabled={busyId === teacher.id} onClick={() => setConfirming(teacher)}>
+              Deactivate<span className="sr-only"> {teacher.full_name || teacher.username}</span>
+            </Button>
+          ) : (
+            <Button variant="secondary" disabled={busyId === teacher.id} onClick={() => setActive(teacher, true)}>
+              Activate<span className="sr-only"> {teacher.full_name || teacher.username}</span>
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -182,6 +199,32 @@ export default function Teachers() {
           onCreated={(name) => {
             setCreating(false);
             toast.success(`Account created for ${name}.`);
+            reload();
+          }}
+        />
+      )}
+      {resetting && (
+        <ResetPasswordDialog
+          name={resetting.full_name || resetting.username}
+          kept="Their classes and records are not changed."
+          reset={(password) => api.resetTeacherPassword(resetting.id, password)}
+          onClose={() => setResetting(null)}
+          onDone={(name) => {
+            setResetting(null);
+            toast.success(`Password reset for ${name}. They must choose a new password when they next sign in.`);
+            reload();
+          }}
+        />
+      )}
+      {emailing && (
+        <ChangeEmailDialog
+          name={emailing.full_name || emailing.username}
+          current={emailing.email}
+          save={(email, adminPassword) => api.updateTeacherEmail(emailing.id, email, adminPassword)}
+          onClose={() => setEmailing(null)}
+          onDone={(name, hasEmail) => {
+            setEmailing(null);
+            toast.success(hasEmail ? `Email address saved for ${name}.` : `Email address removed for ${name}.`);
             reload();
           }}
         />

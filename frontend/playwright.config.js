@@ -12,6 +12,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const dataFolder = path.join(os.tmpdir(), 'educore_e2e');
 fs.mkdirSync(dataFolder, { recursive: true });
 const database = path.join(dataFolder, 'demo_e2e.db');
+// Reset emails are written here as .eml files and never sent anywhere.
+export const OUTBOX_DIR = path.join(dataFolder, 'outbox_e2e');
 
 export const API_PORT = 8010;
 export const WEB_PORT = 5183;
@@ -23,6 +25,8 @@ const backendEnv = {
   DATABASE_URL: `sqlite:///${database.replaceAll('\\', '/')}`,
   DEMO_ADMIN_PASSWORD: E2E_PASSWORD,
   FRONTEND_URL: `http://localhost:${WEB_PORT}`,
+  EMAIL_BACKEND: 'file',
+  EMAIL_OUTBOX_DIR: OUTBOX_DIR,
   GROQ_API_KEY: '',
   SCHOOL_NAME: 'Roshan Demo Academy',
   SCHOOL_ADDRESS: 'Demo Road, Khairpur, Sindh',

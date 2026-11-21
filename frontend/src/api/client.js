@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { sessionEndedPath } from '../lib/access';
-import { clearSession } from '../lib/session';
+import { CHANGE_PASSWORD_PATH, PASSWORD_CHANGE_REQUIRED, clearSession, setPasswordChangeRequired } from '../lib/session';
 
 // Production builds get this from VITE_API_URL (see frontend/.env.production).
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -32,6 +32,11 @@ client.interceptors.response.use(
         window.location.href = sessionEndedPath();
       }
     }
+    // After an administrator's reset the server refuses everything but choosing a new password.
+    if (error.response?.status === 403 && error.response.data?.detail === PASSWORD_CHANGE_REQUIRED) {
+      setPasswordChangeRequired(true);
+      if (window.location.pathname !== CHANGE_PASSWORD_PATH) window.location.href = CHANGE_PASSWORD_PATH;
+    }
     return Promise.reject(error);
   }
 );
@@ -43,13 +48,44 @@ export const api = {
   changePassword: (currentPassword, newPassword) =>
     client.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword }),
   getMe: () => client.get('/auth/me'),
+  // Self-service password reset by emailed link (teachers and parents)
+  forgotPassword: (email) => client.post('/auth/forgot-password', { email }),
+  checkResetLink: (token) => client.post('/auth/reset-password/check', { token }),
+  resetPasswordWithLink: (token, newPassword) => client.post('/auth/reset-password', { token, new_password: newPassword }),
 
   // Teacher accounts (administrators) and the teacher's own portal
   getTeachers: (options) => client.get('/teachers', options),
   createTeacher: (data) => client.post('/teachers', data),
+  resetTeacherPassword: (id, newPassword) => client.post(`/teachers/${id}/reset-password`, { new_password: newPassword }),
+  updateTeacherEmail: (id, email, adminPassword) => client.put(`/teachers/${id}/email`, { email, admin_password: adminPassword }),
   activateTeacher: (id) => client.post(`/teachers/${id}/activate`),
   deactivateTeacher: (id) => client.post(`/teachers/${id}/deactivate`),
   getTeacherProfile: (options) => client.get('/teacher/profile', options),
+
+  // Parent accounts and result publishing (administrators)
+  getParents: (options) => client.get('/parents', options),
+  createParent: (data) => client.post('/parents', data),
+  resetParentPassword: (id, newPassword) => client.post(`/parents/${id}/reset-password`, { new_password: newPassword }),
+  updateParentEmail: (id, email, adminPassword) => client.put(`/parents/${id}/email`, { email, admin_password: adminPassword }),
+  activateParent: (id) => client.post(`/parents/${id}/activate`),
+  deactivateParent: (id) => client.post(`/parents/${id}/deactivate`),
+  linkParentChild: (parentId, data) => client.post(`/parents/${parentId}/children`, data),
+  unlinkParentChild: (parentId, studentId) => client.delete(`/parents/${parentId}/children/${studentId}`),
+  getResultPublishing: (options) => client.get('/result-publishing', options),
+  setResultPublished: (data) => client.put('/result-publishing', data),
+
+  // The parent's own portal
+  getParentProfile: (options) => client.get('/parent/profile', options),
+  getParentChildren: (options) => client.get('/parent/children', options),
+  getParentChildAttendance: (id, params, options) => client.get(`/parent/children/${id}/attendance`, { params, ...options }),
+  getParentChildResults: (id, params, options) => client.get(`/parent/children/${id}/results`, { params, ...options }),
+  getParentChildFees: (id, options) => client.get(`/parent/children/${id}/fees`, options),
+  getParentReportCardPdf: (id, params) =>
+    client.get(`/parent/children/${id}/report-card/pdf`, { params, responseType: 'blob' }).then((response) => response.data),
+  getParentChallanPdf: (id, invoiceId) =>
+    client.get(`/parent/children/${id}/invoices/${invoiceId}/challan/pdf`, { responseType: 'blob' }).then((response) => response.data),
+  getParentReceiptPdf: (id, paymentId) =>
+    client.get(`/parent/children/${id}/payments/${paymentId}/receipt`, { responseType: 'blob' }).then((response) => response.data),
 
   // Teacher assignments (administrators)
   getAssignmentOptions: (options) => client.get('/teacher-assignments/options', options),

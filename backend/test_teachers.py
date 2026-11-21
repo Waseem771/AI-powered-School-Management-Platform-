@@ -78,7 +78,7 @@ def test_responses_never_contain_a_password_or_hash(client, admin_token, teacher
 
     assert listing.status_code == 200
     for body in (str(teacher), listing.text):
-        assert "password" not in body.lower()
+        assert "password_hash" not in body.lower() and "new_password" not in body.lower()
         assert "$2" not in body
 
 
@@ -281,7 +281,8 @@ def test_a_teacher_may_change_their_own_password_only(client, teacher, teacher_t
 def test_every_route_is_either_public_or_refuses_a_teacher(client, teacher_token):
     """The audit: no school-data route may be reachable by a teacher, and none may be open to
     anonymous callers, except the ones listed here on purpose."""
-    open_to_anyone = {("GET", "/"), ("GET", "/school/public"), ("POST", "/auth/login"), ("POST", "/auth/logout")}
+    open_to_anyone = {("GET", "/"), ("GET", "/school/public"), ("POST", "/auth/login"), ("POST", "/auth/logout"),
+                     ("POST", "/auth/forgot-password"), ("POST", "/auth/reset-password"), ("POST", "/auth/reset-password/check")}
     open_to_teachers = {
         ("GET", "/auth/me"),
         ("POST", "/auth/change-password"),
