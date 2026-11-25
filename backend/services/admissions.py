@@ -29,7 +29,7 @@ from models.fee import AcademicYear, FeeStructure
 from models.student import Student, StudentCreate
 from services.fee_ledger import school_today
 
-STAFF_ROLES = frozenset({"admin", "principal", "registrar", "staff", "demo"})  # demo: reads only
+STAFF_ROLES = frozenset({"admin", "principal", "registrar", "staff", "demo"})  # demo: add and edit only (routers/auth.py)
 # Approving and rejecting is the school's decision, so it is limited to leadership.
 DECISION_ROLES = frozenset({"admin", "principal"})
 DECISION_STATUSES = (STATUS_APPROVED, STATUS_REJECTED)

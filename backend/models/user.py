@@ -31,9 +31,9 @@ class User(SQLModel, table=True):
 
 ROLE_TEACHER = "teacher"
 ROLE_PARENT = "parent"
-# Sees every screen the administrator sees but can change nothing; see get_active_user in routers/auth.py.
+# Sees every screen the administrator sees, may add and edit, never removes or manages accounts; see demo_may in routers/auth.py.
 ROLE_DEMO = "demo"
-DEMO_MIN_PASSWORD_LENGTH = 9  # owner's choice for the shared look-only login
+DEMO_MIN_PASSWORD_LENGTH = 9  # owner's choice for the shared demo login
 # Roles that have a portal of their own and no access to the staff-side routes.
 PORTAL_ONLY_ROLES = frozenset({ROLE_TEACHER, ROLE_PARENT})
 

@@ -4,10 +4,14 @@
     python add_admin_account.py path/to/school.db admin1 --apply   # ask for a password, back up, then add
 
     modal run modal_app.py::add_admin_account --username admin1 [--apply]   # the live database
-    modal run modal_app.py::add_admin_account --username demo --demo --apply   # look-only account
+    modal run modal_app.py::add_admin_account --username demo --demo --apply   # demo account: adds and edits, never removes
 
---demo adds an account that sees the administrator's screens but can change nothing. DEPLOY THE
-BACKEND THAT KNOWS THE demo ROLE FIRST: older code treats it as staff, with full write access.
+--demo adds an account that sees the administrator's screens and can add and edit, but cannot remove
+anything or manage accounts. DEPLOY THE BACKEND THAT KNOWS THE demo ROLE FIRST: older code treats it as
+staff, with full write access.
+
+On Modal, STOP THE APP FIRST (modal app stop educore-ai-school-platform), then deploy again afterwards: a
+running web container keeps its own copy of the database and can write it back over the new account.
 
 The password is typed at a hidden prompt, never given as an argument; only its bcrypt hash is stored.
 It never changes an existing account. There is no screen for removing an administrator, so a mistake
@@ -54,7 +58,7 @@ def add_admin(database: Path, username: str, password_hash: str = "", demo: bool
         return 2
 
     role = ROLE_DEMO if demo else "admin"
-    kind = "demo (look-only) account" if demo else "administrator"
+    kind = "demo (add and edit, no removal) account" if demo else "administrator"
     engine = create_engine(f"sqlite:///{database}")
     try:
         with Session(engine) as session:

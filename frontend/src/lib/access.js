@@ -52,7 +52,7 @@ export function isPortalUser(user) {
   return isTeacher(user) || isParent(user);
 }
 
-/** The demo account sees the administrator's screens; the server refuses every change it tries. */
+/** The demo account sees the administrator's screens; the server lets it add and edit, and refuses removals and account changes. */
 export function isAdmin(user) {
   return ['admin', 'demo'].includes(roleOf(user));
 }

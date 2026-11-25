@@ -145,7 +145,7 @@ def add_admin_account_on_volume(username: str, password_hash: str = "", demo: bo
 
 @app.local_entrypoint()
 def add_admin_account(username: str, apply: bool = False, demo: bool = False):
-    """Adds an administrator, or with --demo a look-only account, to the live database; the password is typed here. See add_admin_account.py."""
+    """Adds an administrator, or with --demo a demo account (adds and edits, never removes), to the live database; the password is typed here. See add_admin_account.py."""
     from add_admin_account import ask_password_hash
 
     add_admin_account_on_volume.remote(username, ask_password_hash(demo) if apply else "", demo)

@@ -129,17 +129,25 @@ def get_authenticated_user(
     return user
 
 
-DEMO_REFUSAL = "This demo account can look around but cannot change anything."
-# The only non-GET requests a demo account may make: none of them saves anything to the database.
-DEMO_ALLOWED_WRITES = frozenset({
-    ("POST", "/chatbot/ask"),
-    ("DELETE", "/chatbot/history/{session_id}"),
-    ("POST", "/ai/simulate"),
-})
+DEMO_REFUSAL = "This demo account can add and edit records, but cannot remove anything or manage accounts."
+# A demo account may add and edit, but never remove (delete, archive, deactivate) or touch accounts: the login is
+# shared, and an account action (reset, email change, new login, linking a child) would hand a visitor someone's access.
+DEMO_ACCOUNT_PREFIXES = ("/teachers", "/parents", "/auth")
+DEMO_REMOVAL_SUFFIXES = ("/archive", "/deactivate")
+DEMO_ALLOWED_DELETES = frozenset({"/chatbot/history/{session_id}"})  # the visitor's own chat, not school data
 
 
 def _is_demo(user: User) -> bool:
     return (user.role or "").lower() == ROLE_DEMO
+
+
+def demo_may(method: str, path: str) -> bool:
+    """Whether the demo role may make this request. `path` is the route's template, e.g. /students/{student_id}."""
+    if method in ("GET", "HEAD"):
+        return True
+    if method == "DELETE":
+        return path in DEMO_ALLOWED_DELETES
+    return not path.startswith(DEMO_ACCOUNT_PREFIXES) and not path.endswith(DEMO_REMOVAL_SUFFIXES)
 
 
 def _demo_refused() -> HTTPException:
@@ -157,9 +165,8 @@ def get_active_user(
     if password_change_pending(session, user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PASSWORD_CHANGE_REQUIRED)
     # Refused here, which every staff and admin route passes through, so a new write route is closed by default.
-    if _is_demo(user) and request.method not in ("GET", "HEAD"):
-        if (request.method, request.scope["route"].path) not in DEMO_ALLOWED_WRITES:
-            raise _demo_refused()
+    if _is_demo(user) and not demo_may(request.method, request.scope["route"].path):
+        raise _demo_refused()
     return user
 
 
@@ -180,7 +187,7 @@ def require_roles(*roles: str):
     allowed = frozenset(role.lower() for role in roles)
 
     def check(user: User = Depends(get_active_user)) -> User:
-        # A demo account reads what an administrator reads; get_active_user has already refused its writes.
+        # A demo account passes as an administrator here; get_active_user has already refused what it may not do.
         role = "admin" if _is_demo(user) else (user.role or "").lower()
         if role not in allowed:
             raise _forbidden()
