@@ -52,8 +52,9 @@ export function isPortalUser(user) {
   return isTeacher(user) || isParent(user);
 }
 
+/** The demo account sees the administrator's screens; the server refuses every change it tries. */
 export function isAdmin(user) {
-  return roleOf(user) === 'admin';
+  return ['admin', 'demo'].includes(roleOf(user));
 }
 
 export function homePathFor(user) {

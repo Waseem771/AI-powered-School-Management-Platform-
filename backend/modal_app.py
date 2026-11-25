@@ -125,6 +125,32 @@ def add_academic_session(label: str, apply: bool = False):
         raise SystemExit(code)
 
 
+@app.function(image=image, volumes={"/data": data_volume}, timeout=300)
+def add_admin_account_on_volume(username: str, password_hash: str = "", demo: bool = False):
+    """Remote half of add_admin_account. Receives a hash only, never the password."""
+    import sys
+    sys.path.insert(0, "/root/backend")
+    os.chdir("/root/backend")
+    # As in upgrade_database: no secrets here and none needed, but the models load the settings.
+    os.environ["APP_ENV"] = "development"
+
+    from add_admin_account import add_admin
+
+    code = add_admin(Path("/data/school.db"), username, password_hash, demo)
+    if password_hash:
+        data_volume.commit()
+    if code != 0:
+        raise SystemExit(code)
+
+
+@app.local_entrypoint()
+def add_admin_account(username: str, apply: bool = False, demo: bool = False):
+    """Adds an administrator, or with --demo a look-only account, to the live database; the password is typed here. See add_admin_account.py."""
+    from add_admin_account import ask_password_hash
+
+    add_admin_account_on_volume.remote(username, ask_password_hash(demo) if apply else "", demo)
+
+
 # Phase 1b (see EDUCORE_AI_PHASE_1_DATABASE_PROTECTION_PLAN.md section 7a.3): a dedicated,
 # separate volume for backups. This is live: the educore-backups volume exists on Modal and the
 # schedule below has been firing since 2026-11-13. Because it lives in this file, every

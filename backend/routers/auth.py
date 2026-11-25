@@ -15,6 +15,7 @@ from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, PASSWORD_RESET_TOKEN_
 from database import get_session
 from models.user import (
     PORTAL_ONLY_ROLES,
+    ROLE_DEMO,
     RevokedToken,
     User,
     hash_password,
@@ -128,7 +129,25 @@ def get_authenticated_user(
     return user
 
 
+DEMO_REFUSAL = "This demo account can look around but cannot change anything."
+# The only non-GET requests a demo account may make: none of them saves anything to the database.
+DEMO_ALLOWED_WRITES = frozenset({
+    ("POST", "/chatbot/ask"),
+    ("DELETE", "/chatbot/history/{session_id}"),
+    ("POST", "/ai/simulate"),
+})
+
+
+def _is_demo(user: User) -> bool:
+    return (user.role or "").lower() == ROLE_DEMO
+
+
+def _demo_refused() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=DEMO_REFUSAL)
+
+
 def get_active_user(
+    request: Request,
     user: User = Depends(get_authenticated_user),
     session: Session = Depends(get_session),
 ) -> User:
@@ -137,6 +156,10 @@ def get_active_user(
     password, sign out), which use get_authenticated_user. Checked on every request, so a forced change cannot be skipped by editing the browser."""
     if password_change_pending(session, user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PASSWORD_CHANGE_REQUIRED)
+    # Refused here, which every staff and admin route passes through, so a new write route is closed by default.
+    if _is_demo(user) and request.method not in ("GET", "HEAD"):
+        if (request.method, request.scope["route"].path) not in DEMO_ALLOWED_WRITES:
+            raise _demo_refused()
     return user
 
 
@@ -157,7 +180,9 @@ def require_roles(*roles: str):
     allowed = frozenset(role.lower() for role in roles)
 
     def check(user: User = Depends(get_active_user)) -> User:
-        if (user.role or "").lower() not in allowed:
+        # A demo account reads what an administrator reads; get_active_user has already refused its writes.
+        role = "admin" if _is_demo(user) else (user.role or "").lower()
+        if role not in allowed:
             raise _forbidden()
         return user
 
@@ -253,6 +278,9 @@ def change_password(
     current_user: User = Depends(get_authenticated_user),
     session: Session = Depends(get_session),
 ):
+    # The login is shared, so one visitor must not be able to lock the others out.
+    if _is_demo(current_user):
+        raise _demo_refused()
     username_key, address_key = _throttle_keys(current_user.username, http_request)
     _reject_if_throttled(username_key, address_key)
 

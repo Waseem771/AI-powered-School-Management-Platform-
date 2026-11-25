@@ -118,3 +118,9 @@ test('staff and teachers cannot open the parent portal, and only an administrato
   assert.equal(isPortalUser(parent) && isPortalUser(teacher), true);
   assert.equal(isPortalUser(admin) || isPortalUser(registrar), false);
 });
+
+test('the demo account sees the same screens as the administrator', () => {
+  assert.deepEqual(navItemsFor({ role: 'demo' }), navItemsFor({ role: 'admin' }));
+  assert.equal(canAccessPath({ role: 'demo' }, '/teachers'), true);
+  assert.equal(canAccessPath({ role: 'demo' }, '/teacher/dashboard'), false);
+});

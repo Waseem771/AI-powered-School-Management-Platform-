@@ -31,6 +31,9 @@ class User(SQLModel, table=True):
 
 ROLE_TEACHER = "teacher"
 ROLE_PARENT = "parent"
+# Sees every screen the administrator sees but can change nothing; see get_active_user in routers/auth.py.
+ROLE_DEMO = "demo"
+DEMO_MIN_PASSWORD_LENGTH = 9  # owner's choice for the shared look-only login
 # Roles that have a portal of their own and no access to the staff-side routes.
 PORTAL_ONLY_ROLES = frozenset({ROLE_TEACHER, ROLE_PARENT})
 
@@ -108,10 +111,10 @@ def needs_rehash(stored_hash: str) -> bool:
     return not _is_bcrypt_hash(stored_hash)
 
 
-def password_problem(password: str) -> Optional[str]:
+def password_problem(password: str, min_length: int = MIN_PASSWORD_LENGTH) -> Optional[str]:
     """A message saying why this password is not acceptable, or None if it is fine."""
-    if len(password) < MIN_PASSWORD_LENGTH:
-        return f"it must be at least {MIN_PASSWORD_LENGTH} characters"
+    if len(password) < min_length:
+        return f"it must be at least {min_length} characters"
     if len(password.encode("utf-8")) > BCRYPT_MAX_BYTES:
         return f"it must be at most {BCRYPT_MAX_BYTES} bytes"
     if password.lower() in COMMON_PASSWORDS or password in KNOWN_DEFAULT_PASSWORDS:
