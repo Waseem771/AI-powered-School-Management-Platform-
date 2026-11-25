@@ -40,6 +40,7 @@ backend/            FastAPI app (run commands from here)
   seed_data.py      development and test data: 50 students, invoices, results (skips if 50+ students exist). Not for showing to anyone: some names belong to public figures
   seed_demo.py      builds demo.db, the fictional Khairpur school, in its own file. Never touches school.db
   modal_app.py      Modal deployment (installs from the requirements files)
+  modal_demo_app.py the online demo: separate Modal app, storage and secret, made-up data only
   requirements*.txt exact versions: runtime, optional admissions, dev/test
   conftest.py       test isolation: temporary database, no real keys
   models/           SQLModel tables: user, student, fee, result
