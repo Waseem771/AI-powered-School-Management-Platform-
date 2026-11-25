@@ -32,6 +32,12 @@ def session(tmp_path_factory):
     engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def _school_date(monkeypatch):
+    # Overdue is judged by school_today(); without this the build date and the real date drift apart.
+    monkeypatch.setattr("services.fee_ledger.school_today", lambda: TODAY)
+
+
 def _by_roll(session, roll):
     return session.exec(select(Student).where(Student.roll_number == roll)).one()
 
