@@ -22,6 +22,7 @@ export const E2E_PASSWORD = 'e2e-only-demo-password-1';
 const backendEnv = {
   APP_ENV: 'development',
   DEMO_MODE: 'true',
+  DEMO_FULL_ACCESS: 'true',
   DATABASE_URL: `sqlite:///${database.replaceAll('\\', '/')}`,
   DEMO_ADMIN_PASSWORD: E2E_PASSWORD,
   FRONTEND_URL: `http://localhost:${WEB_PORT}`,
@@ -56,7 +57,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `"${python}" seed_demo.py --output "${database}" --replace && "${python}" -m uvicorn main:app --port ${API_PORT}`,
+      command: `"${python}" seed_demo.py --output "${database}" --replace && "${python}" ../frontend/e2e/make_demo_login.py "${database}" && "${python}" -m uvicorn main:app --port ${API_PORT}`,
       cwd: path.join(here, '..', 'backend'),
       url: `http://localhost:${API_PORT}/school/public`,
       env: backendEnv,

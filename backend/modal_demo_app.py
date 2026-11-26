@@ -53,6 +53,7 @@ def fastapi_app():
     # Set here, not from the secret, so no setting can point the demo at another database.
     os.environ["DATABASE_URL"] = f"sqlite:///{DEMO_DATABASE}"
     os.environ["DEMO_MODE"] = "true"
+    os.environ["DEMO_FULL_ACCESS"] = "true"  # the demo login manages this made-up school (routers/auth.py)
     if not Path(DEMO_DATABASE).is_file():
         raise RuntimeError(f"{DEMO_DATABASE} is missing. Upload a demo.db built by seed_demo.py first.")
 

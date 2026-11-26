@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import Layout from './components/Layout';
 import { ToastProvider } from './components/ui/Toast';
 import Login from './pages/Login';
@@ -53,10 +53,11 @@ function ProtectedRoute({ children }) {
 function RequireAccess() {
   const { pathname } = useLocation();
   const user = getStoredUser();
+  const shared = useOutletContext(); // what Layout shares with its pages
   if (!canAccessPath(user, pathname)) {
     return <Navigate to={homePathFor(user)} replace />;
   }
-  return <Outlet />;
+  return <Outlet context={shared} />;
 }
 
 function HomeRedirect() {

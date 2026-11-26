@@ -23,6 +23,9 @@ APP_ENV = os.getenv("APP_ENV", "production").strip().lower()
 IS_PRODUCTION = APP_ENV != "development"
 # Labels the app as a demonstration holding made-up records.
 DEMO_MODE = os.getenv("DEMO_MODE", "").strip().lower() == "true"
+# Set only by modal_demo_app.py: the shared demo login then acts as the demo school's administrator, and
+# teacher and parent accounts can be deleted. Never on without DEMO_MODE.
+DEMO_FULL_ACCESS = DEMO_MODE and os.getenv("DEMO_FULL_ACCESS", "").strip().lower() == "true"
 
 # Auth & Security
 MIN_SECRET_KEY_LENGTH = 32

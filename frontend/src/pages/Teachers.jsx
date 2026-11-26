@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
 import ChangeEmailDialog from '../components/ChangeEmailDialog';
+import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import ResetPasswordDialog from '../components/ResetPasswordDialog';
 import Button from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
@@ -101,6 +103,9 @@ export default function Teachers() {
   const [confirming, setConfirming] = useState(null);
   const [resetting, setResetting] = useState(null);
   const [emailing, setEmailing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  // Accounts can be deleted only in the online demo; a school deactivates them.
+  const canDelete = Boolean(useOutletContext()?.school?.demo_full_access);
   const [busyId, setBusyId] = useState(null);
   const { data, loading, error, reload } = useLoad(
     (options) => api.getTeachers(options),
@@ -164,6 +169,11 @@ export default function Teachers() {
               Activate<span className="sr-only"> {teacher.full_name || teacher.username}</span>
             </Button>
           )}
+          {canDelete && (
+            <Button variant="danger" onClick={() => setDeleting(teacher)}>
+              Delete<span className="sr-only"> {teacher.full_name || teacher.username}</span>
+            </Button>
+          )}
         </div>
       ),
     },
@@ -225,6 +235,18 @@ export default function Teachers() {
           onDone={(name, hasEmail) => {
             setEmailing(null);
             toast.success(hasEmail ? `Email address saved for ${name}.` : `Email address removed for ${name}.`);
+            reload();
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteAccountDialog
+          name={deleting.full_name || deleting.username}
+          remove={() => api.deleteTeacher(deleting.id)}
+          onClose={() => setDeleting(null)}
+          onDone={(name) => {
+            setDeleting(null);
+            toast.success(`${name}'s account was deleted.`);
             reload();
           }}
         />

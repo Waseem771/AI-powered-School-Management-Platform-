@@ -198,6 +198,8 @@ export default function Layout() {
               <p className="text-xs text-slate-300">{roleLabel(user.role)}</p>
             </div>
           </div>
+          {/* The shared demo login's password is fixed; the server refuses to change it. */}
+          {user.role !== 'demo' && (
           <button
             onClick={() => { setMobileMenuOpen(false); setChangingPassword(true); }}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-navy-600 text-sm font-semibold text-slate-100 hover:bg-navy-700"
@@ -205,6 +207,7 @@ export default function Layout() {
             <KeyRound className="h-4 w-4" aria-hidden="true" />
             <span>Change Password</span>
           </button>
+          )}
           <button
             onClick={handleLogout}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-navy-600 text-sm font-semibold text-slate-100 hover:bg-navy-700"
@@ -227,7 +230,7 @@ export default function Layout() {
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
-          <Outlet />
+          <Outlet context={{ school }} />
         </main>
       </div>
     </div>

@@ -3,7 +3,7 @@
     python build_online_demo_db.py path\\to\\folder\\demo.db
 
 Made-up records only (seed_demo.py). Asks at hidden prompts for the `admin` password (full access to the demo
-school only) and the `demo` password (adds and edits, never removes or manages accounts). Prints no password.
+school only) and the `demo` password (the shared login; modal_demo_app.py lets it manage the whole demo school). Prints no password.
 Then upload the file: python -m modal volume put educore-demo-data <that file> demo.db
 """
 import os

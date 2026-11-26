@@ -16,3 +16,6 @@ def test_the_demo_app_forces_its_database_and_demo_mode():
     assert 'os.environ["DATABASE_URL"] = f"sqlite:///{DEMO_DATABASE}"' in SOURCE
     assert 'DEMO_DATABASE = "/data/demo.db"' in SOURCE
     assert 'os.environ["DEMO_MODE"] = "true"' in SOURCE
+    assert 'os.environ["DEMO_FULL_ACCESS"] = "true"' in SOURCE
+    # Production must never turn full access on.
+    assert "DEMO_FULL_ACCESS" not in (Path(__file__).parent / "modal_app.py").read_text(encoding="utf-8")

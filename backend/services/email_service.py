@@ -34,6 +34,8 @@ def _backend() -> str:
     backend = (config.EMAIL_BACKEND or "").strip().lower()
     if config.IS_PRODUCTION and backend != "smtp":
         return ""
+    if config.DEMO_MODE and backend == "smtp":
+        return ""  # a copy holding made-up records never sends real email, whatever its settings say
     return backend
 
 

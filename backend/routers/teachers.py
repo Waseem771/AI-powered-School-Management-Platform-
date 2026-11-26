@@ -12,10 +12,15 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, delete, select
 
+import config
 from database import get_session
-from models.user import ROLE_TEACHER, User, hash_password, password_problem, verify_password
+from models.attendance import AttendanceChangeHistory, StudentAttendance, TeacherClassAssignment
+from models.parent import ParentStudentLink
+from models.user import (
+    ROLE_TEACHER, PasswordResetEvent, PasswordResetToken, User, hash_password, password_problem, verify_password,
+)
 from routers.auth import MAX_CREDENTIAL_LENGTH, _record_failure, _reject_if_throttled, _throttle_keys, require_roles
 from services.email_address import optional_email
 from services.password_reset import apply_admin_reset, reset_states
@@ -105,6 +110,27 @@ def change_account_email(
         background.add_task(send_email_changed_notice, old_address, account.full_name)
 
 
+def delete_account(session: Session, account: User) -> None:
+    """Shared by teachers and parents, and only for the full-access online demo: a school only deactivates.
+    The caller has already checked the account's role, so this never reaches an administrator or the demo login."""
+    if not config.DEMO_FULL_ACCESS:
+        raise HTTPException(status_code=403, detail="Accounts cannot be deleted. Deactivate the account instead.")
+    recorded = session.exec(select(StudentAttendance.id).where(StudentAttendance.marked_by == account.id)).first()
+    corrected = session.exec(
+        select(AttendanceChangeHistory.id).where(AttendanceChangeHistory.changed_by == account.id)).first()
+    if recorded is not None or corrected is not None:
+        raise HTTPException(
+            status_code=409, detail="This account has recorded attendance, so it cannot be deleted. Deactivate it instead.")
+    # SQLite can give a new account the same id, so nothing may be left pointing at this one.
+    for model, owner in (
+        (TeacherClassAssignment, TeacherClassAssignment.teacher_id), (ParentStudentLink, ParentStudentLink.parent_id),
+        (PasswordResetEvent, PasswordResetEvent.user_id), (PasswordResetToken, PasswordResetToken.user_id),
+    ):
+        session.exec(delete(model).where(col(owner) == account.id))
+    session.delete(account)
+    session.commit()
+
+
 class TeacherRead(BaseModel):
     id: int
     username: str
@@ -189,6 +215,15 @@ def list_teachers(
     teachers = session.exec(select(User).where(User.role == ROLE_TEACHER).order_by(User.full_name, User.username)).all()
     states = reset_states(session, [teacher.id for teacher in teachers])
     return [_read(teacher, states[teacher.id]) for teacher in teachers]
+
+
+@router.delete("/{teacher_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_teacher(
+    teacher_id: int,
+    session: Session = Depends(get_session),
+    _admin: User = Depends(require_admin),
+) -> None:
+    delete_account(session, _get_teacher(session, teacher_id))
 
 
 @router.post("/{teacher_id}/activate", response_model=TeacherRead)

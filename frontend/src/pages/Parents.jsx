@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { UserPlus, X } from 'lucide-react';
 import { api } from '../api/client';
 import DataTable from '../components/DataTable';
 import ChangeEmailDialog from '../components/ChangeEmailDialog';
+import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import ResetPasswordDialog from '../components/ResetPasswordDialog';
 import StudentPicker from '../components/StudentPicker';
 import Button, { IconButton } from '../components/ui/Button';
@@ -301,6 +303,9 @@ export default function Parents() {
   const [managingId, setManagingId] = useState(null);
   const [resetting, setResetting] = useState(null);
   const [emailing, setEmailing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  // Accounts can be deleted only in the online demo; a school deactivates them.
+  const canDelete = Boolean(useOutletContext()?.school?.demo_full_access);
   const [busyId, setBusyId] = useState(null);
   const { data, loading, error, reload } = useLoad(
     (options) => api.getParents(options),
@@ -378,6 +383,11 @@ export default function Parents() {
               Activate<span className="sr-only"> {parent.full_name || parent.username}</span>
             </Button>
           )}
+          {canDelete && (
+            <Button variant="danger" onClick={() => setDeleting(parent)}>
+              Delete<span className="sr-only"> {parent.full_name || parent.username}</span>
+            </Button>
+          )}
         </div>
       ),
     },
@@ -446,6 +456,18 @@ export default function Parents() {
         />
       )}
       {managing && <ManageChildrenDialog parent={managing} onClose={() => setManagingId(null)} onChanged={reload} />}
+      {deleting && (
+        <DeleteAccountDialog
+          name={deleting.full_name || deleting.username}
+          remove={() => api.deleteParent(deleting.id)}
+          onClose={() => setDeleting(null)}
+          onDone={(name) => {
+            setDeleting(null);
+            toast.success(`${name}'s account was deleted.`);
+            reload();
+          }}
+        />
+      )}
       {confirming && (
         <ConfirmDeactivate
           parent={confirming}

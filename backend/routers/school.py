@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
+import config
 from config import DEMO_MODE, SCHOOL_NAME, SCHOOL_TAGLINE
 from database import get_session
 from models.fee import AcademicYear
@@ -24,4 +25,5 @@ def get_school_info(session: Session = Depends(get_session), _user=Depends(get_c
         "tagline": SCHOOL_TAGLINE,
         "academic_session": current_year.label if current_year else None,
         "demo_mode": DEMO_MODE,
+        "demo_full_access": config.DEMO_FULL_ACCESS,
     }

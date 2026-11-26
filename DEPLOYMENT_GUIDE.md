@@ -126,7 +126,7 @@ https://<your-username>--educore-ai-school-platform-fastapi-app.modal.run
 
 `modal_app.py` uses a database called `school.db` on its Volume. Never put `demo.db` in its place. The online demo is a separate Modal app, `backend/modal_demo_app.py`: its own app (`educore-demo`), Volume (`educore-demo-data`) and secret (`educore-demo-secrets`), always on `/data/demo.db`, always with DEMO MODE on, and no backup schedule (the data is made up). Its frontend is a second Vercel project.
 
-1. Build the database outside `backend/`, typing both passwords at hidden prompts: `python build_online_demo_db.py C:\path\to\folder\demo.db`. It holds made-up records only, an `admin` for the demo school, and the shared `demo` login (adds and edits, never removes or manages accounts).
+1. Build the database outside `backend/`, typing both passwords at hidden prompts: `python build_online_demo_db.py C:\path\to\folder\demo.db`. It holds made-up records only, an `admin` for the demo school, and the shared `demo` login. `modal_demo_app.py` turns on `DEMO_FULL_ACCESS`, so there that login manages the whole made-up school, including deleting teacher and parent accounts; only its own password is fixed, and no email is ever sent.
 2. `python -m modal volume create educore-demo-data`, then `python -m modal volume put educore-demo-data C:\path\to\folder\demo.db demo.db`.
 3. Create the secret `educore-demo-secrets` with its own `SECRET_KEY` (never production's), `FRONTEND_URL` (the demo Vercel address) and the `SCHOOL_*` values from `start_demo.bat`.
 4. From a clean `git archive` export: `python -m modal deploy modal_demo_app.py`. Its address is `https://<workspace>--educore-demo-fastapi-app.modal.run`.

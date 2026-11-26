@@ -60,6 +60,7 @@ export const api = {
   updateTeacherEmail: (id, email, adminPassword) => client.put(`/teachers/${id}/email`, { email, admin_password: adminPassword }),
   activateTeacher: (id) => client.post(`/teachers/${id}/activate`),
   deactivateTeacher: (id) => client.post(`/teachers/${id}/deactivate`),
+  deleteTeacher: (id) => client.delete(`/teachers/${id}`),
   getTeacherProfile: (options) => client.get('/teacher/profile', options),
 
   // Parent accounts and result publishing (administrators)
@@ -69,6 +70,7 @@ export const api = {
   updateParentEmail: (id, email, adminPassword) => client.put(`/parents/${id}/email`, { email, admin_password: adminPassword }),
   activateParent: (id) => client.post(`/parents/${id}/activate`),
   deactivateParent: (id) => client.post(`/parents/${id}/deactivate`),
+  deleteParent: (id) => client.delete(`/parents/${id}`),
   linkParentChild: (parentId, data) => client.post(`/parents/${parentId}/children`, data),
   unlinkParentChild: (parentId, studentId) => client.delete(`/parents/${parentId}/children/${studentId}`),
   getResultPublishing: (options) => client.get('/result-publishing', options),

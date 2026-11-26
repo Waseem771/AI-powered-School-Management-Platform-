@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, func, select, update
 
+import config
 from models.admission import (
     ALLOWED_TRANSITIONS,
     DEFAULT_DOCUMENTS,
@@ -29,7 +30,7 @@ from models.fee import AcademicYear, FeeStructure
 from models.student import Student, StudentCreate
 from services.fee_ledger import school_today
 
-STAFF_ROLES = frozenset({"admin", "principal", "registrar", "staff", "demo"})  # demo: add and edit only (routers/auth.py)
+STAFF_ROLES = frozenset({"admin", "principal", "registrar", "staff", "demo"})  # demo: see demo_may in routers/auth.py
 # Approving and rejecting is the school's decision, so it is limited to leadership.
 DECISION_ROLES = frozenset({"admin", "principal"})
 DECISION_STATUSES = (STATUS_APPROVED, STATUS_REJECTED)
@@ -49,6 +50,11 @@ def conflict(detail: str) -> HTTPException:
 def require_roles(user, allowed: Iterable[str]) -> None:
     if (user.role or "").lower() not in allowed:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You do not have permission to do this.")
+
+
+def decision_roles() -> frozenset:
+    # In the full-access online demo the shared login decides applications too.
+    return DECISION_ROLES | {"demo"} if config.DEMO_FULL_ACCESS else DECISION_ROLES
 
 
 # ── Lookups ─────────────────────────────────────────────────────────────────
@@ -132,7 +138,7 @@ def create_application(session: Session, data, created_by: str) -> AdmissionAppl
 
 def allowed_next(status: str, user_role: Optional[str] = None) -> List[str]:
     options = list(ALLOWED_TRANSITIONS.get(status, ()))
-    if user_role is not None and user_role.lower() not in DECISION_ROLES:
+    if user_role is not None and user_role.lower() not in decision_roles():
         options = [option for option in options if option not in DECISION_STATUSES]
     return options
 
@@ -141,7 +147,7 @@ def change_status(session: Session, application: AdmissionApplication, to_status
     if to_status not in STATUSES or to_status == STATUS_ENROLLED:
         raise HTTPException(status_code=422, detail="Use the enrollment action to enroll an approved applicant.")
     if to_status in DECISION_STATUSES:
-        require_roles(user, DECISION_ROLES)
+        require_roles(user, decision_roles())
 
     # Take the write lock before reading, so two staff cannot both move the same application.
     session.exec(update(AdmissionApplication).where(AdmissionApplication.id == application.id).values(status=AdmissionApplication.status))

@@ -23,7 +23,7 @@ from routers.auth import MAX_CREDENTIAL_LENGTH, require_roles
 from routers.fees import download_challan_pdf, download_payment_receipt
 from routers.results import download_report_card
 from routers.teachers import (
-    USERNAME_PATTERN, EmailChange, PasswordReset, change_account_email, require_admin,
+    USERNAME_PATTERN, EmailChange, PasswordReset, change_account_email, delete_account, require_admin,
 )
 from services import parent_portal as portal
 from services.email_address import optional_email
@@ -203,6 +203,11 @@ def _set_active(session: Session, parent_id: int, active: bool) -> dict:
         session.commit()
         session.refresh(parent)
     return _readable(session, parent)
+
+
+@router.delete("/{parent_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_parent(parent_id: int, session: Session = Depends(get_session), _admin: User = Depends(require_admin)) -> None:
+    delete_account(session, _get_parent(session, parent_id))
 
 
 @router.post("/{parent_id}/activate")

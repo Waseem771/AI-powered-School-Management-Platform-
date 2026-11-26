@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session, col, delete, select
 
+import config
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, PASSWORD_RESET_TOKEN_MINUTES, SECRET_KEY
 from database import get_session
 from models.user import (
@@ -130,6 +131,8 @@ def get_authenticated_user(
 
 
 DEMO_REFUSAL = "This demo account can add and edit records, but cannot remove anything or manage accounts."
+DEMO_PASSWORD_FIXED = "The shared demo login's password cannot be changed."
+# Everything below applies unless config.DEMO_FULL_ACCESS, which only the isolated online demo turns on.
 # A demo account may add and edit, but never remove (delete, archive, deactivate) or touch accounts: the login is
 # shared, and an account action (reset, email change, new login, linking a child) would hand a visitor someone's access.
 DEMO_ACCOUNT_PREFIXES = ("/teachers", "/parents", "/auth")
@@ -165,7 +168,7 @@ def get_active_user(
     if password_change_pending(session, user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PASSWORD_CHANGE_REQUIRED)
     # Refused here, which every staff and admin route passes through, so a new write route is closed by default.
-    if _is_demo(user) and not demo_may(request.method, request.scope["route"].path):
+    if _is_demo(user) and not config.DEMO_FULL_ACCESS and not demo_may(request.method, request.scope["route"].path):
         raise _demo_refused()
     return user
 
@@ -188,6 +191,7 @@ def require_roles(*roles: str):
 
     def check(user: User = Depends(get_active_user)) -> User:
         # A demo account passes as an administrator here; get_active_user has already refused what it may not do.
+        # Its own password stays fixed in every mode (change_password).
         role = "admin" if _is_demo(user) else (user.role or "").lower()
         if role not in allowed:
             raise _forbidden()
@@ -287,7 +291,7 @@ def change_password(
 ):
     # The login is shared, so one visitor must not be able to lock the others out.
     if _is_demo(current_user):
-        raise _demo_refused()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=DEMO_PASSWORD_FIXED)
     username_key, address_key = _throttle_keys(current_user.username, http_request)
     _reject_if_throttled(username_key, address_key)
 
